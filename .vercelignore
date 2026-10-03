@@ -1,0 +1,17 @@
+# Vercel utilise ce fichier à la place de .gitignore : tout ce qui ne doit pas
+# monter doit être listé ici, secrets locaux compris.
+.env
+.env.*
+!.env.example
+
+.next
+.data
+node_modules
+.vercel
+*.log
+*.tsbuildinfo
+
+# Outillage local. `.claude/skills/` ne contient que des liens symboliques vers
+# `.agents/`, absent du dépôt : les téléverser fait échouer la collecte.
+.claude
+.agents

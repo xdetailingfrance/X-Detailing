@@ -1,0 +1,1369 @@
+// X Detailing OS — schéma central (§1 : une seule base pour tout le réseau)
+// Le schéma couvre les 6 phases du §37 dès la Phase 1 : ajouter une table sur des
+// données de production coûte dix fois ce qu'elle coûte aujourd'hui.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// IDENTITÉ & RÉSEAU
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN // le patron
+  DISPATCHER // conseiller qui prend les RDV au téléphone (§3)
+  OPERATOR
+  CUSTOMER
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  phone        String?
+  passwordHash String
+  role         Role
+  firstName    String
+  lastName     String
+  active       Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  operator              Operator?
+  customer              Customer?
+  createdAppointments   Appointment[]      @relation("AppointmentCreatedBy")
+  cancelledAppointments Appointment[]      @relation("AppointmentCancelledBy")
+  appointmentEvents     AppointmentEvent[]
+  assignmentRuns        AssignmentRun[]
+  auditLogs             AuditLog[]
+  acknowledgedAlerts    Alert[]
+  settingUpdates        Setting[]
+
+  @@index([role, active])
+}
+
+/// §37 phase 6 — montée en charge multi-régions. Une région regroupe des secteurs ;
+/// elle porte ce qui change d'un territoire à l'autre : fuseau d'activité, responsable,
+/// et à terme la TVA ou les tarifs.
+model Region {
+  id       String   @id @default(cuid())
+  code     String   @unique
+  name     String
+  timezone String   @default("Europe/Paris")
+  active   Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  sectors Sector[]
+}
+
+model Sector {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  regionId    String?
+  color       String   @default("#2563eb")
+  centroidLat Float
+  centroidLng Float
+  boundary    Json? // GeoJSON polygon, optionnel
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  region        Region?                  @relation(fields: [regionId], references: [id])
+  homeOperators Operator[]               @relation("OperatorHomeSector")
+  coverage      OperatorSectorCoverage[]
+  appointments  Appointment[]
+  slotOffers    SlotOffer[]
+
+  @@index([regionId])
+}
+
+enum OperatorStatus {
+  ONBOARDING
+  ACTIVE
+  SUSPENDED // §28 : suspendre sans supprimer l'historique
+  ARCHIVED
+}
+
+model Operator {
+  id           String  @id @default(cuid())
+  userId       String  @unique
+  code         String  @unique
+  firstName    String
+  lastName     String
+  phone        String
+  email        String
+  homeAddress  String
+  homeLat      Float
+  homeLng      Float
+  homeSectorId String?
+
+  status         OperatorStatus @default(ONBOARDING)
+  commissionRate Decimal        @default(0.18) @db.Decimal(5, 4) // §18
+  qualityScore   Int            @default(80) // §25, 0-100
+
+  // Paramètres d'affectation propres à l'opérateur (surchargent les réglages réseau)
+  targetJobsPerDay      Int  @default(5)
+  maxTravelMinOverride  Int?
+  adContributionCapCents Int @default(15000) // §19 : 150 €/mois
+
+  startedAt   DateTime  @default(now())
+  suspendedAt DateTime?
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user         User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  homeSector   Sector?                  @relation("OperatorHomeSector", fields: [homeSectorId], references: [id])
+  coverage     OperatorSectorCoverage[]
+  services     OperatorService[]
+  workingHours OperatorWorkingHours[]
+  timeOff      OperatorTimeOff[]
+  fleetVehicle FleetVehicle?
+
+  appointments      Appointment[]
+  appointmentEvents AppointmentEvent[]
+  commissions       Commission[]
+  settlements       Settlement[]
+  adSpends          AdSpend[]
+  reviews           Review[]
+  alerts            Alert[]
+  trackingPings     TrackingPing[]
+  adjustments       VehicleAdjustment[]
+  payments          Payment[]          @relation("PaymentCollectedBy")
+
+  @@index([status])
+}
+
+model OperatorSectorCoverage {
+  id         String @id @default(cuid())
+  operatorId String
+  sectorId   String
+
+  operator Operator @relation(fields: [operatorId], references: [id], onDelete: Cascade)
+  sector   Sector   @relation(fields: [sectorId], references: [id], onDelete: Cascade)
+
+  @@unique([operatorId, sectorId])
+}
+
+model OperatorService {
+  id         String @id @default(cuid())
+  operatorId String
+  serviceId  String
+
+  operator Operator @relation(fields: [operatorId], references: [id], onDelete: Cascade)
+  service  Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([operatorId, serviceId])
+}
+
+// Horaires en minutes depuis minuit — pas de fuseau, pas d'heure d'été à gérer.
+model OperatorWorkingHours {
+  id                String @id @default(cuid())
+  operatorId        String
+  weekday           Int // 0 = dimanche … 6 = samedi
+  startMinute       Int
+  endMinute         Int
+  breakStartMinute  Int?
+  breakEndMinute    Int?
+
+  operator Operator @relation(fields: [operatorId], references: [id], onDelete: Cascade)
+
+  @@unique([operatorId, weekday])
+}
+
+model OperatorTimeOff {
+  id         String   @id @default(cuid())
+  operatorId String
+  startAt    DateTime
+  endAt      DateTime
+  reason     String?
+  createdAt  DateTime @default(now())
+
+  operator Operator @relation(fields: [operatorId], references: [id], onDelete: Cascade)
+
+  @@index([operatorId, startAt, endAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FLOTTE (§29)
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum FleetStatus {
+  AVAILABLE
+  ASSIGNED
+  MAINTENANCE
+  RETIRED
+}
+
+model FleetVehicle {
+  id                 String      @id @default(cuid())
+  plate              String      @unique
+  make               String      @default("Renault")
+  model              String      @default("Kangoo")
+  year               Int?
+  mileageKm          Int         @default(0)
+  insurancePolicy    String?
+  insuranceExpiresAt DateTime?
+  financingType      String? // LOA, LLD, achat…
+  monthlyCostCents   Int?
+  purchasedAt        DateTime?
+  nextMaintenanceKm  Int?
+  nextMaintenanceAt  DateTime?
+  status             FleetStatus @default(AVAILABLE)
+  operatorId         String?     @unique
+  notes              String?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  operator       Operator?             @relation(fields: [operatorId], references: [id])
+  maintenanceLog FleetMaintenanceLog[]
+}
+
+model FleetMaintenanceLog {
+  id             String   @id @default(cuid())
+  fleetVehicleId String
+  date           DateTime
+  type           String
+  mileageKm      Int?
+  costCents      Int?
+  notes          String?
+
+  fleetVehicle FleetVehicle @relation(fields: [fleetVehicleId], references: [id], onDelete: Cascade)
+
+  @@index([fleetVehicleId, date])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CATALOGUE (§2)
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum VehicleClass {
+  CITADINE
+  BERLINE
+  BREAK
+  SUV
+  QUATRE_X_QUATRE
+  UTILITAIRE
+  SEPT_PLACES
+}
+
+enum ServiceKind {
+  INTERIOR
+  EXTERIOR
+  BOTH
+}
+
+enum ServiceTier {
+  ESSENTIAL
+  SIGNATURE
+}
+
+model Service {
+  id          String      @id @default(cuid())
+  code        String      @unique
+  /// Adresse de la page prestation, sans le nom de la ville : une URL ne se
+  /// renomme pas sans casser les liens et l'historique d'indexation. La commune
+  /// est portée par le titre et le contenu, où elle se corrige sans conséquence.
+  slug        String      @unique
+  name        String
+  kind        ServiceKind
+  description String?
+  /// §17 — le contenu du pack, ligne à ligne. C'est ce qui permet de comparer deux
+  /// formules sans transformer l'écran en comparateur agressif.
+  includes    String[]    @default([])
+  tier        ServiceTier @default(ESSENTIAL)
+  /// Mis en avant sur le site client. Un seul pack à la fois, en pratique.
+  featured    Boolean     @default(false)
+  sortOrder   Int         @default(0)
+  active      Boolean     @default(true)
+
+  pricing      ServicePricing[]
+  options      ServiceOptionLink[]
+  operators    OperatorService[]
+  appointments Appointment[]
+}
+
+model ServicePricing {
+  id           String       @id @default(cuid())
+  serviceId    String
+  vehicleClass VehicleClass
+  priceCents   Int
+  /// Prix de référence, barré à l'affichage quand une remise est en cours.
+  /// `null` quand la prestation se vend à son tarif normal (§21).
+  compareAtCents Int?
+  durationMin  Int
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([serviceId, vehicleClass])
+}
+
+model ServiceOption {
+  id          String  @id @default(cuid())
+  code        String  @unique
+  name        String
+  description String?
+  priceCents  Int
+  durationMin Int     @default(0)
+  sortOrder   Int     @default(0)
+  active      Boolean @default(true)
+
+  services     ServiceOptionLink[]
+  appointments AppointmentOption[]
+}
+
+model ServiceOptionLink {
+  id        String @id @default(cuid())
+  serviceId String
+  optionId  String
+
+  service Service       @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  option  ServiceOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@unique([serviceId, optionId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CRM (§23, §24)
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum CustomerType {
+  INDIVIDUAL
+  BUSINESS // §24 : flottes
+}
+
+model Customer {
+  id            String       @id @default(cuid())
+  type          CustomerType @default(INDIVIDUAL)
+  firstName     String?
+  lastName      String?
+  companyName   String?
+  siret         String?
+  email         String?
+  phone         String
+  notes         String?
+  flexible      Boolean      @default(false) // §8 : accepte un créneau de dernière minute
+  marketingOptIn Boolean     @default(false)
+  userId        String?      @unique
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  user         User?             @relation(fields: [userId], references: [id])
+  contacts     BusinessContact[]
+  invoices     Invoice[]
+  rewards      CustomerReward[]
+  vouchers     Voucher[]
+  addresses    CustomerAddress[]
+  vehicles     CustomerVehicle[]
+  appointments Appointment[]
+  leads        Lead[]
+  reviews      Review[]
+  alerts       Alert[]
+  slotOffers   SlotOffer[]
+
+  @@index([phone])
+  @@index([email])
+}
+
+/// §24 — responsables d'un compte entreprise. Le même compte peut avoir un
+/// gestionnaire de flotte, un comptable destinataire des factures, et un contact terrain.
+model BusinessContact {
+  id         String   @id @default(cuid())
+  customerId String
+  firstName  String
+  lastName   String
+  role       String?
+  email      String?
+  phone      String?
+  /// Destinataire des factures. Un seul par compte en pratique.
+  billing    Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  CANCELLED
+}
+
+/// §24 — facturation mensuelle des comptes entreprise : un particulier règle à chaque
+/// prestation, une flotte règle une facture récapitulative.
+model Invoice {
+  id          String        @id @default(cuid())
+  number      String        @unique
+  customerId  String
+  periodYear  Int
+  periodMonth Int
+  status      InvoiceStatus @default(DRAFT)
+  subtotalCents Int         @default(0)
+  vatRate     Decimal       @default(0.20) @db.Decimal(5, 4)
+  vatCents    Int           @default(0)
+  totalCents  Int           @default(0)
+  issuedAt    DateTime?
+  dueAt       DateTime?
+  paidAt      DateTime?
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  customer Customer      @relation(fields: [customerId], references: [id])
+  lines    InvoiceLine[]
+
+  @@unique([customerId, periodYear, periodMonth])
+  @@index([status, periodYear, periodMonth])
+}
+
+model InvoiceLine {
+  id            String @id @default(cuid())
+  invoiceId     String
+  appointmentId String @unique
+  label         String
+  amountCents   Int
+
+  invoice     Invoice     @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+
+  @@index([invoiceId])
+}
+
+enum LoyaltyRewardKind {
+  DISCOUNT_PERCENT
+  FREE_SERVICE
+}
+
+/// Fidélité (§37 phase 6). La règle vit dans `Setting` ; ce modèle n'enregistre que les
+/// récompenses effectivement acquises, pour qu'un changement de règle ne réécrive pas
+/// ce qui a déjà été promis à un client.
+model CustomerReward {
+  id                String            @id @default(cuid())
+  customerId        String
+  kind              LoyaltyRewardKind
+  value             Int
+  earnedAt          DateTime          @default(now())
+  earnedAfterWashes Int
+  expiresAt         DateTime?
+  usedAt            DateTime?
+  usedOnAppointmentId String?         @unique
+
+  customer      Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  usedOn        Appointment? @relation(fields: [usedOnAppointmentId], references: [id])
+
+  @@index([customerId, usedAt])
+}
+
+enum JobStatus {
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+/// Exécutions des tâches récurrentes (§37 phase 6 — automatisations).
+/// Une tâche dont on ne sait pas si elle a tourné ne vaut pas mieux qu'une tâche absente.
+model JobRun {
+  id         String    @id @default(cuid())
+  job        String
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  status     JobStatus @default(RUNNING)
+  summary    Json?
+  error      String?
+  durationMs Int?
+
+  @@index([job, startedAt])
+}
+
+model CustomerAddress {
+  id             String   @id @default(cuid())
+  customerId     String
+  label          String? // « domicile », « bureau »
+  line1          String
+  line2          String?
+  postalCode     String
+  city           String
+  country        String   @default("FR")
+  lat            Float
+  lng            Float
+  geocodeAccuracy String?
+  accessNotes    String? // digicode, parking, point d'eau…
+  isDefault      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@index([customerId])
+}
+
+/// §16 — référentiel des modèles, pour déduire la catégorie à partir de la marque et
+/// du modèle. Présenté au client comme une aide (« SUV détecté »), jamais comme une
+/// contrainte : il peut toujours corriger.
+model VehicleModel {
+  id           String       @id @default(cuid())
+  make         String
+  model        String
+  vehicleClass VehicleClass
+  /// Années de commercialisation, quand la catégorie change d'une génération à l'autre.
+  yearFrom     Int?
+  yearTo       Int?
+  popularity   Int          @default(0)
+
+  @@unique([make, model, yearFrom])
+  @@index([make])
+}
+
+model CustomerVehicle {
+  id           String       @id @default(cuid())
+  customerId   String
+  vehicleClass VehicleClass
+  make         String?
+  model        String?
+  plate        String?
+  color        String?
+  notes        String?
+  createdAt    DateTime     @default(now())
+
+  customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+  photos       Photo[] // §26 : fiche digitale permanente du véhicule
+
+  @@index([customerId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RENDEZ-VOUS (§3, §12 → §17)
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum AppointmentStatus {
+  DRAFT
+  PENDING_ASSIGNMENT
+  ASSIGNED
+  CONFIRMED
+  EN_ROUTE
+  ARRIVED
+  PHOTOS_BEFORE
+  IN_PROGRESS
+  PHOTOS_AFTER
+  PAYMENT
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+  /// §36 — prestation réalisée, client refusant de régler. Voie de sortie du
+  /// verrouillage du §12 : la preuve existe, le recouvrement commence.
+  UNPAID
+}
+
+enum AppointmentSource {
+  WEB // §2
+  PHONE // §3
+  META_LEAD // §19
+  WASH_NOW // §7
+  SLOT_RESALE // §8
+  RECURRING // §23
+}
+
+model Appointment {
+  id        String @id @default(cuid())
+  reference String @unique
+
+  /// Jeton du lien de suivi client. La référence est séquentielle donc énumérable :
+  /// elle ne doit jamais servir d'URL publique (§31).
+  publicToken String @unique @default(uuid())
+
+  customerId        String
+  customerVehicleId String?
+  addressId         String?
+
+  // Adresse figée au moment de la prise de RDV : si le client modifie sa fiche
+  // plus tard, l'historique du rendez-vous reste exact.
+  addressLine1 String
+  addressLine2 String?
+  postalCode   String
+  city         String
+  lat          Float
+  lng          Float
+  accessNotes  String?
+
+  serviceId    String
+  vehicleClass VehicleClass
+  operatorId   String?
+  sectorId     String?
+  leadId       String?
+
+  status AppointmentStatus @default(DRAFT)
+  source AppointmentSource @default(PHONE)
+
+  scheduledStart   DateTime
+  scheduledEnd     DateTime
+  durationMin      Int
+  travelBufferMin  Int @default(10) // §6 : marge de sécurité appliquée
+
+  priceCents        Int
+  optionsPriceCents Int @default(0)
+  /// Remise fidélité appliquée, en centimes. Conservée séparément du total pour que
+  /// la commission (§18) reste assise sur le CA réellement encaissé.
+  discountCents     Int @default(0)
+  /// Accord du client pour montrer les photos de sa prestation sur le site public.
+  /// Faux par défaut : une photo de véhicule devant un domicile, plaque comprise, ne
+  /// se publie pas parce qu'elle est réussie. Seule la case cochée par le client
+  /// l'autorise, et c'est elle qui ouvre l'accès non authentifié aux clichés.
+  publishable       Boolean @default(false)
+  totalCents        Int
+  depositCents      Int @default(0)
+
+  assignmentScore   Int?
+  assignmentRunId   String?
+  travelMinEstimate Int?
+  distanceKmEstimate Float?
+  etaAt             DateTime?
+
+  // Horodatages du workflow verrouillé (§12)
+  enRouteAt     DateTime?
+  arrivedAt     DateTime?
+  photosBeforeAt DateTime?
+  startedAt     DateTime?
+  photosAfterAt DateTime?
+  paidAt        DateTime?
+  finishedAt    DateTime?
+
+  customerNotes String?
+  internalNotes String?
+
+  createdByUserId   String?
+  cancelledByUserId String?
+  cancelledAt       DateTime?
+  cancelReason      String?
+
+  reminderSentAt    DateTime?
+  reviewRequestedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customer        Customer            @relation(fields: [customerId], references: [id])
+  customerVehicle CustomerVehicle?    @relation(fields: [customerVehicleId], references: [id])
+  address         CustomerAddress?    @relation(fields: [addressId], references: [id])
+  service         Service             @relation(fields: [serviceId], references: [id])
+  operator        Operator?           @relation(fields: [operatorId], references: [id])
+  sector          Sector?             @relation(fields: [sectorId], references: [id])
+  lead            Lead?               @relation(fields: [leadId], references: [id])
+  createdBy       User?               @relation("AppointmentCreatedBy", fields: [createdByUserId], references: [id])
+  cancelledBy     User?               @relation("AppointmentCancelledBy", fields: [cancelledByUserId], references: [id])
+
+  options        AppointmentOption[]
+  events         AppointmentEvent[]
+  assignmentRuns AssignmentRun[]
+  photos         Photo[]
+  payments       Payment[]
+  commission     Commission?
+  review         Review?
+  alerts         Alert[]
+  trackingPings  TrackingPing[]
+  weatherChecks  WeatherCheck[]
+  slotOffer      SlotOffer?          @relation("SlotOfferSource")
+  resoldFrom     SlotOffer?          @relation("SlotOfferAccepted")
+  invoiceLine       InvoiceLine?
+  rewardUsed        CustomerReward?
+  signature         Signature?
+  voucher           Voucher?
+  vehicleAdjustment VehicleAdjustment?
+  photoAnalyses     PhotoAnalysis[]
+
+  @@index([operatorId, scheduledStart])
+  @@index([status, scheduledStart])
+  @@index([sectorId, scheduledStart])
+  @@index([customerId, scheduledStart])
+  @@index([scheduledStart])
+}
+
+model AppointmentOption {
+  id            String @id @default(cuid())
+  appointmentId String
+  optionId      String
+  priceCents    Int
+  durationMin   Int
+
+  appointment Appointment   @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  option      ServiceOption @relation(fields: [optionId], references: [id])
+
+  @@unique([appointmentId, optionId])
+}
+
+enum AppointmentEventType {
+  CREATED
+  ASSIGNMENT_RUN
+  ASSIGNED
+  OPERATOR_CHANGED
+  CONFIRMED
+  RESCHEDULED
+  EN_ROUTE
+  ARRIVED
+  PHOTOS_BEFORE_VALIDATED
+  STARTED
+  PHOTOS_AFTER_VALIDATED
+  PAYMENT_RECORDED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+  NOTE
+}
+
+model AppointmentEvent {
+  id            String               @id @default(cuid())
+  appointmentId String
+  type          AppointmentEventType
+  at            DateTime             @default(now())
+  userId        String?
+  operatorId    String?
+  note          String?
+  payload       Json?
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  user        User?       @relation(fields: [userId], references: [id])
+  operator    Operator?   @relation(fields: [operatorId], references: [id])
+
+  @@index([appointmentId, at])
+}
+
+// §4, §35 : chaque exécution du moteur est archivée — audit et analyse d'équité (§5)
+model AssignmentRun {
+  id                String   @id @default(cuid())
+  appointmentId     String?
+  requestedByUserId String?
+  createdAt         DateTime @default(now())
+  durationMs        Int
+
+  request    Json // instantané de la demande
+  candidates Json // top N avec score détaillé
+  rejected   Json // opérateurs écartés + motif
+  weights    Json // poids effectifs au moment du calcul
+
+  chosenOperatorId String?
+  manualOverride   Boolean @default(false)
+
+  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  requestedBy User?        @relation(fields: [requestedByUserId], references: [id])
+
+  @@index([appointmentId, createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PREUVES (§13, §15, §26)
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum PhotoPhase {
+  BEFORE
+  AFTER
+}
+
+/// Angles de preuve (§13). Les huit premiers sont obligatoires à l'arrivée comme au
+/// départ : ils couvrent la carrosserie sur ses quatre faces et l'habitacle jusqu'au
+/// coffre. `EXTRA` et `DAMAGE` restent facultatifs — un constat, pas une case à cocher.
+enum PhotoSlot {
+  FRONT_LEFT
+  FRONT_RIGHT
+  SIDE_LEFT
+  SIDE_RIGHT
+  REAR
+  INTERIOR
+  INTERIOR_REAR
+  TRUNK
+  EXTRA
+  DAMAGE
+}
+
+model Photo {
+  id                String     @id @default(cuid())
+  appointmentId     String
+  customerVehicleId String?
+  phase             PhotoPhase
+  slot              PhotoSlot
+  path              String
+  bytes             Int?
+  width             Int?
+  height            Int?
+  takenAt           DateTime   @default(now())
+  exifTakenAt       DateTime?
+  lat               Float?
+  lng               Float?
+  capturedInApp     Boolean    @default(true) // §13
+  hash              String?
+  createdAt         DateTime   @default(now())
+
+  appointment     Appointment      @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  customerVehicle CustomerVehicle? @relation(fields: [customerVehicleId], references: [id])
+
+  @@index([appointmentId, phase])
+  @@index([customerVehicleId, takenAt])
+}
+
+/// §19 — analyse des photos envoyées par le client.
+///
+/// Le résultat est une **proposition**, jamais une facturation automatique : le devis
+/// n'est modifié que si le client ajoute explicitement une option suggérée.
+model PhotoAnalysis {
+  id            String   @id @default(cuid())
+  appointmentId String?
+  /// Rattachement au parcours de réservation avant qu'un rendez-vous n'existe.
+  quoteToken    String?
+  createdAt     DateTime @default(now())
+
+  /// Ce que le modèle a observé : zones, niveau de saleté, constats.
+  findings Json
+  /// Options proposées, avec la raison. Le client décide.
+  suggestions Json
+  /// Modèle utilisé et coût, pour pouvoir arbitrer plus tard.
+  provider   String
+  model      String?
+  durationMs Int?
+  /// Confiance globale, 0 → 1. En dessous d'un seuil, on n'affiche rien.
+  confidence Float?
+
+  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  images      PhotoAnalysisImage[]
+
+  @@index([quoteToken])
+  @@index([appointmentId, createdAt])
+}
+
+model PhotoAnalysisImage {
+  id         String @id @default(cuid())
+  analysisId String
+  path       String
+  bytes      Int?
+
+  analysis PhotoAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+
+  @@index([analysisId])
+}
+
+/// §32 — signature du client à la prise en charge.
+///
+/// Conservée comme preuve : elle accompagne le récapitulatif en cas de contestation
+/// (§36). Le tracé est stocké en SVG, pas en image — quelques kilo-octets, et il reste
+/// lisible à toute échelle.
+model Signature {
+  id            String   @id @default(cuid())
+  appointmentId String   @unique
+  /// Tracé vectoriel du paraphe.
+  paths         String
+  signerName    String
+  /// Ce que le client a signé, figé au moment de la signature.
+  acknowledged  Json
+  signedAt      DateTime @default(now())
+  ip            String?
+  userAgent     String?
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+}
+
+/// §31 — contrôle du véhicule à l'arrivée.
+///
+/// L'opérateur constate parfois que le véhicule ne correspond pas à la réservation.
+/// Le changement de catégorie modifie le prix : il est tracé, et le client le valide.
+model VehicleAdjustment {
+  id            String       @id @default(cuid())
+  appointmentId String       @unique
+  fromClass     VehicleClass
+  toClass       VehicleClass
+  fromCents     Int
+  toCents       Int
+  reason        String?
+  operatorId    String
+  createdAt     DateTime     @default(now())
+  /// Le client a accepté le nouveau tarif. Sans cela, la prestation ne démarre pas.
+  acceptedAt    DateTime?
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  operator    Operator    @relation(fields: [operatorId], references: [id])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ARGENT (§16, §18, §19)
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum PaymentKind {
+  DEPOSIT // acompte §2
+  BALANCE // solde §16
+  FULL
+  REFUND
+}
+
+enum PaymentMethod {
+  CARD_LINK
+  CASH
+  TRANSFER
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum PaymentBeneficiary {
+  XDETAILING
+  OPERATOR
+}
+
+model Payment {
+  id            String             @id @default(cuid())
+  appointmentId String
+  kind          PaymentKind
+  method        PaymentMethod
+  status        PaymentStatus      @default(PENDING)
+  beneficiary   PaymentBeneficiary @default(XDETAILING)
+
+  amountCents      Int // attendu
+  receivedCents    Int? // §16 : saisi par l'opérateur pour les espèces
+  discrepancyCents Int  @default(0)
+
+  providerRef       String?
+  providerPayload   Json?
+  collectedByOperatorId String?
+  paidAt            DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  collectedBy Operator?   @relation("PaymentCollectedBy", fields: [collectedByOperatorId], references: [id])
+
+  @@index([appointmentId])
+  @@index([status, paidAt])
+}
+
+model Commission {
+  id            String   @id @default(cuid())
+  appointmentId String   @unique
+  operatorId    String
+  baseCents     Int
+  rate          Decimal  @db.Decimal(5, 4)
+  amountCents   Int
+  periodYear    Int
+  periodMonth   Int
+  settlementId  String?
+  settledAt     DateTime?
+  createdAt     DateTime @default(now())
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  operator    Operator    @relation(fields: [operatorId], references: [id])
+  settlement  Settlement? @relation(fields: [settlementId], references: [id])
+
+  @@index([operatorId, periodYear, periodMonth])
+}
+
+enum SettlementStatus {
+  DRAFT
+  ISSUED
+  PAID
+}
+
+/// Reversement à l'opérateur (§18, §38 point 5).
+///
+/// X Detailing encaisse l'ensemble des prestations et reverse à la quinzaine. Le
+/// reversement distingue quatre choses que le §16 sépare déjà sur chaque paiement :
+/// ce que l'opérateur a produit, ce qu'il doit en commission, ce qu'il détient déjà en
+/// espèces, et sa contribution publicitaire plafonnée (§19).
+model Settlement {
+  id          String   @id @default(cuid())
+  reference   String   @unique
+  operatorId  String
+  periodStart DateTime
+  periodEnd   DateTime
+
+  jobCount          Int @default(0)
+  totalRevenueCents Int @default(0)
+  commissionCents   Int @default(0)
+
+  /// Espèces déjà perçues par l'opérateur pour le compte de X Detailing. Déduites du
+  /// virement : il les détient déjà.
+  cashHeldCents Int @default(0)
+
+  /// §19 — quote-part publicitaire de la période, dans la limite du plafond mensuel.
+  adContributionCents Int @default(0)
+
+  /// Régularisation manuelle : écart de caisse assumé, avance, retenue exceptionnelle.
+  adjustmentCents Int     @default(0)
+  adjustmentNote  String?
+
+  /// Ce que l'opérateur a gagné, net de commission et de publicité.
+  netCents Int @default(0)
+
+  /// Ce qui lui est réellement viré, une fois déduites les espèces qu'il détient.
+  payoutCents Int @default(0)
+
+  status     SettlementStatus @default(DRAFT)
+  createdAt  DateTime         @default(now())
+  issuedAt   DateTime?
+  paidAt     DateTime?
+  paymentRef String?
+
+  operator    Operator     @relation(fields: [operatorId], references: [id])
+  commissions Commission[]
+
+  @@unique([operatorId, periodStart])
+  @@index([status, periodStart])
+}
+
+// §19 : contribution publicitaire plafonnée à 150 €/mois, surplus porté par X Detailing
+model AdSpend {
+  id            String   @id @default(cuid())
+  operatorId    String
+  periodYear    Int
+  periodMonth   Int
+  spentCents    Int      @default(0)
+  chargedCents  Int      @default(0) // part facturée à l'opérateur (plafonnée)
+  absorbedCents Int      @default(0) // part prise en charge par X Detailing
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  operator Operator @relation(fields: [operatorId], references: [id], onDelete: Cascade)
+
+  @@unique([operatorId, periodYear, periodMonth])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ACQUISITION (§19)
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum LeadSource {
+  META
+  GOOGLE
+  PHONE
+  REFERRAL
+  WEBSITE
+  OTHER
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  BOOKED
+  LOST
+}
+
+model Lead {
+  id          String     @id @default(cuid())
+  source      LeadSource
+  externalId  String?
+  campaign    String?
+  adset       String?
+  ad          String?
+  costCents   Int?
+  fullName    String?
+  phone       String?
+  email       String?
+  city        String?
+  rawPayload  Json?
+  status      LeadStatus @default(NEW)
+  customerId  String?
+  contactedAt DateTime?
+  lostReason  String?
+  createdAt   DateTime   @default(now())
+
+  customer     Customer?     @relation(fields: [customerId], references: [id])
+  appointments Appointment[]
+
+  @@index([source, status, createdAt])
+  @@unique([source, externalId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// QUALITÉ, ALERTES, SUIVI (§25, §27, §11)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Review {
+  id             String   @id @default(cuid())
+  appointmentId  String   @unique
+  customerId     String
+  operatorId     String
+  rating         Int // 1-5
+  comment        String?
+  routedToGoogle Boolean  @default(false) // §25
+  respondedAt    DateTime?
+  createdAt      DateTime @default(now())
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  customer    Customer    @relation(fields: [customerId], references: [id])
+  operator    Operator    @relation(fields: [operatorId], references: [id])
+
+  @@index([operatorId, createdAt])
+}
+
+enum AlertType {
+  PAYMENT_MISSING
+  CASH_MISMATCH
+  PHOTOS_MISSING
+  WORKFLOW_BLOCKED
+  LATE
+  CANCELLATION
+  COMPLAINT
+  LOW_REVIEW
+  SCHEDULE_CONFLICT
+  GPS_ANOMALY
+  UNASSIGNED_APPOINTMENT
+  FLEET_MAINTENANCE
+  /// Candidature reçue via la landing « Devenir opérateur ».
+  OPERATOR_APPLICATION
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum AlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+model Alert {
+  id                  String        @id @default(cuid())
+  type                AlertType
+  severity            AlertSeverity @default(WARNING)
+  status              AlertStatus   @default(OPEN)
+  title               String
+  message             String
+  appointmentId       String?
+  operatorId          String?
+  customerId          String?
+  acknowledgedByUserId String?
+  acknowledgedAt      DateTime?
+  resolvedAt          DateTime?
+  createdAt           DateTime      @default(now())
+
+  appointment    Appointment? @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  operator       Operator?    @relation(fields: [operatorId], references: [id])
+  customer       Customer?    @relation(fields: [customerId], references: [id])
+  acknowledgedBy User?        @relation(fields: [acknowledgedByUserId], references: [id])
+
+  @@index([status, severity, createdAt])
+}
+
+// §11 : écrit uniquement entre « Démarrer le trajet » et « Je suis arrivé »
+model TrackingPing {
+  id            String   @id @default(cuid())
+  appointmentId String
+  operatorId    String
+  lat           Float
+  lng           Float
+  accuracyM     Float?
+  headingDeg    Float?
+  speedKph      Float?
+  at            DateTime @default(now())
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  operator    Operator    @relation(fields: [operatorId], references: [id], onDelete: Cascade)
+
+  @@index([appointmentId, at])
+  @@index([operatorId, at])
+}
+
+// §8 : revente d'un créneau libéré par une annulation
+enum SlotOfferStatus {
+  PENDING
+  SENT
+  ACCEPTED
+  EXPIRED
+  DECLINED
+}
+
+model SlotOffer {
+  id                  String          @id @default(cuid())
+  sourceAppointmentId String          @unique
+  sectorId            String?
+  start               DateTime
+  end                 DateTime
+  durationMin         Int
+  status              SlotOfferStatus @default(PENDING)
+  candidates          Json // clients identifiés comme susceptibles d'accepter
+  sentAt              DateTime?
+  expiresAt           DateTime?
+  acceptedByCustomerId String?
+  acceptedAppointmentId String?       @unique
+  createdAt           DateTime        @default(now())
+
+  sourceAppointment   Appointment  @relation("SlotOfferSource", fields: [sourceAppointmentId], references: [id], onDelete: Cascade)
+  acceptedAppointment Appointment? @relation("SlotOfferAccepted", fields: [acceptedAppointmentId], references: [id])
+  sector              Sector?      @relation(fields: [sectorId], references: [id])
+  acceptedByCustomer  Customer?    @relation(fields: [acceptedByCustomerId], references: [id])
+
+  @@index([status, start])
+}
+
+// §9 : surveillance météo des prestations extérieures
+model WeatherCheck {
+  id                 String   @id @default(cuid())
+  appointmentId      String
+  checkedAt          DateTime @default(now())
+  conditionCode      String?
+  precipitationMm    Float?
+  temperatureC       Float?
+  windKph            Float?
+  verdict            String // OK | RISK | INCOMPATIBLE
+  rescheduleProposed Boolean  @default(false)
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@index([appointmentId, checkedAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INFRASTRUCTURE (§30, §32, §33)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// §30 : append-only. Aucune route d'écriture ou de suppression n'est exposée.
+model AuditLog {
+  id          String   @id @default(cuid())
+  at          DateTime @default(now())
+  actorUserId String?
+  actorLabel  String // conservé même si l'utilisateur est supprimé
+  action      String
+  entityType  String
+  entityId    String?
+  before      Json?
+  after       Json?
+  ip          String?
+  userAgent   String?
+
+  actor User? @relation(fields: [actorUserId], references: [id])
+
+  @@index([entityType, entityId, at])
+  @@index([at])
+}
+
+// Réglages réseau modifiables sans redéploiement (poids du score, marges…)
+model Setting {
+  key             String   @id
+  value           Json
+  description     String?
+  updatedAt       DateTime @updatedAt
+  updatedByUserId String?
+
+  updatedBy User? @relation(fields: [updatedByUserId], references: [id])
+}
+
+// §33 : une adresse n'est géocodée qu'une seule fois
+/// Fichiers stockés en base (§32).
+///
+/// Sur un hébergeur sans disque persistant — Vercel et la plupart des plateformes
+/// serverless — le système de fichiers est éphémère : une preuve photo y disparaîtrait
+/// entre deux requêtes. Les stocker en base les rend durables partout, sans service
+/// supplémentaire.
+///
+/// Convient à une démonstration et à un réseau de quelques opérateurs. Au-delà, basculer
+/// sur S3 ou R2 : l'interface `StorageProvider` est prévue pour.
+model StoredFile {
+  key       String   @id
+  data      Bytes
+  bytes     Int
+  sha256    String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+/// Candidature reçue via la landing « Devenir opérateur ».
+///
+/// Stockée ici plutôt qu'envoyée seulement par e-mail : un message perdu dans une
+/// boîte n'est pas une pile qu'on traite. La destination CRM finale reste à arbitrer.
+model OperatorApplication {
+  id         String   @id @default(cuid())
+  firstName  String
+  lastName   String
+  phone      String
+  email      String
+  city       String
+  /// Situation actuelle : SALARIE, INDEPENDANT, DEMANDEUR_EMPLOI, AUTRE.
+  status     String
+  /// Expérience déclarée dans le lavage ou le detailing.
+  experience String
+  /// Le candidat déclare disposer de l'apport demandé. Déclaratif, non vérifié.
+  hasFunding Boolean
+  message    String?
+  /// Horodatage du consentement, conservé comme preuve (RGPD).
+  consentAt  DateTime
+  createdAt  DateTime @default(now())
+  /// Suivi côté équipe : NOUVEAU, CONTACTE, RETENU, ECARTE.
+  stage      String   @default("NOUVEAU")
+
+  @@index([createdAt])
+  @@index([stage, createdAt])
+}
+
+/// Bon de remise nominatif, émis par la relance d'entretien (§23).
+///
+/// Le code existe en base avant d'être annoncé : une remise promise par e-mail que le
+/// tunnel de réservation ne connaît pas est une réclamation programmée. C'est cette
+/// ligne qui fait foi, et elle ne peut servir qu'une fois.
+model Voucher {
+  id            String    @id @default(cuid())
+  code          String    @unique
+  customerId    String
+  /// Remise en pourcentage du total, 1 → 100.
+  percentOff    Int
+  reason        String
+  expiresAt     DateTime
+  usedAt        DateTime?
+  appointmentId String?   @unique
+  createdAt     DateTime  @default(now())
+
+  customer    Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  appointment Appointment? @relation(fields: [appointmentId], references: [id])
+
+  @@index([customerId, usedAt])
+  @@index([expiresAt])
+}
+
+model GeocodeCache {
+  id        String   @id @default(cuid())
+  query     String   @unique
+  lat       Float
+  lng       Float
+  formatted String?
+  accuracy  String?
+  provider  String
+  createdAt DateTime @default(now())
+}
+
+enum NotificationChannel {
+  SMS
+  EMAIL
+  PUSH
+}
+
+enum NotificationStatus {
+  QUEUED
+  SENT
+  FAILED
+}
+
+model Notification {
+  id          String              @id @default(cuid())
+  channel     NotificationChannel
+  recipient   String
+  template    String
+  payload     Json?
+  status      NotificationStatus  @default(QUEUED)
+  providerRef String?
+  error       String?
+  sentAt      DateTime?
+  createdAt   DateTime            @default(now())
+
+  @@index([status, createdAt])
+}

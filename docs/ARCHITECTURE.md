@@ -73,15 +73,18 @@ src/
       constraints.ts       contraintes dures (faisabilité)
       scoring.ts           score pondéré + garde-fou anti-détour
       types.ts
-    workflow/              §12 — machine à états verrouillée
-      state-machine.ts     transitions autorisées + gardes
-      guards.ts            « pas de photos avant = pas de démarrage »
     pricing/               §2 — tarif + durée depuis la grille
-    commission/            §18 — 18 % + rapprochement acompte/solde
-    dispatch/              §8 revente de créneau, §7 Wash Now
-    quality/               §25 score qualité, §27 alertes
-    audit/                 §30 journal
+    audit/                 §30 journal append-only
+    dashboard.ts           §20 agrégats du tableau de bord
+    planning.ts            §21 tournées + détection de conflits
+    geocoding.ts           géocodage avec cache persistant
+    settings.ts            réglages réseau modifiables à chaud
+    time.ts                horaires locaux, fuseau Europe/Paris
     db.ts                  client Prisma singleton
+    workflow/              §12 machine à états verrouillée      — phase 3
+    commission/            §18 commission + rapprochement       — phase 3
+    dispatch/              §8 revente de créneau, §7 Wash Now   — phase 5
+    quality/               §25 score qualité, §27 alertes       — phase 5
   lib/
     providers/             §32 — abstraction prestataires externes
       geo/                 géocodage + matrice de temps + ETA
@@ -113,13 +116,16 @@ interface GeoProvider {
 }
 ```
 
-| Interface | Implémentation par défaut | Bascule production |
-|---|---|---|
-| `GeoProvider` | Nominatim (géocodage, mis en cache en base) + haversine × facteur routier × profil de vitesse horaire | Google Distance Matrix (trafic réel) ou Mapbox |
-| `PaymentProvider` | `ManualPaymentProvider` — lien de paiement factice, encaissement espèces réel | Stripe / Stripe Connect |
-| `NotificationProvider` | `ConsoleNotificationProvider` (journalisé en base) | Brevo, Twilio, Web Push |
-| `WeatherProvider` | `NullWeatherProvider` | Open-Meteo (gratuit, sans clé) |
-| `StorageProvider` | disque local | S3 / R2 |
+| Interface | Implémentation par défaut | Bascule production | État |
+|---|---|---|---|
+| `GeoProvider` | Nominatim (géocodage, mis en cache en base) + haversine × facteur routier × profil de vitesse horaire | `GoogleGeoProvider` écrit, à activer par variable d'environnement ; Mapbox à ajouter | **livré** |
+| `PaymentProvider` | `ManualPaymentProvider` — lien de paiement interne, encaissement espèces réel | Stripe / Stripe Connect | **interface livrée**, implémentation Stripe en phase 3 |
+| `NotificationProvider` | `ConsoleNotificationProvider` | Brevo, Twilio, Web Push | **interface livrée**, envoi réel en phase 2 |
+| `WeatherProvider` | — | Open-Meteo (gratuit, sans clé) | phase 5 (§9) |
+| `StorageProvider` | — | disque local, puis S3 / R2 | phase 3 (§13) |
+
+Les interfaces non encore nécessaires ne sont pas créées à vide : une interface sans
+appelant se périme avant d'être utilisée. Elles arrivent avec la phase qui les consomme.
 
 Sélection par variable d'environnement (`GEO_PROVIDER=haversine|google|mapbox`).
 **Toute la logique d'affectation est indépendante du fournisseur** : elle consomme des
@@ -130,17 +136,58 @@ Le haversine surestime la faisabilité en zone dense et la sous-estime en zone r
 Acceptable en Phase 1 (validation de l'algorithme), à basculer sur Google avant mise en
 production réelle — la marge de sécurité configurable (§6) absorbe l'écart en attendant.
 
+## 5 bis. Identité de marque
+
+La charte est extraite du logo fourni, pas inventée : couleurs échantillonnées sur le
+fichier source.
+
+| Rôle | Valeur | Usage |
+|---|---|---|
+| Fond | `#000000` | Site client, écran de connexion |
+| Violet cœur | `#8008F8` | Seule couleur d'accent du système |
+| Violet arête | `#B880F8` | Lueurs, survols, textes d'accent sur fond noir |
+| Chrome | `#F4F4F7` → `#6F7180` | Texte du mot-symbole et hiérarchie sur fond noir |
+
+**Le site client est sombre, le back-office reste clair.** Ce n'est pas une incohérence :
+le site client est une vitrine consultée sur smartphone, où le noir porte la marque ; le
+back-office est un outil de travail dense, lu des heures durant en plein jour, où le fond
+clair fatigue moins et fait mieux ressortir les couleurs de signalement (retard, conflit,
+alerte). Le violet de la marque est l'accent des deux.
+
+Le logo est détouré par luminance (`public/marque/`) : le fond noir devient transparent,
+ce qui préserve les halos violets et permet de le poser sur n'importe quel fond sombre.
+Sur fond clair, le mot-symbole chrome disparaîtrait — d'où la pastille noire dans
+l'en-tête du back-office.
+
 ## 6. Temps réel
 
 | Flux | Mécanisme | Fréquence |
 |---|---|---|
 | Position GPS opérateur (§11) | `POST /api/pro/tracking` depuis la PWA | 15 s, **uniquement entre « Démarrer le trajet » et « Je suis arrivé »** |
-| Suivi client + carte patron | SSE `/api/track/:ref` et `/api/admin/live` | push à chaque ping |
-| Statuts RDV (§33) | SSE + revalidation Next | immédiat |
+| Suivi client | SSE `/api/track/:token` | 5 s |
+| Carte du réseau | SSE `/api/admin/live` | 5 s |
 
-Le GPS n'émet jamais en dehors d'un trajet actif (§11, §31). Ce n'est pas une option de
-configuration : la PWA ne démarre le watcher qu'après transition `EN_ROUTE` et l'arrête
-sur `ARRIVED`.
+SSE plutôt que WebSocket : le besoin est unidirectionnel — le serveur pousse, le client
+n'envoie rien — et SSE traverse les proxies sans négociation, se reconnecte seul, et ne
+demande aucune infrastructure supplémentaire.
+
+### La confidentialité est une règle serveur, pas un réglage
+
+Le GPS n'émet jamais en dehors d'un trajet actif (§11, §31). Deux verrous indépendants,
+à dessein :
+
+1. l'application ne monte l'émetteur que lorsque le rendez-vous est `EN_ROUTE` ;
+2. **le serveur refuse tout ping dont le rendez-vous n'est pas `EN_ROUTE`**, et répond en
+   demandant explicitement l'arrêt de l'émission.
+
+Le second suffit seul : la confidentialité ne doit pas reposer sur le bon comportement du
+téléphone. Le premier évite simplement d'épuiser la batterie pour rien.
+
+### Coût de l'ETA
+
+Recalculer l'heure d'arrivée à chaque position coûterait 240 appels cartographiques par
+heure et par opérateur. Elle n'est donc recalculée que si plus de 60 secondes se sont
+écoulées **ou** si l'opérateur a parcouru plus de 300 mètres.
 
 ## 7. Sécurité, rôles et RGPD (§31)
 
@@ -158,6 +205,37 @@ sur `ARRIVED`.
 - Cache géocodage en base (une adresse n'est géocodée qu'une fois).
 - Index Postgres sur `(operatorId, scheduledStart)`, `(status, scheduledStart)`, `(sectorId, scheduledStart)`.
 - Objectif moteur d'affectation : < 2 s pour 50 opérateurs (§33).
+
+## 8 bis. Automatisations
+
+Six tâches récurrentes (météo, purge GPS, demandes d'avis, relances, expiration des
+offres, fidélité) vivent dans `src/server/jobs/`. Chacune déclare un intervalle minimal
+et laisse une trace `JobRun`.
+
+**Le déclenchement est externe**, sur `/api/cron` protégé par un secret. Un ordonnanceur
+embarqué dans le processus web lierait les tâches à une instance unique : à la première
+mise à l'échelle horizontale, soit elles tourneraient en double, soit elles cesseraient
+de tourner. Externaliser le déclencheur rend le système indifférent au nombre d'instances.
+
+Une tâche dont on ne sait pas si elle a tourné ne vaut pas mieux qu'une tâche absente :
+l'écran `/admin/automatisations` signale celles qui n'ont jamais tourné ou dont
+l'intervalle est dépassé de plus de moitié.
+
+## 8 ter. Montée en charge (§1, §33)
+
+Mesuré par `npm run bench` :
+
+| Réseau | Affectation |
+|---|---|
+| 5 opérateurs | 2 ms |
+| 50 opérateurs | 1 ms |
+| 250 opérateurs | 5 ms |
+
+Le moteur est linéaire en nombre d'opérateurs et n'émet que deux appels cartographiques
+quelle que soit la taille du réseau. Avec le fournisseur local, le calcul domine et reste
+négligeable ; avec Google, ce sont les deux appels réseau qui dominent — environ 300 ms,
+indépendamment du nombre d'opérateurs. Le §33 demande « quelques secondes » : la marge
+est de trois ordres de grandeur.
 
 ## 9. Documents liés
 

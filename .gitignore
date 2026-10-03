@@ -39,3 +39,21 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma
+
+# Photos stockées localement (§13) — données personnelles, jamais versionnées
+/.data
+
+# Outillage local de l'éditeur. `.claude/skills/` ne contient que des liens
+# symboliques vers `.agents/`, absent du dépôt : les versionner livrerait des
+# liens cassés — et c'est déjà ce qui avait fait échouer un déploiement.
+/.claude
+/.agents
+skills-lock.json
+
+# Doublons créés par la synchronisation iCloud (« fichier 2.ts »). Ils cassent
+# la compilation en redéclarant les mêmes identifiants.
+*\ 2.ts
+*\ 2.tsx
+*\ 2.json

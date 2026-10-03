@@ -5,22 +5,53 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "vercel-build": "prisma migrate deploy && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --import tsx --test 'src/**/*.test.ts'",
+    "db:dev": "prisma dev --name xdetailling",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio",
+    "typecheck": "tsc --noEmit",
+    "probe": "tsx scripts/probe-assignment.ts",
+    "check": "tsx scripts/check-state.ts",
+    "verify:workflow": "tsx scripts/verify-workflow.ts",
+    "verify:tracking": "tsx scripts/verify-tracking.ts",
+    "purge:tracking": "tsx scripts/purge-tracking.ts",
+    "demo:trajet": "tsx scripts/demo-trajet.ts",
+    "check:meteo": "tsx scripts/check-meteo.ts",
+    "verify:phase5": "tsx scripts/verify-phase5.ts",
+    "bench": "tsx scripts/benchmark.ts",
+    "verify:phase6": "tsx scripts/verify-phase6.ts",
+    "verify:reversements": "tsx scripts/verify-reversements.ts",
+    "postinstall": "prisma generate",
+    "demo:etat": "tsx scripts/demo-etat.ts",
+    "demo:vider": "tsx scripts/demo-vider.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.127.0",
+    "@prisma/adapter-pg": "^7.10.0",
+    "@prisma/client": "7.10.0",
+    "jose": "^6.2.12",
+    "leaflet": "^1.9.4",
     "next": "16.3.5",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/leaflet": "^1.9.22",
+    "@types/node": "^20.19.43",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
+    "prisma": "7.10.0",
     "tailwindcss": "^4",
+    "tsx": "^4.23.13",
     "typescript": "^5"
   }
 }

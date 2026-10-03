@@ -1,0 +1,96 @@
+/*
+ * Charte de la landing « Devenir opérateur ».
+ *
+ * Valeurs reprises telles quelles du cahier des charges. Elles ne sont pas mêlées aux
+ * jetons du site client : les deux surfaces ne s'adressent pas au même public et
+ * n'évolueront pas ensemble. Un préfixe `lp-` les isole.
+ */
+
+.lp {
+  --lp-bg: #07070a;
+  --lp-card: #0f0f15;
+  --lp-card-border: #23232e;
+  --lp-card-top: rgb(167 139 250 / 0.4);
+
+  --lp-card-hi: #140f24;
+  --lp-card-hi-border: #4a3a7d;
+  --lp-card-hi-top: rgb(167 139 250 / 0.6);
+
+  --lp-title: #f2f3f8;
+  --lp-text: #e6e8f0;
+  --lp-body: #b4b7c6;
+  --lp-body-hi: #c4c7d4;
+  --lp-note: #9a9db0;
+  --lp-accent: #a78bfa;
+  --lp-logo-x: #a855f7;
+  --lp-logo-word: #d3d6e0;
+  --lp-rule: #16161d;
+
+  background: var(--lp-bg);
+  color: var(--lp-text);
+  font-family: var(--font-manrope), -apple-system, BlinkMacSystemFont, sans-serif;
+  scroll-behavior: smooth;
+}
+
+/* Les titres portent Unbounded ; le reste, Manrope. Deux familles, pas plus. */
+.lp-display {
+  font-family: var(--font-unbounded), var(--font-manrope), sans-serif;
+}
+
+/* Le violet métallique des boutons : un dégradé à cinq arrêts, pas un aplat. */
+.lp-metal {
+  background: linear-gradient(115deg, #3b1580 0%, #6d28d9 30%, #8b4cf0 50%, #5b21b6 72%, #3b1580 100%);
+  border: 1px solid rgb(255 255 255 / 0.3);
+  box-shadow: 0 0 32px rgb(139 92 246 / 0.4);
+  color: #fff;
+}
+
+.lp-metal-fixed {
+  box-shadow: 0 0 34px rgb(139 92 246 / 0.5), inset 0 1px 0 rgb(255 255 255 / 0.3);
+}
+
+/* Carte standard : liseré violet sur l'arête haute, bordure discrète. */
+.lp-card {
+  position: relative;
+  background: var(--lp-card);
+  border: 1px solid var(--lp-card-border);
+}
+
+.lp-card::before,
+.lp-card-hi::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, var(--lp-card-top), transparent);
+}
+
+.lp-card-hi {
+  position: relative;
+  background: var(--lp-card-hi);
+  border: 1px solid var(--lp-card-hi-border);
+  box-shadow: 0 0 40px -18px rgb(139 92 246 / 0.5);
+}
+
+.lp-card-hi::before {
+  background: linear-gradient(90deg, transparent, var(--lp-card-hi-top), transparent);
+}
+
+/* Halo de fond : un dégradé radial très léger, jamais une nappe. */
+.lp-halo-top {
+  background: radial-gradient(60% 40% at 50% 0%, rgb(124 58 237 / 0.3), transparent 70%);
+}
+
+.lp-halo-bottom {
+  background: radial-gradient(60% 40% at 50% 100%, rgb(124 58 237 / 0.26), transparent 70%);
+}
+
+/* Les ancres se dégagent de l'en-tête collant. */
+.lp [id] {
+  scroll-margin-top: 64px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp { scroll-behavior: auto; }
+}
