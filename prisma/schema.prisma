@@ -359,6 +359,7 @@ model Customer {
   invoices     Invoice[]
   rewards      CustomerReward[]
   vouchers     Voucher[]
+  jobInvoices  JobInvoice[]
   addresses    CustomerAddress[]
   vehicles     CustomerVehicle[]
   appointments Appointment[]
@@ -676,6 +677,7 @@ model Appointment {
   rewardUsed        CustomerReward?
   signature         Signature?
   voucher           Voucher?
+  jobInvoice        JobInvoice?
   vehicleAdjustment VehicleAdjustment?
   photoAnalyses     PhotoAnalysis[]
 
@@ -1328,6 +1330,36 @@ model Voucher {
 
   @@index([customerId, usedAt])
   @@index([expiresAt])
+}
+
+/// Facture d'une prestation réglée par un particulier (§24).
+///
+/// Document distinct de la facture mensuelle des flottes : l'un récapitule un mois
+/// d'interventions, l'autre atteste d'une prestation payée. Deux objets différents,
+/// deux séries de numérotation — `FP-` ici, `FA-` pour les comptes entreprise.
+/// Chaque série reste continue, ce que la réglementation exige ; le découpage en deux
+/// séries est en revanche à faire valider par un comptable.
+///
+/// Les montants sont figés à l'émission. Une facture ne change pas parce qu'un tarif
+/// a bougé ensuite.
+model JobInvoice {
+  id            String   @id @default(cuid())
+  number        String   @unique
+  appointmentId String   @unique
+  customerId    String
+  subtotalCents Int
+  vatRate       Decimal  @default(0.20) @db.Decimal(5, 4)
+  vatCents      Int
+  totalCents    Int
+  /// Ce qui a été facturé, ligne par ligne, figé au moment de l'émission.
+  lines         Json
+  issuedAt      DateTime @default(now())
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  customer    Customer    @relation(fields: [customerId], references: [id])
+
+  @@index([customerId, issuedAt])
+  @@index([issuedAt])
 }
 
 model GeocodeCache {

@@ -47,8 +47,17 @@ export default async function ReservationPage({
   const depositUrl = (deposit?.providerPayload as { url?: string } | null)?.url ?? null;
   const cancelled = appointment.status === "CANCELLED";
 
+  // La facture est émise à la clôture, sans action du client : on se contente de
+  // vérifier qu'elle existe pour proposer le lien (§24).
+  const invoice = completed
+    ? await prisma.jobInvoice.findUnique({
+        where: { appointmentId: appointment.id },
+        select: { number: true },
+      })
+    : null;
+
   return (
-    <div className="mx-auto max-w-xl px-5 py-10 sm:py-14">
+    <div className="mx-auto max-w-xl px-5 pb-20 pt-28 sm:pt-32">
       <div className={`rounded-2xl border p-6 ${cancelled ? "border-night-600 bg-night-900" : "border-brand-700 bg-brand-600/15"}`}>
         <p className="font-mono text-xs font-medium uppercase tracking-[0.16em] text-brand-400">
           {cancelled ? "Réservation annulée" : "Réservation confirmée"}
@@ -104,9 +113,24 @@ export default async function ReservationPage({
       {completed && !appointment.review && (
         <Link
           href={`/avis/${token}`}
-          className="mt-5 block rounded-xl border border-brand-700 bg-brand-600/10 px-5 py-4 text-center text-base font-semibold text-white transition hover:bg-brand-600/20"
+          className="press glass glass-interactive mt-5 block rounded-[--radius-xd-lg] px-5 py-4 text-center text-body font-semibold text-xd-text"
         >
           Donner mon avis sur la prestation
+        </Link>
+      )}
+
+      {invoice && (
+        <Link
+          href={`/reservation/${token}/facture`}
+          className="press glass glass-interactive mt-3 flex items-center justify-between gap-3 rounded-[--radius-xd-lg] px-5 py-4"
+        >
+          <span>
+            <span className="block text-body font-medium text-xd-text">Votre facture</span>
+            <span className="tabular mt-0.5 block text-meta text-xd-text-3">
+              {invoice.number} · émise automatiquement
+            </span>
+          </span>
+          <span aria-hidden className="text-xd-text-3">→</span>
         </Link>
       )}
 

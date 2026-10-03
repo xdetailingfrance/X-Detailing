@@ -1,3 +1,4 @@
+import { issueJobInvoice } from "../job-invoice";
 import { prisma } from "../db";
 import { recordAudit } from "../audit";
 import { raiseAlert, resolveAlerts } from "../quality/alerts";
@@ -214,6 +215,22 @@ async function afterTransition(
         where: { appointmentId: snapshot.id },
         create: commission,
         update: {},
+      });
+    }
+
+    // §24 — la facture est émise à la clôture, sans action de personne. L'opération
+    // est idempotente : rejouer une clôture ne crée pas un second document. Un échec
+    // ici ne doit pas défaire la prestation — on le signale au central et on continue.
+    const invoice = await issueJobInvoice(snapshot.id);
+    if (!invoice.ok) {
+      await prisma.alert.create({
+        data: {
+          type: "PAYMENT_MISSING",
+          severity: "WARNING",
+          title: "Facture non émise",
+          message: `${appointment.reference} : ${invoice.error}`,
+          appointmentId: snapshot.id,
+        },
       });
     }
 

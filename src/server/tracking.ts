@@ -193,8 +193,12 @@ export type ClientTracking = {
   position: { lat: number; lng: number; at: string } | null;
   destination: { lat: number; lng: number };
   etaAt: string | null;
+  /** Minutes restantes, arrondies. Ce que le client lit en premier. */
+  etaMinutes: number | null;
   remainingKm: number | null;
   arrivingSoon: boolean;
+  /** Le véhicule qu'il doit guetter dans la rue. */
+  vehicleLabel: string | null;
 };
 
 export async function getClientTracking(token: string): Promise<ClientTracking | null> {
@@ -202,7 +206,12 @@ export async function getClientTracking(token: string): Promise<ClientTracking |
     where: { publicToken: token },
     select: {
       status: true, lat: true, lng: true, etaAt: true,
-      operator: { select: { firstName: true } },
+      operator: {
+        select: {
+          firstName: true,
+          fleetVehicle: { select: { make: true, model: true, plate: true } },
+        },
+      },
     },
   });
 
@@ -222,14 +231,27 @@ export async function getClientTracking(token: string): Promise<ClientTracking |
     ? Math.round(haversineKm(ping, { lat: appointment.lat, lng: appointment.lng }) * 10) / 10
     : null;
 
+  // Le décompte est calculé ici plutôt qu'au navigateur : il doit dire la même chose
+  // à tout le monde, et ne pas dériver si l'horloge du téléphone est décalée.
+  const etaAt = live ? appointment.etaAt : null;
+  const etaMinutes = etaAt
+    ? Math.max(0, Math.round((etaAt.getTime() - Date.now()) / 60_000))
+    : null;
+
+  const fleet = appointment.operator?.fleetVehicle;
+
   return {
     status: appointment.status,
     operatorFirstName: appointment.operator?.firstName ?? null,
     position: ping ? { lat: ping.lat, lng: ping.lng, at: ping.at.toISOString() } : null,
     destination: { lat: appointment.lat, lng: appointment.lng },
-    etaAt: live ? (appointment.etaAt?.toISOString() ?? null) : null,
+    etaAt: etaAt?.toISOString() ?? null,
+    etaMinutes,
     remainingKm,
     arrivingSoon: remainingKm !== null && remainingKm * 1000 <= ARRIVING_RADIUS_M,
+    vehicleLabel: fleet
+      ? [fleet.make, fleet.model].filter(Boolean).join(" ") || null
+      : null,
   };
 }
 

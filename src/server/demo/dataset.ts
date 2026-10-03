@@ -6,6 +6,7 @@ import { DEFAULT_QUOTING, depositFor } from "@/server/quoting";
 import { VEHICLE_MODELS } from "./vehicles";
 import { placeholderPhoto, placeholderSignature } from "./placeholder-image";
 import { storageProvider } from "@/lib/providers/storage";
+import { issueJobInvoice } from "@/server/job-invoice";
 import { REQUIRED_SLOTS } from "@/server/workflow/types";
 import type { VehicleClass } from "@/generated/prisma/enums";
 
@@ -114,6 +115,8 @@ async function reset() {
     prisma.review.deleteMany(),
     prisma.alert.deleteMany(),
     prisma.slotOffer.deleteMany(),
+    prisma.jobInvoice.deleteMany(),
+    prisma.voucher.deleteMany(),
     prisma.invoiceLine.deleteMany(),
     prisma.signature.deleteMany(),
     prisma.vehicleAdjustment.deleteMany(),
@@ -636,6 +639,8 @@ async function main(): Promise<SeedSummary> {
           periodYear: start.getFullYear(), periodMonth: start.getMonth() + 1,
         },
       });
+      await issueJobInvoice(appointment.id, prisma);
+
       await prisma.review.create({
         data: {
           appointmentId: appointment.id, customerId: customer.id, operatorId: operator.id,
