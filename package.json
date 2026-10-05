@@ -27,7 +27,8 @@
     "verify:reversements": "tsx scripts/verify-reversements.ts",
     "postinstall": "prisma generate",
     "demo:etat": "tsx scripts/demo-etat.ts",
-    "demo:vider": "tsx scripts/demo-vider.ts"
+    "demo:vider": "tsx scripts/demo-vider.ts",
+    "catalogue": "tsx scripts/catalogue.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.127.0",

@@ -1,6 +1,6 @@
 import type { PrismaClient } from "@/generated/prisma/client";
 import { hashPassword } from "@/lib/auth/password";
-import { priceGrid, TARIFS } from "../tarifs";
+import { OPTION_DEFS, priceGrid, SERVICE_DEFS, TARIFS } from "../tarifs";
 import { startOfLocalDay } from "@/server/time";
 import { DAILY_SLOT_MINUTES, DEFAULT_ASSIGNMENT_SETTINGS } from "@/server/assignment/types";
 import { DEFAULT_QUOTING, depositFor } from "@/server/quoting";
@@ -211,52 +211,9 @@ async function main(): Promise<SeedSummary> {
   //
   // La grille tarifaire vit dans `server/tarifs.ts`, que partage le script de mise à
   // jour : un prix se change à un seul endroit, et le site en ligne suit.
-  const serviceDefs = [
-    {
-      code: "PACK-CONCESSION",
-      slug: "nettoyage-interieur-voiture",
-      name: "Concession",
-      kind: "INTERIOR" as const,
-      tier: "ESSENTIAL" as const,
-      featured: true,
-      sortOrder: 1,
-      description: "L'habitacle repris en profondeur, du coffre aux seuils de porte.",
-      includes: [
-        "Aspiration complète de l'habitacle et du coffre",
-        "Shampoing des sièges, tapis et moquettes",
-        "Nettoyage du cuir et de l'alcantara",
-        "Seuils de porte nettoyés et finis",
-        "Vitres intérieures sans trace",
-        "Plastiques nettoyés, ravivés et protégés",
-        "Finition parfumée",
-      ],
-    },
-    {
-      code: "PACK-LUXE",
-      slug: "nettoyage-complet-voiture",
-      name: "Concession Luxe",
-      kind: "BOTH" as const,
-      tier: "SIGNATURE" as const,
-      featured: true,
-      sortOrder: 2,
-      description:
-        "Tout le pack Concession, plus la carrosserie. L'extérieur demande un emplacement adapté.",
-      includes: [
-        "Tout le contenu du pack Concession",
-        "Pré-lavage à la mousse active",
-        "Lavage manuel haute précision",
-        "Passages de roue nettoyés en profondeur",
-        "Ouvrants de portes",
-        "Séchage premium sans trace",
-        "Pneumatiques, finition satinée",
-        "Contrôle qualité avant restitution",
-      ],
-    },
-  ];
-
   const services = Object.fromEntries(
     await Promise.all(
-      serviceDefs.map(async (def) => {
+      SERVICE_DEFS.map(async (def) => {
         const service = await prisma.service.create({
           data: {
             ...def,
@@ -270,16 +227,8 @@ async function main(): Promise<SeedSummary> {
     ),
   );
 
-  const optionDefs = [
-    { code: "OPT-SIEGES", name: "Shampoing sièges", priceCents: EUR(25), durationMin: 30 },
-    { code: "OPT-POILS", name: "Retrait poils d'animaux", priceCents: EUR(20), durationMin: 20 },
-    { code: "OPT-PLASTIQUES", name: "Rénovation plastiques", priceCents: EUR(15), durationMin: 10 },
-    { code: "OPT-JANTES", name: "Jantes traitement intensif", priceCents: EUR(12), durationMin: 10 },
-    { code: "OPT-COFFRE", name: "Coffre / soute utilitaire", priceCents: EUR(10), durationMin: 10 },
-  ];
-
   const options = await Promise.all(
-    optionDefs.map((o, i) => prisma.serviceOption.create({ data: { ...o, sortOrder: i } })),
+    OPTION_DEFS.map((o, i) => prisma.serviceOption.create({ data: { ...o, sortOrder: i } })),
   );
 
   for (const option of options) {
@@ -629,7 +578,7 @@ async function main(): Promise<SeedSummary> {
     région: region.name,
     secteurs: sectorData.length,
     opérateurs: operators.length,
-    prestations: serviceDefs.length,
+    prestations: SERVICE_DEFS.length,
     "modèles véhicules": VEHICLE_MODELS.length,
     options: options.length,
     clients: customers.length,
