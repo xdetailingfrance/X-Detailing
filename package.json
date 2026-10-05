@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "vercel-build": "prisma migrate deploy && next build",
+    "vercel-build": "prisma migrate deploy && tsx scripts/catalogue.ts --appliquer && next build",
     "start": "next start",
     "lint": "eslint",
     "test": "node --import tsx --test 'src/**/*.test.ts'",
