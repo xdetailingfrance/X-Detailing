@@ -59,6 +59,7 @@ export default async function BookingPage({
   const funnelOptions: FunnelOption[] = options.map((option) => ({
     id: option.id,
     name: option.name,
+    category: option.category,
     priceCents: option.priceCents,
     durationMin: option.durationMin,
   }));

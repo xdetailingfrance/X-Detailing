@@ -4,6 +4,8 @@ import { z } from "zod";
 import { prisma } from "@/server/db";
 import { geocode } from "@/server/geocoding";
 import { quote, PricingError } from "@/server/pricing";
+import { DEPARTURE } from "@/server/tarifs";
+import { roadRoute, estimateLeg } from "@/lib/providers/geo";
 import { findAvailableSlots, type SlotOption } from "@/server/assignment/availability";
 import { findImmediateSlots } from "@/server/dispatch/wash-now";
 import { runAssignment } from "@/server/assignment/service";
@@ -54,8 +56,23 @@ export type SlotLookup =
       lng: number;
       durationMin: number;
       totalCents: number;
+      /** Distance routière depuis le point de départ, et le supplément correspondant. */
+      travelKm: number;
+      travelCents: number;
       operatorsConsidered: number;
     };
+
+/**
+ * Distance routière entre le point de départ du réseau et le client.
+ *
+ * La Géoplateforme peut ne pas répondre ; on retombe alors sur l'estimation géométrique
+ * plutôt que de ne rien facturer. Un trajet gratuit par défaut de service se paierait
+ * sur chaque réservation, et personne ne le verrait passer.
+ */
+async function roadKmToClient(location: { lat: number; lng: number }): Promise<number> {
+  const route = await roadRoute(DEPARTURE, location);
+  return route?.km ?? estimateLeg(DEPARTURE, location, new Date()).km;
+}
 
 const lookupSchema = bookingCore.extend({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date invalide"),
@@ -83,6 +100,7 @@ export async function lookupSlots(input: z.input<typeof lookupSchema>): Promise<
       serviceId: data.serviceId,
       vehicleClass: data.vehicleClass,
       optionIds: data.optionIds,
+      roadKm: await roadKmToClient(location),
     });
   } catch (error) {
     if (error instanceof PricingError) return { ok: false, error: error.message };
@@ -108,6 +126,8 @@ export async function lookupSlots(input: z.input<typeof lookupSchema>): Promise<
     lng: location.lng,
     durationMin: pricing.totalDurationMin,
     totalCents: pricing.totalCents,
+    travelKm: pricing.travelKm ?? 0,
+    travelCents: pricing.travelCents,
     operatorsConsidered: availability.operatorsConsidered,
   };
 }
@@ -135,6 +155,7 @@ export async function lookupNow(input: z.input<typeof bookingCore>): Promise<Slo
       serviceId: data.serviceId,
       vehicleClass: data.vehicleClass,
       optionIds: data.optionIds,
+      roadKm: await roadKmToClient(location),
     });
   } catch (error) {
     if (error instanceof PricingError) return { ok: false, error: error.message };
@@ -170,6 +191,8 @@ export async function lookupNow(input: z.input<typeof bookingCore>): Promise<Slo
     lng: location.lng,
     durationMin: pricing.totalDurationMin,
     totalCents: pricing.totalCents,
+    travelKm: pricing.travelKm ?? 0,
+    travelCents: pricing.travelCents,
     operatorsConsidered: immediate.slots.length,
   };
 }
@@ -263,6 +286,7 @@ export async function confirmBooking(input: z.input<typeof confirmSchema>): Prom
       serviceId: data.serviceId,
       vehicleClass: data.vehicleClass,
       optionIds: data.optionIds,
+      roadKm: await roadKmToClient(location),
     });
   } catch (error) {
     if (error instanceof PricingError) return { ok: false, error: error.message };

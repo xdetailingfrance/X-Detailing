@@ -1,4 +1,5 @@
 import { prisma } from "../db";
+import { MAX_TRAVEL_KM, travelFeeCents } from "../tarifs";
 import type { VehicleClass } from "@/generated/prisma/enums";
 
 /**
@@ -13,6 +14,14 @@ export type QuoteRequest = {
   serviceId: string;
   vehicleClass: VehicleClass;
   optionIds?: string[];
+  /**
+   * Distance routière entre le point de départ et le client, en kilomètres.
+   *
+   * Omise, le devis ne porte aucun frais de route — c'est le cas d'un chiffrage au
+   * téléphone avant que l'adresse soit connue. Fournie, elle est facturée par tranche,
+   * et une distance hors zone fait échouer le devis au lieu de passer à zéro.
+   */
+  roadKm?: number;
 };
 
 export type Quote = {
@@ -22,6 +31,9 @@ export type Quote = {
   options: Array<{ id: string; name: string; priceCents: number; durationMin: number }>;
   optionsPriceCents: number;
   optionsDurationMin: number;
+  /** `null` tant que l'adresse n'est pas connue. */
+  travelKm: number | null;
+  travelCents: number;
   totalCents: number;
   totalDurationMin: number;
 };
@@ -55,6 +67,18 @@ export async function quote(request: QuoteRequest): Promise<Quote> {
   const optionsPriceCents = options.reduce((sum, o) => sum + o.priceCents, 0);
   const optionsDurationMin = options.reduce((sum, o) => sum + o.durationMin, 0);
 
+  let travelCents = 0;
+  if (request.roadKm !== undefined) {
+    const fee = travelFeeCents(request.roadKm);
+    if (fee === null) {
+      throw new PricingError(
+        `Cette adresse est à ${Math.round(request.roadKm)} km par la route, au-delà des ` +
+          `${MAX_TRAVEL_KM} km que nous desservons. Appelez-nous pour en discuter.`,
+      );
+    }
+    travelCents = fee;
+  }
+
   return {
     serviceName: service.name,
     basePriceCents: pricing.priceCents,
@@ -67,7 +91,9 @@ export async function quote(request: QuoteRequest): Promise<Quote> {
     })),
     optionsPriceCents,
     optionsDurationMin,
-    totalCents: pricing.priceCents + optionsPriceCents,
+    travelKm: request.roadKm ?? null,
+    travelCents,
+    totalCents: pricing.priceCents + optionsPriceCents + travelCents,
     totalDurationMin: pricing.durationMin + optionsDurationMin,
   };
 }

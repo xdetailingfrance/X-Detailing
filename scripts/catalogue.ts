@@ -108,13 +108,16 @@ async function main(): Promise<void> {
     if (
       existing &&
       existing.name === def.name &&
+      existing.category === def.category &&
       existing.priceCents === def.priceCents &&
-      existing.durationMin === def.durationMin
+      existing.durationMin === def.durationMin &&
+      existing.sortOrder === index &&
+      existing.active
     ) {
       continue;
     }
 
-    say(`  ${def.code.padEnd(16)} ${existing ? "à corriger" : "absente → création"}`);
+    say(`  ${def.code.padEnd(22)} ${existing ? "à corriger" : "absente → création"}`);
     if (!apply) continue;
     await prisma.serviceOption.upsert({
       where: { code: def.code },
@@ -123,15 +126,28 @@ async function main(): Promise<void> {
     });
   }
 
-  // Le traitement des jantes n'a de sens que là où la carrosserie est lavée.
+  /*
+   * Les options retirées du catalogue sont désactivées, jamais supprimées : des
+   * rendez-vous passés les référencent, et une facture doit rester lisible des années
+   * après. Désactivée, l'option disparaît de la vente sans trouer l'historique.
+   */
+  const retirees = await prisma.serviceOption.findMany({
+    where: { active: true, code: { notIn: OPTION_DEFS.map((o) => o.code) } },
+    select: { id: true, code: true },
+  });
+  for (const retiree of retirees) {
+    say(`  ${retiree.code.padEnd(22)} retirée du catalogue → désactivation`);
+    if (!apply) continue;
+    await prisma.serviceOption.update({ where: { id: retiree.id }, data: { active: false } });
+  }
+
+  // Toutes les options portent sur l'habitacle : les deux formules les acceptent.
   if (apply) {
     for (const def of OPTION_DEFS) {
       const option = await prisma.serviceOption.findUnique({ where: { code: def.code } });
       if (!option) continue;
 
-      const codes =
-        def.code === "OPT-JANTES" ? ["PACK-LUXE"] : SERVICE_DEFS.map((s) => s.code);
-      for (const code of codes) {
+      for (const { code } of SERVICE_DEFS) {
         const service = await prisma.service.findUnique({ where: { code } });
         if (!service) continue;
         await prisma.serviceOptionLink.upsert({

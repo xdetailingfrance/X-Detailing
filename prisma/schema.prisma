@@ -308,6 +308,9 @@ model ServiceOption {
   id          String  @id @default(cuid())
   code        String  @unique
   name        String
+  /// Regroupement affiché au client : « État du véhicule », « Traitement du cuir »…
+  /// Onze options en liste plate se lisent mal ; groupées, elles se parcourent.
+  category    String?
   description String?
   priceCents  Int
   durationMin Int     @default(0)

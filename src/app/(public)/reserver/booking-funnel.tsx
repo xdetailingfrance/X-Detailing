@@ -26,6 +26,7 @@ export type FunnelService = {
 export type FunnelOption = {
   id: string;
   name: string;
+  category: string | null;
   priceCents: number;
   durationMin: number;
 };
@@ -118,13 +119,39 @@ export function BookingFunnel({
   const service = services.find((s) => s.id === serviceId) ?? null;
   const availableOptions = options.filter((o) => service?.optionIds.includes(o.id));
 
+  /*
+   * Onze options en liste plate se parcourent mal. Groupées, elles se lisent — et le
+   * client repère d'un coup d'œil la famille qui le concerne. L'ordre des groupes suit
+   * celui du catalogue : il est choisi, pas alphabétique.
+   */
+  const optionGroups = availableOptions.reduce<Array<[string | null, FunnelOption[]]>>(
+    (groups, option) => {
+      const last = groups[groups.length - 1];
+      if (last && last[0] === (option.category ?? null)) last[1].push(option);
+      else groups.push([option.category ?? null, [option]]);
+      return groups;
+    },
+    [],
+  );
+
+  /*
+   * Le déplacement n'est connu qu'une fois l'adresse géocodée et l'itinéraire calculé :
+   * il arrive avec la réponse du serveur, pas avant. Tant qu'il manque, le panier
+   * affiche la prestation seule — jamais un total qui augmenterait après coup sans
+   * explication.
+   */
+  const travel = lookup?.ok ? { km: lookup.travelKm, cents: lookup.travelCents } : null;
+
   const price = (() => {
     if (!service || !vehicleClass) return null;
     const base = service.pricing[vehicleClass];
     if (!base) return null;
     const chosen = options.filter((o) => optionIds.includes(o.id));
     return {
-      totalCents: base.priceCents + chosen.reduce((sum, o) => sum + o.priceCents, 0),
+      totalCents:
+        base.priceCents +
+        chosen.reduce((sum, o) => sum + o.priceCents, 0) +
+        (travel?.cents ?? 0),
       durationMin: base.durationMin + chosen.reduce((sum, o) => sum + o.durationMin, 0),
       chosen,
       basePriceCents: base.priceCents,
@@ -353,8 +380,12 @@ export function BookingFunnel({
               <legend className="font-display text-base font-bold text-white">
                 Ajouter une option ?
               </legend>
-              <div className="mt-3 space-y-2">
-                {availableOptions.map((option) => {
+              {optionGroups.map(([category, groupOptions]) => (
+              <div key={category} className="mt-3 space-y-2">
+                {category && (
+                  <p className="eyebrow pt-2 text-xd-text-4">{category}</p>
+                )}
+                {groupOptions.map((option) => {
                   const checked = optionIds.includes(option.id);
                   return (
                     <label
@@ -384,6 +415,7 @@ export function BookingFunnel({
                   );
                 })}
               </div>
+              ))}
             </fieldset>
           )}
         </section>
@@ -737,6 +769,12 @@ export function BookingFunnel({
               {euros(price.totalCents - (voucher?.discountCents ?? 0))}
             </span>
           </div>
+          {travel && (
+            <p className="tabular mt-0.5 text-xs text-xd-text-3">
+              Déplacement {travel.km.toLocaleString("fr-FR")} km par la route ·{" "}
+              {travel.cents === 0 ? "compris" : `+ ${euros(travel.cents)}`}
+            </p>
+          )}
           {voucher && (
             <p className="tabular mt-0.5 text-xs text-xd-ok">
               − {euros(voucher.discountCents)} avec le code {voucher.code}

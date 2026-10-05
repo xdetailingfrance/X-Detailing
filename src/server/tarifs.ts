@@ -99,11 +99,69 @@ export const SERVICE_DEFS = [
   },
 ];
 
-/** Les options, cochables à la réservation ou décidées sur place. */
+/**
+ * Les options, cochables à la réservation.
+ *
+ * `durationMin` vaut zéro partout : les durées n'ont pas été communiquées. Ce n'est pas
+ * un détail cosmétique — le moteur d'affectation additionne ces minutes pour construire
+ * les tournées. Un shampooing de plafonnier facturé 60 € qui ne déclare aucune minute
+ * fait déborder le départ suivant. À renseigner avant d'ouvrir la vente des options.
+ */
 export const OPTION_DEFS = [
-  { code: "OPT-SIEGES", name: "Shampoing sièges", priceCents: EUR(25), durationMin: 30 },
-  { code: "OPT-POILS", name: "Retrait poils d'animaux", priceCents: EUR(20), durationMin: 20 },
-  { code: "OPT-PLASTIQUES", name: "Rénovation plastiques", priceCents: EUR(15), durationMin: 10 },
-  { code: "OPT-JANTES", name: "Jantes traitement intensif", priceCents: EUR(12), durationMin: 10 },
-  { code: "OPT-COFFRE", name: "Coffre / soute utilitaire", priceCents: EUR(10), durationMin: 10 },
-];
+  // ── État du véhicule ──────────────────────────────────────────────────────
+  { code: "OPT-NON-VIDE", category: "État du véhicule", name: "Véhicule non vidé", priceCents: EUR(15), durationMin: 0 },
+  { code: "OPT-SABLE", category: "État du véhicule", name: "Présence de sable", priceCents: EUR(20), durationMin: 0 },
+  { code: "OPT-POILS", category: "État du véhicule", name: "Poils de chien", priceCents: EUR(25), durationMin: 0 },
+
+  // ── Shampooing et nettoyage approfondi ────────────────────────────────────
+  { code: "OPT-SHAMPOING-COFFRE", category: "Shampooing et nettoyage approfondi", name: "Shampooing coffre", priceCents: EUR(20), durationMin: 0 },
+  { code: "OPT-SIEGE-BEBE", category: "Shampooing et nettoyage approfondi", name: "Shampooing siège auto bébé (par siège)", priceCents: EUR(10), durationMin: 0 },
+  { code: "OPT-PLAFONNIER", category: "Shampooing et nettoyage approfondi", name: "Shampooing plafonnier", priceCents: EUR(60), durationMin: 0 },
+
+  // ── Traitement du cuir ────────────────────────────────────────────────────
+  { code: "OPT-CUIR", category: "Traitement du cuir", name: "Traitement du cuir", priceCents: EUR(50), durationMin: 0 },
+  { code: "OPT-CUIR-HORS-SIEGES", category: "Traitement du cuir", name: "Traitement cuir (hors sièges)", priceCents: EUR(25), durationMin: 0 },
+
+  // ── Tapis et coffre ───────────────────────────────────────────────────────
+  { code: "OPT-TAPIS-SUP", category: "Tapis et coffre", name: "Tapis supplémentaire", priceCents: EUR(20), durationMin: 0 },
+  { code: "OPT-TAPIS-COFFRE", category: "Tapis et coffre", name: "Tapis de coffre", priceCents: EUR(15), durationMin: 0 },
+  { code: "OPT-SOUS-COFFRE", category: "Tapis et coffre", name: "Sous-coffre", priceCents: EUR(25), durationMin: 0 },
+] as const;
+
+/* ── Le déplacement ───────────────────────────────────────────────────────── */
+
+/**
+ * Point de départ du réseau : Pompignac (33).
+ *
+ * Coordonnées du centre de la commune. Le jour où le local a une adresse précise,
+ * c'est la seule ligne à corriger — tout le calcul en découle.
+ */
+export const DEPARTURE = { lat: 44.850415, lng: -0.4382, label: "Pompignac (33)" } as const;
+
+/**
+ * Supplément de déplacement, par tranche de distance **routière**.
+ *
+ * `upToKm` est la borne haute incluse. Au-delà de la dernière tranche, aucun tarif
+ * n'a été fixé : la réservation en ligne refuse plutôt que d'inventer un montant.
+ */
+export const TRAVEL_BANDS: ReadonlyArray<{ upToKm: number; priceCents: number }> = [
+  { upToKm: 15, priceCents: EUR(0) },
+  { upToKm: 30, priceCents: EUR(10) },
+  { upToKm: 45, priceCents: EUR(20) },
+  { upToKm: 60, priceCents: EUR(30) },
+] as const;
+
+/** Dernière borne couverte, au-delà de laquelle on ne sait pas facturer. */
+export const MAX_TRAVEL_KM = TRAVEL_BANDS[TRAVEL_BANDS.length - 1].upToKm;
+
+/**
+ * Le supplément correspondant à une distance routière, ou `null` hors zone.
+ *
+ * `null` n'est pas zéro : il signifie « nous ne desservons pas », et l'appelant doit
+ * refuser la réservation plutôt que de la passer sans frais de route.
+ */
+export function travelFeeCents(roadKm: number): number | null {
+  if (!Number.isFinite(roadKm) || roadKm < 0) return null;
+  const band = TRAVEL_BANDS.find((b) => roadKm <= b.upToKm);
+  return band ? band.priceCents : null;
+}
