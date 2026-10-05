@@ -61,10 +61,10 @@ export function Hero() {
 
           <div className="mt-9 flex flex-wrap gap-3">
             <Link
-              href="#besoin"
+              href="#packs"
               className="press rounded-full bg-xd-violet px-7 py-3.5 text-body font-semibold text-white [box-shadow:inset_0_1px_0_0_rgb(255_255_255/0.24)] transition-colors duration-[--xd-micro] hover:bg-xd-violet-highlight"
             >
-              Choisir mon nettoyage
+              Voir les tarifs et réserver
             </Link>
             <Link
               href="#avant-apres"
