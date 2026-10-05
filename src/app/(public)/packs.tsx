@@ -8,9 +8,11 @@ import { VEHICLE_ICON } from "@/components/vehicle-icons";
 /**
  * Comparaison des deux formules (§17).
  *
- * On choisit d'abord le véhicule, puis on compare : le prix affiché est celui qui
- * sera facturé, pas un « à partir de ». C'est l'inverse d'un tableau à sept lignes,
- * où le lecteur doit trouver la sienne avant de comprendre quoi que ce soit.
+ * Le prix affiché est celui qui sera facturé, jamais un « à partir de ».
+ *
+ * Le sélecteur de véhicule ne s'affiche que si le tarif en dépend. Tant qu'une
+ * citadine et un utilitaire paient la même chose, demander au visiteur de choisir sa
+ * catégorie pour lui montrer sept fois le même montant est une étape pour rien.
  */
 
 export type PackPricing = {
@@ -41,30 +43,37 @@ export function PackComparison({
 }) {
   const [vehicleClass, setVehicleClass] = useState(vehicles[1]?.key ?? vehicles[0]?.key);
 
+  // Le tarif dépend-il réellement du véhicule ?
+  const variesByVehicle = packs.some(
+    (pack) => new Set(pack.pricing.map((p) => p.priceCents)).size > 1,
+  );
+
   return (
     <>
-      <div className="mt-8 flex flex-wrap gap-2">
-        {vehicles.map((vehicle) => {
-          const selected = vehicle.key === vehicleClass;
-          const Icon = VEHICLE_ICON[vehicle.key];
-          return (
-            <button
-              key={vehicle.key}
-              type="button"
-              onClick={() => setVehicleClass(vehicle.key)}
-              aria-pressed={selected}
-              className={`press flex items-center gap-2 rounded-full py-2 pl-2.5 pr-4 text-meta font-medium transition-all duration-[--xd-micro] ${
-                selected
-                  ? "bg-xd-violet text-white [box-shadow:inset_0_1px_0_0_rgb(255_255_255/0.24)]"
-                  : "bg-white/[0.05] text-xd-text-3 [box-shadow:inset_0_0_0_1px_rgb(255_255_255/0.08)] hover:text-xd-text-2"
-              }`}
-            >
-              {Icon && <Icon className="w-7 shrink-0" />}
-              {vehicle.label}
-            </button>
-          );
-        })}
-      </div>
+      {variesByVehicle && (
+        <div className="mt-8 flex flex-wrap gap-2">
+          {vehicles.map((vehicle) => {
+            const selected = vehicle.key === vehicleClass;
+            const Icon = VEHICLE_ICON[vehicle.key];
+            return (
+              <button
+                key={vehicle.key}
+                type="button"
+                onClick={() => setVehicleClass(vehicle.key)}
+                aria-pressed={selected}
+                className={`press flex items-center gap-2 rounded-full py-2 pl-2.5 pr-4 text-meta font-medium transition-all duration-[--xd-micro] ${
+                  selected
+                    ? "bg-xd-violet text-white [box-shadow:inset_0_1px_0_0_rgb(255_255_255/0.24)]"
+                    : "bg-white/[0.05] text-xd-text-3 [box-shadow:inset_0_0_0_1px_rgb(255_255_255/0.08)] hover:text-xd-text-2"
+                }`}
+              >
+                {Icon && <Icon className="w-7 shrink-0" />}
+                {vehicle.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         {packs.map((pack) => {
@@ -121,7 +130,7 @@ export function PackComparison({
               </ul>
 
               <Link
-                href={`/reserver?vehicule=${vehicleClass}&prestation=${pack.id}`}
+                href={`/reserver?prestation=${pack.id}${variesByVehicle ? `&vehicule=${vehicleClass}` : ""}`}
                 className={`press mt-7 inline-flex justify-center rounded-[--radius-xd-md] px-6 py-3.5 text-body font-semibold transition-colors duration-150 ${
                   signature
                     ? "bg-xd-purple text-white [box-shadow:inset_0_1px_0_0_rgb(255_255_255/0.22)] hover:bg-xd-purple-bright"

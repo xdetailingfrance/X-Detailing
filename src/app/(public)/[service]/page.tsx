@@ -71,6 +71,16 @@ export default async function ServicePage({ params }: PageProps<"/[service]">) {
   const shortest = Math.min(...service.pricing.map((p) => p.durationMin));
   const longest = Math.max(...service.pricing.map((p) => p.durationMin));
 
+  /**
+   * Le tarif dépend-il de la catégorie du véhicule ?
+   *
+   * Tant qu'il n'en dépend pas, toute la page doit cesser de le prétendre : pas de
+   * « à partir de » devant un prix unique, pas de tableau à sept lignes identiques,
+   * pas de réponse qui annonce une fourchette entre deux montants égaux.
+   */
+  const variesByVehicle = new Set(service.pricing.map((p) => p.priceCents)).size > 1;
+  const variesInDuration = shortest !== longest;
+
   const interior = service.kind !== "EXTERIOR";
   const exterior = service.kind !== "INTERIOR";
   const formulas: Array<"Concession" | "Concession Luxe"> = exterior
@@ -86,11 +96,15 @@ export default async function ServicePage({ params }: PageProps<"/[service]">) {
   const questions = [
     {
       q: `Combien coûte la formule ${service.name} à ${BUSINESS.city} ?`,
-      a: `À partir de ${euros(cheapest.pricing!.priceCents)} pour une ${cheapest.label.toLowerCase()}, jusqu'à ${euros(dearest.pricing!.priceCents)} pour un ${dearest.label.toLowerCase()}. Le prix est fixé par la catégorie du véhicule, pas par son état : il est ferme et annoncé avant la réservation.`,
+      a: variesByVehicle
+        ? `À partir de ${euros(cheapest.pricing!.priceCents)} pour une ${cheapest.label.toLowerCase()}, jusqu'à ${euros(dearest.pricing!.priceCents)} pour un ${dearest.label.toLowerCase()}. Le prix est fixé par la catégorie du véhicule, pas par son état : il est ferme et annoncé avant la réservation.`
+        : `${euros(cheapest.pricing!.priceCents)}, quelle que soit la voiture. Le prix ne dépend ni de la catégorie du véhicule ni de son état : il est ferme et annoncé avant la réservation.`,
     },
     {
       q: "Combien de temps faut-il ?",
-      a: `De ${formatDuration(shortest)} à ${formatDuration(longest)} selon la taille du véhicule. L'opérateur reste sur place pendant toute la durée ; vous n'avez pas à déposer ni à récupérer la voiture.`,
+      a: variesInDuration
+        ? `De ${formatDuration(shortest)} à ${formatDuration(longest)} selon la taille du véhicule. L'opérateur reste sur place pendant toute la durée ; vous n'avez pas à déposer ni à récupérer la voiture.`
+        : `${formatDuration(shortest)}. L'opérateur reste sur place pendant toute la durée ; vous n'avez pas à déposer ni à récupérer la voiture.`,
     },
     {
       q: "Vous vous déplacez où ?",
@@ -186,7 +200,9 @@ export default async function ServicePage({ params }: PageProps<"/[service]">) {
                 {euros(cheapest.pricing!.priceCents)}
               </p>
               <p className="mt-1.5 text-meta text-xd-text-3">
-                à partir de, pour une {cheapest.label.toLowerCase()}
+                {variesByVehicle
+                  ? `à partir de, pour une ${cheapest.label.toLowerCase()}`
+                  : "quelle que soit la voiture"}
               </p>
             </div>
             <div className="hidden h-10 w-px bg-white/[0.08] sm:block" />
@@ -260,35 +276,41 @@ export default async function ServicePage({ params }: PageProps<"/[service]">) {
       />
 
       {/* ── Le tarif par véhicule ───────────────────────────────────────── */}
-      <section className="border-y border-white/[0.06] bg-xd-abyss/60">
-        <div className="mx-auto max-w-6xl px-5 py-20 sm:py-24">
-          <h2 className="max-w-2xl text-[2rem] font-semibold leading-[1.1] tracking-[-0.03em] text-xd-text sm:text-[2.4rem]">
-            Le prix, par catégorie.
-          </h2>
-          <p className="mt-4 max-w-xl text-body text-xd-text-3">
-            Prix ferme. Il dépend de la taille du véhicule, pas de son état.
-          </p>
+      {/*
+        Masqué tant que le prix ne dépend pas du véhicule : sept lignes portant le
+        même montant ne renseignent personne et laissent croire au contraire.
+      */}
+      {variesByVehicle && (
+        <section className="border-y border-white/[0.06] bg-xd-abyss/60">
+          <div className="mx-auto max-w-6xl px-5 py-20 sm:py-24">
+            <h2 className="max-w-2xl text-[2rem] font-semibold leading-[1.1] tracking-[-0.03em] text-xd-text sm:text-[2.4rem]">
+              Le prix, par catégorie.
+            </h2>
+            <p className="mt-4 max-w-xl text-body text-xd-text-3">
+              Prix ferme. Il dépend de la taille du véhicule, pas de son état.
+            </p>
 
-          <ul className="mt-8 grid gap-px overflow-hidden rounded-[--radius-xd-xl] bg-white/[0.07] sm:grid-cols-2 lg:grid-cols-4">
-            {prices.map((row) => (
-              <li key={row.key} className="bg-xd-carbon px-5 py-5">
-                <p className="text-meta text-xd-text-3">{row.label}</p>
-                <p className="tabular mt-1.5 flex items-baseline gap-2 text-h2 font-semibold tracking-[-0.025em] text-xd-text">
-                  {euros(row.pricing!.priceCents)}
-                  {row.pricing!.compareAtCents && (
-                    <span className="text-meta font-normal text-xd-text-4 line-through">
-                      {euros(row.pricing!.compareAtCents)}
-                    </span>
-                  )}
-                </p>
-                <p className="mt-1 text-meta text-xd-text-4">
-                  {formatDuration(row.pricing!.durationMin)} sur place
-                </p>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
+            <ul className="mt-8 grid gap-px overflow-hidden rounded-[--radius-xd-xl] bg-white/[0.07] sm:grid-cols-2 lg:grid-cols-4">
+              {prices.map((row) => (
+                <li key={row.key} className="bg-xd-carbon px-5 py-5">
+                  <p className="text-meta text-xd-text-3">{row.label}</p>
+                  <p className="tabular mt-1.5 flex items-baseline gap-2 text-h2 font-semibold tracking-[-0.025em] text-xd-text">
+                    {euros(row.pricing!.priceCents)}
+                    {row.pricing!.compareAtCents && (
+                      <span className="text-meta font-normal text-xd-text-4 line-through">
+                        {euros(row.pricing!.compareAtCents)}
+                      </span>
+                    )}
+                  </p>
+                  <p className="mt-1 text-meta text-xd-text-4">
+                    {formatDuration(row.pricing!.durationMin)} sur place
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
 
       <Method shortestMin={shortest} longestMin={longest} />
 

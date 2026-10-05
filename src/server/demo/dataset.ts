@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@/generated/prisma/client";
 import { hashPassword } from "@/lib/auth/password";
+import { priceGrid, TARIFS } from "../tarifs";
 import { startOfLocalDay } from "@/server/time";
 import { DAILY_SLOT_MINUTES, DEFAULT_ASSIGNMENT_SETTINGS } from "@/server/assignment/types";
 import { DEFAULT_QUOTING, depositFor } from "@/server/quoting";
@@ -208,36 +209,8 @@ async function main(): Promise<SeedSummary> {
   // aussi les moitiés séparément obligeait le client à comparer quatre lignes pour
   // comprendre une offre qui n'en compte que deux (§17).
   //
-  // La grille de prix couvre nos sept classes de véhicule, alors que l'offre de
-  // référence n'en affiche que quatre : break et 4x4 suivent respectivement la berline
-  // et le SUV, l'utilitaire suit le monospace. Le moteur d'affectation et la
-  // requalification du §31 raisonnent sur les sept — les réduire ici casserait les deux.
-  //
-  // `compareAtCents` porte le prix de référence barré. Les durées répartissent les
-  // fourchettes annoncées — 1 h 10 à 1 h 45, puis 2 h 30 à 3 h — sur la taille du
-  // véhicule, ce qui est précisément ce qu'une fourchette veut dire.
-  //                                    prix    barré   minutes
-  const priceGrid: Record<string, Record<VehicleClass, [number, number | null, number]>> = {
-    "PACK-CONCESSION": {
-      CITADINE:        [EUR(129), EUR(139), 70],
-      BERLINE:         [EUR(139), EUR(149), 80],
-      BREAK:           [EUR(139), EUR(149), 85],
-      SUV:             [EUR(149), EUR(159), 95],
-      QUATRE_X_QUATRE: [EUR(149), EUR(159), 100],
-      UTILITAIRE:      [EUR(189), null, 105],
-      SEPT_PLACES:     [EUR(189), null, 105],
-    },
-    "PACK-LUXE": {
-      CITADINE:        [EUR(179), EUR(199), 150],
-      BERLINE:         [EUR(189), EUR(209), 160],
-      BREAK:           [EUR(189), EUR(209), 165],
-      SUV:             [EUR(199), EUR(229), 170],
-      QUATRE_X_QUATRE: [EUR(199), EUR(229), 175],
-      UTILITAIRE:      [EUR(259), null, 180],
-      SEPT_PLACES:     [EUR(259), null, 180],
-    },
-  };
-
+  // La grille tarifaire vit dans `server/tarifs.ts`, que partage le script de mise à
+  // jour : un prix se change à un seul endroit, et le site en ligne suit.
   const serviceDefs = [
     {
       code: "PACK-CONCESSION",
@@ -288,14 +261,7 @@ async function main(): Promise<SeedSummary> {
           data: {
             ...def,
             pricing: {
-              create: Object.entries(priceGrid[def.code]).map(
-                ([vehicleClass, [price, compareAt, min]]) => ({
-                  vehicleClass: vehicleClass as VehicleClass,
-                  priceCents: price,
-                  compareAtCents: compareAt,
-                  durationMin: min,
-                }),
-              ),
+              create: priceGrid(def.code),
             },
           },
         });
@@ -497,7 +463,7 @@ async function main(): Promise<SeedSummary> {
     op: number; customer: number; day: number;
     /** Index du départ dans `DAILY_SLOT_MINUTES` : 0, 1 ou 2. */
     slot: number;
-    service: keyof typeof priceGrid; status?: string;
+    service: keyof typeof TARIFS; status?: string;
   }> = [
     // Les semaines passées : de quoi alimenter les statistiques et une quinzaine complète.
     // Deux clients laissés sans nouvelle depuis plus d'un mois : ce sont eux que la
@@ -536,7 +502,7 @@ async function main(): Promise<SeedSummary> {
     const address = customer.addresses[0];
     const vehicle = customer.vehicles[0];
     const service = services[row.service];
-    const [priceCents, , durationMin] = priceGrid[row.service][vehicle.vehicleClass];
+    const { priceCents, durationMin } = TARIFS[row.service];
     const start = departure(row.day, row.slot);
     const sectorCode = operatorDefs[row.op].sector;
 
