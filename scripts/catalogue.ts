@@ -1,6 +1,7 @@
 import { prisma } from "@/server/db";
 import { OPTION_DEFS, priceGrid, SERVICE_DEFS, TARIFS, VEHICLE_CLASSES } from "@/server/tarifs";
 import { REGION, SECTORS } from "@/server/territoire";
+import { hashPassword } from "@/lib/auth/password";
 
 /**
  * Installe ou corrige le catalogue sur la base visée par DATABASE_URL.
@@ -22,6 +23,9 @@ import { REGION, SECTORS } from "@/server/territoire";
  */
 
 const apply = process.argv.includes("--appliquer");
+
+/** Nom affiché du compte d'administration à défaut de mieux. */
+const BUSINESS_SHORT = "X Detailing";
 const euros = (cents: number) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(cents / 100);
 
@@ -31,6 +35,47 @@ async function main(): Promise<void> {
     changes += 1;
     console.log(line);
   };
+
+  // ── Le compte d'administration ────────────────────────────────────────────
+  /*
+   * Sans administrateur, le back-office est inatteignable : on ne peut ni créer un
+   * opérateur, ni consulter une alerte, ni rien faire d'autre. Le jeu de démonstration
+   * en créait un, mais il n'a pas sa place sur une base en service — il efface tout
+   * avant d'écrire.
+   *
+   * Le compte n'est créé qu'une fois, et seulement s'il n'existe aucun administrateur.
+   * Un mot de passe changé depuis l'interface ne doit jamais être réécrit par un
+   * déploiement, et une variable oubliée dans l'environnement ne doit pas rouvrir un
+   * accès qu'on croyait fermé.
+   */
+  console.log("Administration");
+  const admins = await prisma.user.count({ where: { role: "ADMIN" } });
+  if (admins > 0) {
+    console.log(`  ${admins} administrateur(s) déjà en place — rien à faire`);
+  } else {
+    const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+    const password = process.env.ADMIN_PASSWORD;
+
+    if (!email || !password) {
+      console.log("  aucun administrateur, et ADMIN_EMAIL / ADMIN_PASSWORD absentes");
+      console.log("  → le back-office restera inaccessible tant qu'elles ne sont pas posées");
+    } else if (password.length < 12) {
+      throw new Error("ADMIN_PASSWORD trop court : 12 caractères minimum");
+    } else {
+      say(`  création du compte ${email}`);
+      if (apply) {
+        await prisma.user.create({
+          data: {
+            email,
+            passwordHash: await hashPassword(password),
+            role: "ADMIN",
+            firstName: process.env.ADMIN_FIRSTNAME?.trim() || "Direction",
+            lastName: process.env.ADMIN_LASTNAME?.trim() || BUSINESS_SHORT,
+          },
+        });
+      }
+    }
+  }
 
   // ── Le territoire ─────────────────────────────────────────────────────────
   // Avant le catalogue : sans secteur, aucun opérateur ne peut être créé depuis le
