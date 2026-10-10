@@ -2,6 +2,7 @@ import { prisma } from "@/server/db";
 import { OPTION_DEFS, priceGrid, SERVICE_DEFS, TARIFS, VEHICLE_CLASSES } from "@/server/tarifs";
 import { REGION, SECTORS } from "@/server/territoire";
 import { hashPassword } from "@/lib/auth/password";
+import { geocode } from "@/server/geocoding";
 
 /**
  * Installe ou corrige le catalogue sur la base visée par DATABASE_URL.
@@ -176,6 +177,97 @@ async function main(): Promise<void> {
           durationMin: tarif.durationMin,
         },
       });
+    }
+  }
+
+  // ── Le premier opérateur ──────────────────────────────────────────────────
+  /*
+   * Sans opérateur, aucun créneau n'est proposé et la réservation est impossible.
+   * Le back-office sait en créer, mais il faut d'abord pouvoir s'y connecter — et
+   * l'amorçage par l'environnement évite d'avoir à manipuler une URL de base de
+   * production depuis un terminal.
+   *
+   * Comme pour l'administrateur, un seul passage : dès qu'un opérateur existe, le
+   * déploiement n'y touche plus. Les suivants se créent depuis le back-office, qui
+   * gère la couverture, les services et les horaires un par un.
+   *
+   * Les coordonnées de la personne vivent dans l'environnement, jamais dans le dépôt :
+   * celui-ci est public, et une adresse personnelle committée y reste indéfiniment.
+   */
+  console.log("\nPremier opérateur");
+  const operatorCount = await prisma.operator.count();
+  if (operatorCount > 0) {
+    console.log(`  ${operatorCount} opérateur(s) déjà en place — rien à faire`);
+  } else {
+    const email = process.env.OPERATOR_EMAIL?.trim().toLowerCase();
+    const password = process.env.OPERATOR_PASSWORD;
+    const firstName = process.env.OPERATOR_FIRSTNAME?.trim();
+    const lastName = process.env.OPERATOR_LASTNAME?.trim();
+    const phone = process.env.OPERATOR_PHONE?.replace(/\s+/g, "");
+    const address = process.env.OPERATOR_ADDRESS?.trim();
+
+    const manquantes = Object.entries({
+      OPERATOR_EMAIL: email, OPERATOR_PASSWORD: password, OPERATOR_FIRSTNAME: firstName,
+      OPERATOR_LASTNAME: lastName, OPERATOR_PHONE: phone, OPERATOR_ADDRESS: address,
+    })
+      .filter(([, value]) => !value)
+      .map(([name]) => name);
+
+    if (manquantes.length > 0) {
+      console.log(`  variables absentes : ${manquantes.join(", ")}`);
+      console.log("  → aucun créneau ne sera proposé tant qu'aucun opérateur n'existe");
+    } else if (password!.length < 12) {
+      throw new Error("OPERATOR_PASSWORD trop court : 12 caractères minimum");
+    } else {
+      const sector = await prisma.sector.findUnique({ where: { code: SECTORS[0].code } });
+      const services = await prisma.service.findMany({ where: { active: true }, select: { id: true } });
+
+      if (!sector) {
+        console.log("  secteur introuvable — relancez après l'installation du territoire");
+      } else if (!apply) {
+        say(`  création de ${firstName} ${lastName}`);
+      } else {
+        /*
+         * L'adresse est géocodée ici, pas plus tard : sans coordonnées, le moteur ne
+         * sait pas calculer un trajet et l'opérateur n'est proposé nulle part. Un
+         * échec doit donc arrêter l'installation, pas créer un opérateur inerte.
+         */
+        const home = await geocode(address!);
+        if (!home) {
+          throw new Error(`Adresse de l'opérateur introuvable : « ${address} »`);
+        }
+
+        const user = await prisma.user.create({
+          data: {
+            email: email!, passwordHash: await hashPassword(password!),
+            role: "OPERATOR", firstName: firstName!, lastName: lastName!, phone,
+          },
+        });
+
+        await prisma.operator.create({
+          data: {
+            userId: user.id, code: "OP-01",
+            firstName: firstName!, lastName: lastName!, phone: phone!, email: email!,
+            homeAddress: home.formatted, homeLat: home.lat, homeLng: home.lng,
+            homeSectorId: sector.id, status: "ACTIVE",
+            /*
+             * 7 h 30, pas 8 h : le premier départ est à 8 h 30 et l'opérateur doit
+             * pouvoir rejoindre l'adresse. Aucune pause déclarée : une pause de
+             * midi chevaucherait le départ de 11 h 30, qui se termine à 13 h 30.
+             */
+            workingHours: {
+              create: [1, 2, 3, 4, 5, 6].map((weekday) => ({
+                weekday, startMinute: 7 * 60 + 30, endMinute: 18 * 60 + 30,
+                breakStartMinute: null, breakEndMinute: null,
+              })),
+            },
+            coverage: { create: [{ sectorId: sector.id }] },
+            services: { create: services.map((service) => ({ serviceId: service.id })) },
+          },
+        });
+
+        say(`  ${firstName} ${lastName} créé · ${home.formatted}`);
+      }
     }
   }
 
