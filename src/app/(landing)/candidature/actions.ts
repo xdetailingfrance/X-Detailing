@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { prisma } from "@/server/db";
+import { notifyBusiness } from "@/server/notify-business";
 
 /**
  * Réception d'une candidature d'opérateur (§9).
@@ -89,8 +90,8 @@ export async function submitApplication(
       },
     });
 
-    // La candidature remonte dans le back-office : une notification e-mail seule se
-    // perd dans une boîte, et la destination CRM n'est pas encore arbitrée (§9).
+    // La candidature remonte dans le back-office : un e-mail seul se perd dans une
+    // boîte, et une alerte seule suppose que quelqu'un ouvre le back-office (§9).
     await prisma.alert.create({
       data: {
         type: "OPERATOR_APPLICATION",
@@ -106,6 +107,31 @@ export async function submitApplication(
       values,
       message: "L'envoi n'a pas abouti. Réessayez dans un instant, ou appelez-nous.",
     };
+  }
+
+  /*
+   * L'e-mail part après l'enregistrement, et son échec ne remonte pas au candidat :
+   * sa candidature est en base et visible dans le back-office. Lui afficher « l'envoi
+   * n'a pas abouti » le pousserait à recommencer et créerait un doublon, pour un
+   * incident qui ne le concerne pas.
+   */
+  const notice = await notifyBusiness({
+    subject: `Candidature opérateur — ${data.firstName} ${data.lastName} (${data.city})`,
+    replyTo: data.email.toLowerCase(),
+    lines: [
+      ["Nom", `${data.firstName} ${data.lastName}`],
+      ["Ville", data.city],
+      ["Téléphone", data.phone],
+      ["E-mail", data.email.toLowerCase()],
+      ["Statut", data.status],
+      ["Expérience", data.experience],
+      ["Apport", data.hasFunding === "oui" ? "oui" : "non"],
+      ["Message", data.message || null],
+    ],
+  });
+
+  if (!notice.sent) {
+    console.warn(`[candidature] e-mail non transmis : ${notice.reason}`);
   }
 
   return { status: "sent" };
