@@ -90,13 +90,25 @@ export async function createOperator(input: CreateOperatorInput): Promise<Create
         status: data.activateNow ? "ACTIVE" : "ONBOARDING",
         commissionRate: data.commissionRate,
         targetJobsPerDay: data.targetJobsPerDay,
+        /*
+         * Aucune pause déclarée, et ce n'est pas un oubli.
+         *
+         * Les départs sont fixes — 8 h 30, 11 h 30, 15 h — et une prestation dure deux
+         * heures. Celui de 11 h 30 se termine donc à 13 h 30 : la pause 12 h 30 – 13 h 30
+         * qui était écrite ici le chevauchait, et le moteur le rejetait. Tout opérateur
+         * créé depuis le back-office n'aurait jamais eu que deux départs sur trois, sans
+         * que rien ne le signale.
+         *
+         * Une pause reste possible, mais elle doit être posée hors de la plage
+         * 11 h 30 – 13 h 30, sous peine de refermer ce départ.
+         */
         workingHours: {
           create: data.weekdays.map((weekday) => ({
             weekday,
             startMinute: data.startMinute,
             endMinute: data.endMinute,
-            breakStartMinute: 12 * 60 + 30,
-            breakEndMinute: 13 * 60 + 30,
+            breakStartMinute: null,
+            breakEndMinute: null,
           })),
         },
         coverage: { create: data.coverageSectorIds.map((sectorId) => ({ sectorId })) },

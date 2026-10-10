@@ -62,12 +62,13 @@ export function OperatorForm({
     firstName: "", lastName: "", email: "", phone: "", password: "",
     homeAddress: "", homeSectorId: sectors[0]?.id ?? "",
     targetJobsPerDay: "5", commissionRate: "0.18",
-    startTime: "08:00", endTime: "18:30",
+    startTime: "07:30", endTime: "18:30",
     plate: "", activateNow: true,
   });
   const [coverage, setCoverage] = useState<string[]>(sectors[0] ? [sectors[0].id] : []);
   const [serviceIds, setServiceIds] = useState<string[]>(services.map((s) => s.id));
-  const [weekdays, setWeekdays] = useState<number[]>([1, 2, 3, 4, 5]);
+  // Samedi compris : c'est un jour de tournée comme un autre, avec ses trois départs.
+  const [weekdays, setWeekdays] = useState<number[]>([1, 2, 3, 4, 5, 6]);
 
   const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
@@ -174,6 +175,12 @@ export function OperatorForm({
         </fieldset>
 
         <div className="grid grid-cols-2 gap-3">
+          {/*
+            7 h 30, pas 8 h : le premier départ est à 8 h 30, et l'opérateur doit avoir
+            le temps de rejoindre l'adresse depuis son point de départ. À 8 h, un client
+            à plus de trente minutes ne se voit jamais proposer ce créneau — sans que
+            rien ne l'explique, ni au client, ni à vous.
+          */}
           <Field label="Début de journée"><input type="time" step={900} className={inputClass} value={form.startTime} onChange={set("startTime")} /></Field>
           <Field label="Fin de journée"><input type="time" step={900} className={inputClass} value={form.endTime} onChange={set("endTime")} /></Field>
         </div>

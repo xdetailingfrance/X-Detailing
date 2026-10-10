@@ -1,5 +1,6 @@
 import { prisma } from "@/server/db";
 import { OPTION_DEFS, priceGrid, SERVICE_DEFS, TARIFS, VEHICLE_CLASSES } from "@/server/tarifs";
+import { REGION, SECTORS } from "@/server/territoire";
 
 /**
  * Installe ou corrige le catalogue sur la base visée par DATABASE_URL.
@@ -30,6 +31,38 @@ async function main(): Promise<void> {
     changes += 1;
     console.log(line);
   };
+
+  // ── Le territoire ─────────────────────────────────────────────────────────
+  // Avant le catalogue : sans secteur, aucun opérateur ne peut être créé depuis le
+  // back-office, et la chaîne de réservation reste fermée quoi qu'on installe ensuite.
+  console.log("Territoire");
+  const region = await prisma.region.findUnique({ where: { code: REGION.code } });
+  if (!region) {
+    say(`  région ${REGION.code} absente → création`);
+  }
+  const regionId = apply
+    ? (
+        await prisma.region.upsert({
+          where: { code: REGION.code },
+          create: { ...REGION },
+          update: { name: REGION.name },
+          select: { id: true },
+        })
+      ).id
+    : (region?.id ?? null);
+
+  for (const sector of SECTORS) {
+    const existing = await prisma.sector.findUnique({ where: { code: sector.code } });
+    if (existing && existing.name === sector.name && existing.active) continue;
+
+    say(`  secteur ${sector.code.padEnd(18)} ${existing ? "à corriger" : "absent → création"}`);
+    if (!apply || !regionId) continue;
+    await prisma.sector.upsert({
+      where: { code: sector.code },
+      create: { ...sector, regionId },
+      update: { name: sector.name, active: true, regionId },
+    });
+  }
 
   for (const def of SERVICE_DEFS) {
     const existing = await prisma.service.findUnique({
