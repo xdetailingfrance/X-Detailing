@@ -55,9 +55,11 @@ export function Hero({ fromPriceCents }: { fromPriceCents: number | null }) {
         </div>
 
         {/*
-          Preuve immédiate, et seulement si elle existe. Une note inventée sous un
-          bouton de réservation est exactement le détail qui se retourne contre
-          l'entreprise le jour où quelqu'un vérifie.
+          Preuve immédiate, et seulement si elle existe. Tant que la note Google n'est
+          pas renseignée, rien ne s'affiche : un emplacement « à renseigner » juste sous
+          le bouton de réservation annonce au visiteur que l'entreprise n'a pas d'avis.
+          L'emplacement reste visible là où il sert — dans le pied de page et les
+          données structurées —, pas sur le premier écran.
         */}
         {rating && reviewCount ? (
           <p className="mt-6 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-meta text-xd-text-3">
@@ -65,14 +67,7 @@ export function Hero({ fromPriceCents }: { fromPriceCents: number | null }) {
             <span className="font-medium text-xd-text-2">{rating}</span>
             <span>sur Google · {reviewCount} avis</span>
           </p>
-        ) : (
-          <p className="mt-6 text-meta text-xd-text-4">
-            Note Google : {BUSINESS.google.rating} · {BUSINESS.google.reviewCount} avis
-            <span className="ml-2 rounded-full bg-xd-warn/12 px-2 py-0.5 text-micro text-xd-warn">
-              à renseigner
-            </span>
-          </p>
-        )}
+        ) : null}
       </div>
     </section>
   );

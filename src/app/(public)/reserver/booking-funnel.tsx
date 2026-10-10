@@ -8,6 +8,7 @@ import { VEHICLES, type FunnelVehicleClass } from "./vehicles";
 import { VEHICLE_ICON } from "@/components/vehicle-icons";
 import { formatDuration } from "@/server/time";
 import { PhotoStep } from "./photo-step";
+import { initialStep } from "./funnel-step";
 
 export type FunnelService = {
   /** Ce que la prestation comprend, une ligne par poste (§17). */
@@ -82,10 +83,7 @@ export function BookingFunnel({
 }) {
   const router = useRouter();
 
-  // On ouvre à la première question encore sans réponse.
-  const [step, setStep] = useState(
-    preset?.serviceId ? 2 : preset?.vehicleClass ? 1 : 0,
-  );
+  const [step, setStep] = useState(() => initialStep(preset));
   const [vehicleClass, setVehicleClass] = useState<VehicleClass | null>(
     preset?.vehicleClass ?? null,
   );
@@ -444,7 +442,7 @@ export function BookingFunnel({
                 className={field}
                 value={address.addressLine1}
                 onChange={(e) => setAddress({ ...address, addressLine1: e.target.value })}
-                placeholder="40 rue Vauban"
+                placeholder="12 avenue de la Mairie"
                 autoComplete="street-address"
               />
             </label>
@@ -457,7 +455,7 @@ export function BookingFunnel({
                   className={field}
                   value={address.postalCode}
                   onChange={(e) => setAddress({ ...address, postalCode: e.target.value })}
-                  placeholder="69006"
+                  placeholder="33370"
                   inputMode="numeric"
                   autoComplete="postal-code"
                 />
@@ -469,7 +467,7 @@ export function BookingFunnel({
                   className={field}
                   value={address.city}
                   onChange={(e) => setAddress({ ...address, city: e.target.value })}
-                  placeholder="Lyon"
+                  placeholder="Pompignac"
                   autoComplete="address-level2"
                 />
               </label>

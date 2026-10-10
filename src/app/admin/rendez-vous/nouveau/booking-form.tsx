@@ -238,10 +238,10 @@ export function BookingForm({
               <input className={inputClass} value={form.addressLine1} onChange={set("addressLine1")} placeholder="12 rue de la République" />
             </Field>
             <Field label="Code postal">
-              <input className={inputClass} value={form.postalCode} onChange={set("postalCode")} inputMode="numeric" placeholder="69006" />
+              <input className={inputClass} value={form.postalCode} onChange={set("postalCode")} inputMode="numeric" placeholder="33370" />
             </Field>
             <Field label="Ville" className="col-span-2">
-              <input className={inputClass} value={form.city} onChange={set("city")} placeholder="Lyon" />
+              <input className={inputClass} value={form.city} onChange={set("city")} placeholder="Pompignac" />
             </Field>
             <Field label="Accès (digicode, parking, point d'eau)" className="col-span-3">
               <input className={inputClass} value={form.accessNotes} onChange={set("accessNotes")} />
