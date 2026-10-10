@@ -16,7 +16,7 @@ export function DemoRibbon() {
   return (
     <Link
       href="/demo"
-      className="fixed bottom-20 right-4 z-40 md:bottom-4 rounded-full px-3.5 py-2 text-xs font-semibold tracking-wide text-chrome-200 m-polished hairline backdrop-blur transition duration-150 hover:text-white"
+      className="fixed bottom-20 right-4 z-40 md:bottom-4 rounded-full px-3.5 py-2 text-xs font-semibold tracking-wide text-chrome-200 m-polished hairline backdrop-blur transition duration-150 hover:text-xd-text"
       style={{ marginBottom: "env(safe-area-inset-bottom)" }}
     >
       Démo · changer de rôle

@@ -25,7 +25,7 @@ export default async function ReviewPage({ params }: PageProps<"/avis/[token]"> 
   if (appointment.status !== "COMPLETED") {
     return (
       <div className="mx-auto max-w-md px-5 py-16 text-center">
-        <h1 className="font-display text-xl font-bold text-white">Prestation non terminée</h1>
+        <h1 className="font-display text-xl font-bold text-xd-text">Prestation non terminée</h1>
         <p className="mt-2 text-sm text-chrome-400">
           Vous pourrez déposer votre avis une fois le lavage effectué.
         </p>
@@ -39,7 +39,7 @@ export default async function ReviewPage({ params }: PageProps<"/avis/[token]"> 
   if (appointment.review) {
     return (
       <div className="mx-auto max-w-md px-5 py-16 text-center">
-        <h1 className="font-display text-xl font-bold text-white">Merci, c&apos;est noté</h1>
+        <h1 className="font-display text-xl font-bold text-xd-text">Merci, c&apos;est noté</h1>
         <p className="mt-2 text-sm text-chrome-400">
           Vous avez déjà donné {appointment.review.rating}/5 pour cette prestation.
         </p>
@@ -52,7 +52,7 @@ export default async function ReviewPage({ params }: PageProps<"/avis/[token]"> 
       <p className="font-mono text-xs font-medium uppercase tracking-[0.16em] text-brand-400">
         Votre avis
       </p>
-      <h1 className="font-display mt-2 text-2xl font-extrabold tracking-tight text-white">
+      <h1 className="font-display mt-2 text-2xl font-extrabold tracking-tight text-xd-text">
         Comment s&apos;est passé votre lavage&nbsp;?
       </h1>
       <p className="mt-1.5 text-sm text-chrome-400">

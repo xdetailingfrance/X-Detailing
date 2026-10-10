@@ -59,7 +59,7 @@ export default async function DemoPage() {
         </header>
 
         <div className="mt-10 max-w-2xl">
-          <h1 className="font-display text-[2.4rem] leading-[1.05] font-extrabold tracking-tight text-white sm:text-[3.1rem]">
+          <h1 className="font-display text-[2.4rem] leading-[1.05] font-extrabold tracking-tight text-xd-text sm:text-[3.1rem]">
             Le système entier, ouvert.
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-chrome-300">
@@ -81,7 +81,7 @@ export default async function DemoPage() {
           </h2>
           {!seeded ? (
             <div className="mt-4 rounded-[22px] p-6 m-smoked hairline">
-              <p className="font-display text-lg font-bold text-white">
+              <p className="font-display text-lg font-bold text-xd-text">
                 La base est encore vide.
               </p>
               <p className="mt-2 text-sm leading-relaxed text-chrome-400">
@@ -102,11 +102,11 @@ export default async function DemoPage() {
               <form
                 key={persona.key}
                 action={enterAs}
-                className="group flex flex-col rounded-[22px] p-6 m-smoked hairline transition duration-150 hover:-translate-y-px hover:shadow-[0_18px_40px_-24px_rgb(0_0_0/0.9)]"
+                className="group flex flex-col rounded-[22px] p-6 m-smoked hairline transition duration-150 hover:-translate-y-px hover:shadow-[0_18px_40px_-24px_rgb(12_12_17/0.24)]"
               >
                 <input type="hidden" name="persona" value={persona.key} />
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className="font-display text-xl font-bold text-white">{persona.label}</span>
+                  <span className="font-display text-xl font-bold text-xd-text">{persona.label}</span>
                   <span className="text-[11px] uppercase tracking-[0.16em] text-chrome-500">
                     {persona.role}
                   </span>
@@ -139,7 +139,7 @@ export default async function DemoPage() {
                   {String(index + 1).padStart(2, "0")}
                 </span>
                 <div>
-                  <p className="font-display text-base font-bold text-white">{item.step}</p>
+                  <p className="font-display text-base font-bold text-xd-text">{item.step}</p>
                   <p className="mt-1 text-sm leading-relaxed text-chrome-400">{item.body}</p>
                 </div>
               </li>
@@ -168,7 +168,7 @@ export default async function DemoPage() {
                   index > 0 ? "hairline-t" : ""
                 }`}
               >
-                <span className="font-display text-base font-bold text-white">
+                <span className="font-display text-base font-bold text-xd-text">
                   {persona.label}
                 </span>
                 <code className="font-mono text-sm text-brand-300">/demo/{persona.key}</code>

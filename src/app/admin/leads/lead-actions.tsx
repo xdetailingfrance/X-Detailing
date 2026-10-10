@@ -31,7 +31,7 @@ export function LeadActions({
           type="button"
           disabled={pending}
           onClick={() => set("CONTACTED")}
-          className="rounded-lg bg-white/[0.06] px-2.5 py-1.5 text-xs font-medium text-ink-700 hover:border-ink-300 disabled:opacity-60 [box-shadow:inset_0_0_0_1px_var(--xd-hairline)]"
+          className="rounded-lg bg-black/[0.045] px-2.5 py-1.5 text-xs font-medium text-ink-700 hover:border-ink-300 disabled:opacity-60 [box-shadow:inset_0_0_0_1px_var(--xd-hairline)]"
         >
           Appelé
         </button>

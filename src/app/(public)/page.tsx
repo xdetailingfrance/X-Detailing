@@ -2,22 +2,26 @@ import { prisma } from "@/server/db";
 import { BUSINESS } from "@/lib/business";
 import { JsonLd, localBusinessSchema, serviceSchema } from "@/lib/structured-data";
 import { Hero } from "./home/hero";
-import { Stats, buildStats } from "./home/stats";
 import { Advantages } from "./home/advantages";
+import { Steps } from "./home/steps";
 import { Proof, type PublicReview } from "./home/proof";
 import { PackComparison } from "./packs";
 import { VEHICLES } from "./reserver/vehicles";
 
 /**
- * Accueil — page de capture.
+ * Accueil — tunnel de conversion.
  *
- * L'ordre mène à une seule action : réserver. Qui nous sommes (hero), ce que ça
- * représente (chiffres), pourquoi nous (quatre engagements), combien (les deux packs,
- * par véhicule), et la preuve (transformations, avis).
+ * Une seule décision à prendre, et tout la sert : la promesse et le prix d'appel
+ * (hero), les engagements en une bande, l'offre et son bouton (packs), ce qui se
+ * passe ensuite (trois étapes), puis la preuve.
  *
- * Le configurateur de besoin et l'explorateur de zones ont quitté cette page : ils
- * demandaient quatre décisions avant d'arriver au prix. Ils vivent toujours sur les
- * pages prestation, où quelqu'un qui compare a vraiment la patience de les lire.
+ * Ce qui a été retiré l'a été parce que ça éloignait du bouton : le bandeau de
+ * chiffres, les quatre cartes d'avantages, le configurateur de besoin et
+ * l'explorateur de zones. Ces deux derniers vivent sur les pages prestation, où
+ * quelqu'un qui compare a la patience de les lire.
+ *
+ * Les engagements passent avant les packs : ils répondent à « pourquoi vous » pendant
+ * que le visiteur descend vers « combien », au lieu de l'arrêter après.
  *
  * Rendu à la demande, jamais pré-rendu : la grille tarifaire vient de la base et un
  * changement de prix doit être visible immédiatement, pas au prochain déploiement.
@@ -33,7 +37,7 @@ export const metadata = {
 };
 
 export default async function HomePage() {
-  const [services, reviews, sectors, completedCount, ratings] = await Promise.all([
+  const [services, reviews, sectors] = await Promise.all([
     prisma.service.findMany({
       where: { active: true },
       orderBy: { sortOrder: "asc" },
@@ -44,17 +48,13 @@ export default async function HomePage() {
     prisma.review.findMany({
       where: { comment: { not: null }, rating: { gte: 4 } },
       orderBy: { createdAt: "desc" },
-      take: 6,
+      take: 3,
       include: {
         customer: { select: { firstName: true } },
         appointment: { select: { city: true, service: { select: { name: true } } } },
       },
     }),
     prisma.sector.findMany({ where: { active: true }, select: { name: true } }),
-    prisma.appointment.count({ where: { status: "COMPLETED" } }),
-    // La moyenne porte sur tous les avis, pas seulement ceux affichés : ne retenir que
-    // les quatre et cinq étoiles donnerait une note que personne n'a donnée.
-    prisma.review.aggregate({ _avg: { rating: true }, _count: { _all: true } }),
   ]);
 
   const areaServed = sectors.map((sector) => sector.name);
@@ -62,6 +62,9 @@ export default async function HomePage() {
   const classes = VEHICLES.map(([key]) => key).filter((vehicleClass) =>
     services.some((s) => s.pricing.some((p) => p.vehicleClass === vehicleClass)),
   );
+
+  const allPrices = services.flatMap((s) => s.pricing.map((p) => p.priceCents));
+  const fromPriceCents = allPrices.length > 0 ? Math.min(...allPrices) : null;
 
   const publicReviews: PublicReview[] = reviews.map((review) => ({
     id: review.id,
@@ -72,13 +75,6 @@ export default async function HomePage() {
     serviceName: review.appointment.service.name,
     city: review.appointment.city,
   }));
-
-  const stats = buildStats({
-    completedCount,
-    averageRating: ratings._avg.rating,
-    reviewCount: ratings._count._all,
-    sectorCount: sectors.length,
-  });
 
   return (
     <>
@@ -98,21 +94,18 @@ export default async function HomePage() {
         ]}
       />
 
-      <Hero />
-
-      <Stats stats={stats} />
+      <Hero fromPriceCents={fromPriceCents} />
 
       <Advantages />
 
-      {/* ── Choisis ton pack ────────────────────────────────────────────── */}
-      <section id="packs" className="scroll-mt-24 border-y border-white/[0.06] bg-xd-abyss/60">
-        <div className="mx-auto max-w-6xl px-5 py-20 sm:py-28">
-          <h2 className="max-w-2xl text-[2rem] font-semibold leading-[1.1] tracking-[-0.03em] text-xd-text sm:text-[2.6rem]">
-            Choisissez votre pack.
+      {/* ── L'offre ─────────────────────────────────────────────────────── */}
+      <section id="packs" className="scroll-mt-24">
+        <div className="mx-auto max-w-6xl px-5 py-16 sm:py-20">
+          <h2 className="text-center text-[1.75rem] font-semibold leading-tight tracking-[-0.03em] text-xd-text sm:text-[2.2rem]">
+            Deux formules, un prix ferme.
           </h2>
-          <p className="mt-4 max-w-xl text-body text-xd-text-3">
-            L&apos;intérieur, ou l&apos;intérieur et la carrosserie. Sélectionnez votre
-            véhicule&nbsp;: le prix affiché est celui qui sera facturé.
+          <p className="mx-auto mt-3 max-w-md text-center text-body text-xd-text-3">
+            L&apos;intérieur, ou l&apos;intérieur et la carrosserie.
           </p>
 
           <PackComparison
@@ -136,6 +129,8 @@ export default async function HomePage() {
           />
         </div>
       </section>
+
+      <Steps />
 
       <Proof reviews={publicReviews} />
     </>

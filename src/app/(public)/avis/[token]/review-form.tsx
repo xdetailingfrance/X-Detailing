@@ -33,7 +33,7 @@ export function ReviewForm({
   if (sent) {
     return (
       <div className="mt-8 rounded-2xl border border-brand-700 bg-brand-600/10 p-6 text-center">
-        <p className="font-display text-lg font-bold text-white">Merci pour votre retour</p>
+        <p className="font-display text-lg font-bold text-xd-text">Merci pour votre retour</p>
 
         {sent.routedToGoogle ? (
           <>

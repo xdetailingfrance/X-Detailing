@@ -145,7 +145,7 @@ export function PhotoStep({
           <button
             type="button"
             onClick={() => input.current?.click()}
-            className="press hairline flex aspect-square w-full flex-col items-center justify-center gap-1.5 rounded-[--radius-xd-md] bg-white/[0.03] transition-colors hover:bg-white/[0.06]"
+            className="press hairline flex aspect-square w-full flex-col items-center justify-center gap-1.5 rounded-[--radius-xd-md] bg-black/[0.025] transition-colors hover:bg-black/[0.045]"
           >
             <span className="text-2xl text-xd-text-4" aria-hidden>＋</span>
             <span className="text-meta text-xd-text-3">
@@ -178,7 +178,7 @@ export function PhotoStep({
                     ? "bg-xd-purple"
                     : index === stage
                       ? "animate-pulse bg-xd-purple-bright"
-                      : "bg-white/10"
+                      : "bg-black/[0.07]"
                 }`}
               />
               <span
@@ -195,7 +195,7 @@ export function PhotoStep({
 
       {/* ── Résultat ────────────────────────────────────────────────────── */}
       {outcome && !outcome.ok && (
-        <p className="mt-5 rounded-[--radius-xd-md] bg-white/[0.04] px-4 py-3.5 text-meta leading-relaxed text-xd-text-3">
+        <p className="mt-5 rounded-[--radius-xd-md] bg-black/[0.03] px-4 py-3.5 text-meta leading-relaxed text-xd-text-3">
           {outcome.message}
         </p>
       )}
@@ -268,7 +268,7 @@ function SuggestionRow({
   return (
     <li
       className={`rounded-[--radius-xd-md] p-4 transition-all duration-200 ${
-        added ? "m-purple" : "hairline bg-white/[0.03]"
+        added ? "m-purple" : "hairline bg-black/[0.025]"
       }`}
     >
       <div className="flex items-baseline justify-between gap-3">

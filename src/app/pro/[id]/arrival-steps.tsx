@@ -423,7 +423,7 @@ export function SignaturePad({
 
         <canvas
           ref={canvas}
-          className="hairline h-44 w-full touch-none rounded-[--radius-xd-md] bg-white/[0.04]"
+          className="hairline h-44 w-full touch-none rounded-[--radius-xd-md] bg-black/[0.03]"
           onPointerDown={(event) => {
             event.currentTarget.setPointerCapture(event.pointerId);
             drawing.current = true;

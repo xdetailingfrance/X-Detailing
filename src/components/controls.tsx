@@ -32,10 +32,10 @@ export function Button({
 }
 
 export const FIELD_SURFACE =
-  "w-full bg-white/[0.04] px-3.5 py-2.5 text-body text-xd-text placeholder:text-xd-text-4 " +
+  "w-full bg-black/[0.03] px-3.5 py-2.5 text-body text-xd-text placeholder:text-xd-text-4 " +
   "[box-shadow:inset_0_0_0_1px_var(--xd-hairline)] rounded-[--radius-xd-sm] " +
   "outline-none transition-[box-shadow,background-color] duration-200 " +
-  "focus:bg-white/[0.06] focus:[box-shadow:inset_0_0_0_1px_rgb(123_60_255/0.5),0_0_0_4px_rgb(123_60_255/0.14)]";
+  "focus:bg-black/[0.045] focus:[box-shadow:inset_0_0_0_1px_rgb(123_60_255/0.5),0_0_0_4px_rgb(123_60_255/0.14)]";
 
 export function Field({
   label,
@@ -104,7 +104,7 @@ export function Choice({
       className={`press w-full rounded-[--radius-xd-md] px-4 py-3.5 text-left transition-all duration-200 ${
         selected
           ? "m-purple -translate-y-px"
-          : "bg-white/[0.035] [box-shadow:inset_0_0_0_1px_var(--xd-hairline)] hover:bg-white/[0.06]"
+          : "bg-black/[0.03] [box-shadow:inset_0_0_0_1px_var(--xd-hairline)] hover:bg-black/[0.045]"
       } ${className}`}
     >
       {children}

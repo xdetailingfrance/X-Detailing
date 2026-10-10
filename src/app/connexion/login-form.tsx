@@ -40,7 +40,7 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white [box-shadow:inset_0_1px_0_0_rgb(255_255_255/0.22),0_8px_24px_-12px_rgb(0_0_0/0.7)] transition hover:bg-brand-500 disabled:opacity-60"
+        className="w-full rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white [box-shadow:inset_0_1px_0_0_rgb(255_255_255/0.22),0_8px_24px_-12px_rgb(12_12_17/0.18)] transition hover:bg-brand-500 disabled:opacity-60"
       >
         {pending ? "Connexion…" : "Se connecter"}
       </button>

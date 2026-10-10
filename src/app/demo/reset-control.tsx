@@ -33,7 +33,7 @@ export function ResetControl({
           setDone(false);
           setArmed(true);
         }}
-        className="rounded-xl px-4 py-2.5 text-sm font-semibold text-chrome-200 m-polished hairline transition duration-150 hover:text-white"
+        className="rounded-xl px-4 py-2.5 text-sm font-semibold text-chrome-200 m-polished hairline transition duration-150 hover:text-xd-text"
       >
         {label}
       </button>

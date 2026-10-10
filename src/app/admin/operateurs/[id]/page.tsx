@@ -78,7 +78,7 @@ export default async function OperatorPage({ params }: PageProps<"/admin/operate
         title={<>{operator.firstName} {operator.lastName}</>}
         badges={<><Badge tone={operator.status === "ACTIVE" ? "ok" : operator.status === "SUSPENDED" ? "danger" : "warn"}> {operator.status === "ACTIVE" ? "Actif" : operator.status === "SUSPENDED" ? "Suspendu" : "En intégration"} </Badge> {operator.homeSector && <Badge tone="neutral">{operator.homeSector.name}</Badge>}</>}
         lead={<>{operator.code} · {operator.phone} · {operator.user.email}</>}
-        actions={<><Link href="/admin/operateurs" className="rounded-lg bg-white/[0.06] px-3 py-1.5 text-sm text-ink-600 hover:bg-white/[0.09] [box-shadow:inset_0_0_0_1px_var(--xd-hairline)]"> ← Opérateurs </Link></>}
+        actions={<><Link href="/admin/operateurs" className="rounded-lg bg-black/[0.045] px-3 py-1.5 text-sm text-ink-600 hover:bg-black/[0.06] [box-shadow:inset_0_0_0_1px_var(--xd-hairline)]"> ← Opérateurs </Link></>}
       />
 
       <StatRow>

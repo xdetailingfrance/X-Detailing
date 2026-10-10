@@ -64,7 +64,7 @@ export function PackComparison({
                 className={`press flex items-center gap-2 rounded-full py-2 pl-2.5 pr-4 text-meta font-medium transition-all duration-[--xd-micro] ${
                   selected
                     ? "bg-xd-violet text-white [box-shadow:inset_0_1px_0_0_rgb(255_255_255/0.24)]"
-                    : "bg-white/[0.05] text-xd-text-3 [box-shadow:inset_0_0_0_1px_rgb(255_255_255/0.08)] hover:text-xd-text-2"
+                    : "bg-black/[0.04] text-xd-text-3 [box-shadow:inset_0_0_0_1px_rgb(12_12_17/0.1)] hover:text-xd-text-2"
                 }`}
               >
                 {Icon && <Icon className="w-7 shrink-0" />}
@@ -91,13 +91,13 @@ export function PackComparison({
                 {signature ? "Intérieur et extérieur" : "Intérieur"}
               </p>
 
-              <h3 className="font-display mt-2 text-h2 font-bold tracking-tight text-white">
+              <h3 className="font-display mt-2 text-h2 font-bold tracking-tight text-xd-text">
                 {pack.name}
               </h3>
 
               {price ? (
                 <p className="mt-4 flex items-baseline gap-3">
-                  <span className="tabular text-[2.5rem] font-semibold leading-none tracking-[-0.03em] text-white">
+                  <span className="tabular text-[2.5rem] font-semibold leading-none tracking-[-0.03em] text-xd-text">
                     {euros(price.priceCents)}
                   </span>
                   {price.compareAtCents && (
@@ -134,7 +134,7 @@ export function PackComparison({
                 className={`press mt-7 inline-flex justify-center rounded-[--radius-xd-md] px-6 py-3.5 text-body font-semibold transition-colors duration-150 ${
                   signature
                     ? "bg-xd-purple text-white [box-shadow:inset_0_1px_0_0_rgb(255_255_255/0.22)] hover:bg-xd-purple-bright"
-                    : "bg-white/[0.06] text-xd-text [box-shadow:inset_0_0_0_1px_var(--xd-hairline)] hover:bg-white/[0.09]"
+                    : "bg-black/[0.045] text-xd-text [box-shadow:inset_0_0_0_1px_var(--xd-hairline)] hover:bg-black/[0.06]"
                 }`}
               >
                 Choisir {pack.name}

@@ -27,7 +27,7 @@ export function FollowUpButton({ customerId }: { customerId: string }) {
             }
           })
         }
-        className="rounded-lg bg-white/[0.06] px-3 py-1.5 text-xs font-medium text-ink-700 transition hover:border-ink-300 disabled:opacity-60 [box-shadow:inset_0_0_0_1px_var(--xd-hairline)]"
+        className="rounded-lg bg-black/[0.045] px-3 py-1.5 text-xs font-medium text-ink-700 transition hover:border-ink-300 disabled:opacity-60 [box-shadow:inset_0_0_0_1px_var(--xd-hairline)]"
       >
         {pending ? "Envoi…" : "Relancer"}
       </button>

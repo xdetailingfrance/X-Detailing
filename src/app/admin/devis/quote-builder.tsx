@@ -101,7 +101,7 @@ export function QuoteBuilder({
                 className={`press rounded-[--radius-xd-sm] px-4 py-2 text-meta font-medium transition-all duration-150 ${
                   key === vehicleClass
                     ? "m-purple text-xd-text"
-                    : "bg-white/[0.04] text-xd-text-3 [box-shadow:inset_0_0_0_1px_var(--xd-hairline)] hover:text-xd-text-2"
+                    : "bg-black/[0.03] text-xd-text-3 [box-shadow:inset_0_0_0_1px_var(--xd-hairline)] hover:text-xd-text-2"
                 }`}
               >
                 {label}

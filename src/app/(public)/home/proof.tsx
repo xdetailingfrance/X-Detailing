@@ -26,26 +26,28 @@ export type PublicReview = {
 
 export function Proof({ reviews }: { reviews: PublicReview[] }) {
   return (
-    <section id="avant-apres" className="mx-auto max-w-6xl scroll-mt-24 px-5 py-20 sm:py-28">
-      <h2 className="max-w-2xl text-[2rem] font-semibold leading-[1.1] tracking-[-0.03em] text-xd-text sm:text-[2.6rem]">
+    <section id="avant-apres" className="mx-auto max-w-6xl scroll-mt-24 px-5 py-16 sm:py-20">
+      <h2 className="text-center text-[1.75rem] font-semibold leading-tight tracking-[-0.03em] text-xd-text sm:text-[2.2rem]">
         Les transformations.
       </h2>
 
-      <p className="mt-4 max-w-xl text-body text-xd-text-3">
+      <p className="mx-auto mt-3 max-w-lg text-center text-body text-xd-text-3">
         Chaque véhicule traité a sa page : les huit angles à l&apos;arrivée, les huit
         mêmes au départ, la durée réelle. Publié avec l&apos;accord du client.
       </p>
-      <Link
-        href="/realisations"
-        className="glass glass-interactive press mt-7 inline-flex rounded-full px-7 py-3.5 text-body font-medium text-xd-text"
-      >
-        Voir les réalisations
-      </Link>
+      <div className="mt-7 text-center">
+        <Link
+          href="/realisations"
+          className="glass glass-interactive press inline-flex rounded-full px-7 py-3.5 text-body font-medium text-xd-text"
+        >
+          Voir les réalisations
+        </Link>
+      </div>
 
       {/* ── Avis ────────────────────────────────────────────────────────── */}
       {reviews.length > 0 ? (
         <>
-          <h3 className="mt-16 text-h2 font-semibold tracking-[-0.02em] text-xd-text">
+          <h3 className="mt-16 text-center text-h2 font-semibold tracking-[-0.02em] text-xd-text">
             Ce qu&apos;ils en disent.
           </h3>
           <ul className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -71,11 +73,7 @@ export function Proof({ reviews }: { reviews: PublicReview[] }) {
             ))}
           </ul>
         </>
-      ) : (
-        <p className="mt-10 text-meta text-xd-text-4">
-          Les avis s&apos;afficheront ici dès les premières prestations notées.
-        </p>
-      )}
+      ) : null}
     </section>
   );
 }

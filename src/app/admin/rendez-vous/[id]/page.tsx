@@ -99,7 +99,7 @@ export default async function AppointmentPage({ params }: PageProps<"/admin/rend
         title={<>{appointment.reference}</>}
         badges={<><StatusBadge status={appointment.status} /> {appointment.sector && <Badge tone="neutral">{appointment.sector.name}</Badge>}</>}
         lead={<>{formatLocalDateTime(appointment.scheduledStart)} → {formatLocalTime(appointment.scheduledEnd)} ·{" "} {appointment.durationMin} min</>}
-        actions={<><Link href="/admin/planning" className="rounded-lg bg-white/[0.06] px-3 py-1.5 text-sm text-ink-600 hover:bg-white/[0.09] [box-shadow:inset_0_0_0_1px_var(--xd-hairline)]"> ← Planning </Link></>}
+        actions={<><Link href="/admin/planning" className="rounded-lg bg-black/[0.045] px-3 py-1.5 text-sm text-ink-600 hover:bg-black/[0.06] [box-shadow:inset_0_0_0_1px_var(--xd-hairline)]"> ← Planning </Link></>}
       />
 
       <div className="grid gap-5 lg:grid-cols-3">

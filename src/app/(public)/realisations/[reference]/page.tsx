@@ -121,7 +121,7 @@ export default async function RealisationPage({
         </p>
 
         {/* ── Les faits ───────────────────────────────────────────────────── */}
-        <dl className="mt-10 grid gap-px overflow-hidden rounded-[--radius-xd-xl] bg-white/[0.07] sm:grid-cols-3">
+        <dl className="mt-10 grid gap-px overflow-hidden rounded-[--radius-xd-xl] bg-black/[0.05] sm:grid-cols-3">
           <div className="bg-xd-carbon px-5 py-5">
             <dt className="eyebrow text-xd-text-4">Temps sur place</dt>
             <dd className="tabular mt-1.5 text-h2 font-semibold tracking-[-0.025em] text-xd-text">

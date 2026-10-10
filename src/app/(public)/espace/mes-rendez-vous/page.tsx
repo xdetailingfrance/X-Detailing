@@ -96,7 +96,7 @@ export default async function CustomerAppointmentsPage() {
 
           <Link
             href={`/reservation/${next.publicToken}`}
-            className="press mt-5 inline-flex rounded-[--radius-xd-sm] bg-white/[0.1] px-4 py-2.5 text-meta font-medium text-xd-text transition-colors hover:bg-white/[0.16]"
+            className="press mt-5 inline-flex rounded-[--radius-xd-sm] bg-black/[0.07] px-4 py-2.5 text-meta font-medium text-xd-text transition-colors hover:bg-black/[0.1]"
           >
             Suivre ce rendez-vous
           </Link>
@@ -124,7 +124,7 @@ export default async function CustomerAppointmentsPage() {
               <li key={appointment.id}>
                 <Link
                   href={`/reservation/${appointment.publicToken}`}
-                  className="hairline flex items-baseline justify-between gap-3 rounded-[--radius-xd-md] px-4 py-3 transition-colors hover:bg-white/[0.03]"
+                  className="hairline flex items-baseline justify-between gap-3 rounded-[--radius-xd-md] px-4 py-3 transition-colors hover:bg-black/[0.025]"
                 >
                   <span className="text-body text-xd-text-2 first-letter:uppercase">
                     {formatLocalDate(appointment.scheduledStart)} · {appointment.service.name}

@@ -140,7 +140,7 @@ export function TrackingEmitter({
           {etaLabel && (
             <>
               {remainingKm !== null && " · "}
-              arrivée estimée <strong className="font-semibold text-white">{etaLabel}</strong>
+              arrivée estimée <strong className="font-semibold text-xd-text">{etaLabel}</strong>
             </>
           )}
         </p>

@@ -198,7 +198,7 @@ export function CarZones({
                 className={`press shrink-0 snap-start whitespace-nowrap rounded-full px-4 py-2 text-meta font-medium transition-colors duration-[--xd-micro] ${
                   zone.key === activeKey
                     ? "bg-xd-violet text-white"
-                    : "bg-white/[0.05] text-xd-text-3 hover:text-xd-text-2"
+                    : "bg-black/[0.04] text-xd-text-3 hover:text-xd-text-2"
                 }`}
               >
                 {zone.label}

@@ -69,7 +69,7 @@ export default async function FleetAccountPage({ params }: PageProps<"/admin/ent
         title={<>{name}</>}
         badges={<><Badge tone="accent">Compte entreprise</Badge></>}
         lead={<>{customer.phone} {customer.email && ` · ${customer.email}`} {customer.siret && ` · SIRET ${customer.siret}`}</>}
-        actions={<><div className="flex gap-2"> <Link href={`/admin/clients/${customer.id}`} className="rounded-lg bg-white/[0.06] px-3 py-2 text-sm text-ink-600 hover:bg-white/[0.09] [box-shadow:inset_0_0_0_1px_var(--xd-hairline)]" > Fiche CRM </Link> <Link href="/admin/entreprises" className="rounded-lg bg-white/[0.06] px-3 py-2 text-sm text-ink-600 hover:bg-white/[0.09] [box-shadow:inset_0_0_0_1px_var(--xd-hairline)]" > ← Comptes </Link> </div></>}
+        actions={<><div className="flex gap-2"> <Link href={`/admin/clients/${customer.id}`} className="rounded-lg bg-black/[0.045] px-3 py-2 text-sm text-ink-600 hover:bg-black/[0.06] [box-shadow:inset_0_0_0_1px_var(--xd-hairline)]" > Fiche CRM </Link> <Link href="/admin/entreprises" className="rounded-lg bg-black/[0.045] px-3 py-2 text-sm text-ink-600 hover:bg-black/[0.06] [box-shadow:inset_0_0_0_1px_var(--xd-hairline)]" > ← Comptes </Link> </div></>}
       />
 
       <StatRow>

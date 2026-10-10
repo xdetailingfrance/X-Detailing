@@ -7,45 +7,54 @@
 
 @theme {
   /* ── Fonds ────────────────────────────────────────────────────────────────
-     Jamais de #000 pur : le noir profond garde une nuance froide, qui laisse
-     les reflets exister. */
-  --color-xd-void: #060607;
-  --color-xd-abyss: #0b0b0e;
-  --color-xd-carbon: #101014;
-  --color-xd-graphite: #16161b;
-  --color-xd-slate: #1e1e25;
-  --color-xd-steel: #2a2a33;
-  --color-xd-ash: #3a3a45;
+     Blanc pur pour le sol, puis des gris très légèrement biaisés vers le violet.
+     Un gris parfaitement neutre à côté d'un violet saturé paraît sale ; biaisé
+     de quelques points vers l'accent, il paraît choisi.
+
+     Les noms viennent du système sombre et sont conservés : les renommer
+     obligerait à reprendre 800 classes pour un gain nul. Leur ordre est
+     préservé — `void` reste le fond le plus en retrait, `ash` le plus marqué. */
+  --color-xd-void: #ffffff;
+  --color-xd-abyss: #f7f7fa;
+  --color-xd-carbon: #ffffff;
+  --color-xd-graphite: #fbfbfd;
+  --color-xd-slate: #f2f2f6;
+  --color-xd-steel: #e8e8ee;
+  --color-xd-ash: #d8d8e1;
 
   /* ── Texte ────────────────────────────────────────────────────────────────
-     Quatre niveaux suffisent. Un cinquième gris finit toujours illisible. */
-  --color-xd-text: #f4f4f6;
-  --color-xd-text-2: #a8a8b4;
-  --color-xd-text-3: #70707e;
-  --color-xd-text-4: #4a4a56;
+     Quatre niveaux suffisent. Un cinquième gris finit toujours illisible.
+     Jamais de #000 pur : un noir absolu sur blanc pur vibre à la lecture. */
+  --color-xd-text: #0c0c11;
+  --color-xd-text-2: #44444f;
+  --color-xd-text-3: #6b6b78;
+  --color-xd-text-4: #9a9aa7;
 
   /* ── Violet de signature ──────────────────────────────────────────────────
      Échantillonné sur le logo. État actif, sélection, CTA, intelligence.
-     Les quatre rôles sont aussi exposés comme couleurs utilitaires : sans cela,
-     `bg-xd-violet` ne produit rien et le bouton principal passe en transparent. */
+
+     Deux valeurs, deux rôles de contraste. `violet` porte les aplats : du blanc
+     dessus donne 5,35:1. `highlight` porte le texte violet sur fond blanc et
+     l'état survolé : 7,3:1. Le clair du système sombre, #9d6bff, tombait à
+     3,5:1 sur blanc — sous le seuil, pour du texte courant. */
   --color-xd-violet: #7b3cff;
-  --color-xd-violet-highlight: #9d6bff;
-  --color-xd-violet-dark: #2a0f6b;
+  --color-xd-violet-highlight: #6425e0;
+  --color-xd-violet-dark: #f1ebff;
 
   --color-xd-purple: #7b3cff;
-  --color-xd-purple-bright: #9d6bff;
-  --color-xd-purple-deep: #5a1fd6;
-  --color-xd-purple-ink: #2a0f6b;
+  --color-xd-purple-bright: #6425e0;
+  --color-xd-purple-deep: #5218c0;
+  --color-xd-purple-ink: #f1ebff;
 
-  /* ── Statuts : saturation faible, comme demandé au §39 ───────────────────*/
-  --color-xd-ok: #3ecf8e;
-  --color-xd-ok-ink: #0f2f23;
-  --color-xd-warn: #dfa445;
-  --color-xd-warn-ink: #33260f;
-  --color-xd-danger: #e56a6a;
-  --color-xd-danger-ink: #37191b;
-  --color-xd-info: #5fa8e8;
-  --color-xd-info-ink: #12283b;
+  /* ── Statuts : lisibles sur blanc, saturation tenue ─────────────────────*/
+  --color-xd-ok: #0f8a5f;
+  --color-xd-ok-ink: #e6f6ef;
+  --color-xd-warn: #9a6400;
+  --color-xd-warn-ink: #fbf2e0;
+  --color-xd-danger: #c2353a;
+  --color-xd-danger-ink: #fdeced;
+  --color-xd-info: #1f6fb8;
+  --color-xd-info-ink: #e8f1fa;
 
   /* ── Rayons — une échelle, pas une valeur (§10) ──────────────────────────*/
   --radius-xd-xs: 8px;
@@ -120,44 +129,44 @@
      `ink` était une échelle pensée pour un fond clair : elle s'inverse. C'est
      ce qui fait basculer tout le back-office en graphite (§25) sans toucher
      à 800 classes une par une. */
-  --color-ink-50: #16161b;
-  /* 100 à 300 ne servaient plus qu'à tracer des bordures : elles deviennent des
-     filets ton sur ton (§4). Une bordure opaque sur du verre le change en carton. */
-  --color-ink-100: rgb(255 255 255 / 0.07);
-  --color-ink-200: rgb(255 255 255 / 0.09);
-  --color-ink-300: rgb(255 255 255 / 0.13);
-  --color-ink-400: #70707e;
-  --color-ink-500: #a8a8b4;
-  --color-ink-600: #a8a8b4;
-  --color-ink-700: #d0d0d8;
-  --color-ink-800: #f4f4f6;
-  --color-ink-900: #f4f4f6;
-  --color-ink-950: #ffffff;
+  --color-ink-50: #f7f7fa;
+  /* 100 à 300 ne tracent que des filets : ton sur ton, en noir translucide
+     désormais. Une bordure opaque sur du verre le change en carton. */
+  --color-ink-100: rgb(12 12 17 / 0.06);
+  --color-ink-200: rgb(12 12 17 / 0.09);
+  --color-ink-300: rgb(12 12 17 / 0.14);
+  --color-ink-400: #9a9aa7;
+  --color-ink-500: #6b6b78;
+  --color-ink-600: #6b6b78;
+  --color-ink-700: #44444f;
+  --color-ink-800: #1c1c24;
+  --color-ink-900: #0c0c11;
+  --color-ink-950: #000000;
 
-  /* `night` et `chrome` servaient déjà un fond sombre : simple alignement. */
-  --color-night-950: #060607;
-  --color-night-900: #0b0b0e;
-  --color-night-850: #101014;
-  --color-night-800: #16161b;
-  --color-night-700: rgb(255 255 255 / 0.07);
-  --color-night-600: rgb(255 255 255 / 0.11);
+  /* `night` et `chrome` servaient un fond sombre : ils se retournent aussi. */
+  --color-night-950: #ffffff;
+  --color-night-900: #f7f7fa;
+  --color-night-850: #ffffff;
+  --color-night-800: #fbfbfd;
+  --color-night-700: rgb(12 12 17 / 0.06);
+  --color-night-600: rgb(12 12 17 / 0.1);
 
-  --color-chrome-100: #f4f4f6;
-  --color-chrome-200: #d0d0d8;
-  --color-chrome-300: #a8a8b4;
-  --color-chrome-400: #70707e;
-  --color-chrome-500: #4a4a56;
+  --color-chrome-100: #0c0c11;
+  --color-chrome-200: #44444f;
+  --color-chrome-300: #6b6b78;
+  --color-chrome-400: #9a9aa7;
+  --color-chrome-500: #c2c2cd;
 
-  /* `brand` devient le violet de signature. */
-  --color-brand-50: #1a1030;
-  --color-brand-100: #241545;
-  --color-brand-200: #341f68;
+  /* `brand` devient le violet de signature, en échelle claire → foncée. */
+  --color-brand-50: #f6f2ff;
+  --color-brand-100: #ece3ff;
+  --color-brand-200: #d9c7ff;
   --color-brand-400: #9d6bff;
   --color-brand-500: #8a52ff;
   --color-brand-600: #7b3cff;
-  --color-brand-700: #5a1fd6;
-  --color-brand-900: #2a0f6b;
-  --color-brand-950: #1a0845;
+  --color-brand-700: #6425e0;
+  --color-brand-900: #4a14ad;
+  --color-brand-950: #330c7c;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -171,27 +180,28 @@
   --xd-blur-md: 24px;
   --xd-blur-lg: 40px;
 
-  /* Lumière rasante en haut de chaque surface : c'est ce qui donne l'épaisseur
-     au verre. Sans elle, une surface translucide reste un rectangle. */
-  --xd-edge-light: inset 0 1px 0 0 rgb(255 255 255 / 0.07);
-  --xd-edge-light-strong: inset 0 1px 0 0 rgb(255 255 255 / 0.12);
+  /* Sur fond clair, l'épaisseur ne vient plus d'un reflet blanc sur l'arête
+     haute — il serait invisible — mais d'un filet sombre qui ferme la surface. */
+  --xd-edge-light: inset 0 0 0 1px rgb(12 12 17 / 0.07);
+  --xd-edge-light-strong: inset 0 0 0 1px rgb(12 12 17 / 0.11);
 
-  /* Ombre diffuse, jamais portée : une ombre lourde tue le verre (§4). */
-  --xd-lift-1: 0 1px 2px rgb(0 0 0 / 0.4);
-  --xd-lift-2: 0 8px 24px -12px rgb(0 0 0 / 0.7);
-  --xd-lift-3: 0 24px 64px -24px rgb(0 0 0 / 0.85);
+  /* Ombre diffuse, jamais portée. Bien plus légère que sur fond sombre : sur du
+     blanc, une ombre appuyée se lit comme une tache. */
+  --xd-lift-1: 0 1px 2px rgb(12 12 17 / 0.05);
+  --xd-lift-2: 0 8px 24px -14px rgb(12 12 17 / 0.18);
+  --xd-lift-3: 0 24px 64px -28px rgb(12 12 17 / 0.26);
 
   /* Séparations ton sur ton, pas des bordures (§4). */
-  --xd-hairline: rgb(255 255 255 / 0.07);
-  --xd-hairline-strong: rgb(255 255 255 / 0.12);
+  --xd-hairline: rgb(12 12 17 / 0.08);
+  --xd-hairline-strong: rgb(12 12 17 / 0.14);
 
   /* Le violet a quatre rôles, pas quatre nuances décoratives : ce qu'on peut
      actionner, ce qui est sélectionné, la lumière qu'un élément actif projette,
      et le fond sur lequel il se pose. */
   --xd-violet: #7b3cff;
-  --xd-violet-highlight: #9d6bff;
-  --xd-violet-glow: rgb(123 60 255 / 0.28);
-  --xd-violet-dark: #2a0f6b;
+  --xd-violet-highlight: #6425e0;
+  --xd-violet-glow: rgb(123 60 255 / 0.22);
+  --xd-violet-dark: #f1ebff;
 
   /* Motion — 180 à 340 ms : assez lent pour se voir, assez court pour ne pas
      attendre. Au-delà, une interface « calme » devient une interface lente. */
@@ -202,44 +212,43 @@
   --xd-spring-soft: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-/* Material 01 — Verre fumé.
+/* Material 01 — Verre clair.
    Navigation, panneaux flottants, feuilles. Le fond doit rester visible. */
 .m-smoked {
-  background: rgb(14 14 18 / 0.68);
-  backdrop-filter: blur(var(--xd-blur-md)) saturate(160%);
-  -webkit-backdrop-filter: blur(var(--xd-blur-md)) saturate(160%);
+  background: rgb(255 255 255 / 0.72);
+  backdrop-filter: blur(var(--xd-blur-md)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--xd-blur-md)) saturate(140%);
   box-shadow: var(--xd-edge-light), var(--xd-lift-2);
 }
 
-/* Material 02 — Noir poli.
+/* Material 02 — Blanc poli.
    Surfaces métier principales. Micro-variation de lumière plutôt qu'un aplat :
-   c'est ce qui distingue une carrosserie laquée d'un carton noir. */
+   sur blanc, elle vient d'une ombre douce en haut, pas d'un reflet. */
 .m-polished {
   background:
-    radial-gradient(120% 140% at 50% -20%, rgb(255 255 255 / 0.045), transparent 55%),
+    radial-gradient(120% 140% at 50% -20%, rgb(12 12 17 / 0.028), transparent 55%),
     var(--color-xd-carbon);
   box-shadow: var(--xd-edge-light), var(--xd-lift-1);
 }
 
-/* Material 03 — Graphite métallisé.
-   Structure, métriques, éléments porteurs. Inspiré de l'aluminium anodisé :
-   la lumière glisse en diagonale. */
+/* Material 03 — Gris perle.
+   Structure, métriques, éléments porteurs. La lumière glisse en diagonale,
+   comme sur de l'aluminium clair. */
 .m-graphite {
   background:
-    linear-gradient(152deg, rgb(255 255 255 / 0.055) 0%, transparent 38%, rgb(0 0 0 / 0.16) 100%),
-    var(--color-xd-graphite);
+    linear-gradient(152deg, rgb(255 255 255 / 0.9) 0%, transparent 38%, rgb(12 12 17 / 0.035) 100%),
+    var(--color-xd-slate);
   box-shadow: var(--xd-edge-light), var(--xd-lift-1);
 }
 
 /* Material 04 — Énergie violette.
    État actif, sélection, CTA principal, intelligence du système. Jamais de fond
-   plein : une lumière violette réfléchie, pas un aplat (§54). */
+   plein : une lumière violette diffuse, pas un aplat (§54). */
 .m-purple {
   background:
-    linear-gradient(160deg, rgb(123 60 255 / 0.22), rgb(123 60 255 / 0.08)),
+    linear-gradient(160deg, rgb(123 60 255 / 0.1), rgb(123 60 255 / 0.03)),
     var(--color-xd-carbon);
   box-shadow:
-    inset 0 1px 0 0 rgb(157 107 255 / 0.28),
     inset 0 0 0 1px rgb(123 60 255 / 0.22),
     var(--xd-lift-2);
 }
@@ -251,9 +260,7 @@
 
 /* Lumière violette rasante sur un bord — la signature du §54. */
 .edge-purple {
-  box-shadow:
-    inset 0 1px 0 0 rgb(157 107 255 / 0.3),
-    inset 0 0 0 1px rgb(123 60 255 / 0.16);
+  box-shadow: inset 0 0 0 1px rgb(123 60 255 / 0.3);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -269,7 +276,7 @@ body {
   letter-spacing: -0.008em;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 /* Les chiffres alignés en colonne : indispensable dès qu'il y a des euros. */
@@ -323,9 +330,9 @@ body {
 .shimmer {
   background: linear-gradient(
     100deg,
-    var(--color-xd-graphite) 40%,
-    var(--color-xd-slate) 50%,
-    var(--color-xd-graphite) 60%
+    var(--color-xd-slate) 40%,
+    var(--color-xd-steel) 50%,
+    var(--color-xd-slate) 60%
   );
   background-size: 200% 100%;
   animation: xd-shimmer 1.6s linear infinite;
@@ -346,36 +353,37 @@ body {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .leaflet-container {
-  background: var(--color-xd-abyss);
+  background: var(--color-xd-slate);
   font-family: var(--font-sans);
 }
 
-/* Le fond de carte passe en graphite par inversion : les mêmes tuiles
-   OpenStreetMap, sans service tiers ni clé d'API. L'inversion seule virerait au
-   bleu — la rotation de teinte la ramène sur ses couleurs d'origine, puis on
-   désature et on assombrit pour que la carte reste un décor et non un sujet.
-   Seules les tuiles sont touchées : marqueurs et tracés vivent dans d'autres
-   calques et gardent leurs couleurs. */
+/*
+  Plus aucun filtre sur les tuiles : le fond de carte OpenStreetMap est déjà
+  clair. L'inversion n'existait que pour le faire tenir sur un fond graphite —
+  la garder ici repeindrait la carte en négatif.
+  On la désature seulement, pour qu'elle reste un décor et non un sujet, et que
+  le violet des marqueurs soit la seule couleur franche de l'écran.
+*/
 .leaflet-tile-pane {
-  filter: invert(1) hue-rotate(180deg) brightness(0.86) contrast(0.92) saturate(0.55);
+  filter: saturate(0.7) brightness(1.02);
 }
 
 .leaflet-bar,
 .leaflet-bar a {
   border: 0;
-  background: rgb(22 22 27 / 0.9);
+  background: rgb(255 255 255 / 0.92);
   color: var(--color-xd-text-2);
   backdrop-filter: blur(var(--xd-blur-sm));
   box-shadow: var(--xd-edge-light), var(--xd-lift-2);
 }
 
 .leaflet-bar a:hover {
-  background: rgb(30 30 37 / 0.95);
+  background: #ffffff;
   color: var(--color-xd-text);
 }
 
 .leaflet-control-attribution {
-  background: rgb(11 11 14 / 0.72) !important;
+  background: rgb(255 255 255 / 0.8) !important;
   color: var(--color-xd-text-4);
   font-size: 10px;
   backdrop-filter: blur(var(--xd-blur-sm));
@@ -405,16 +413,17 @@ body {
 /* Niveau 1 — surface. Navigation, panneaux, feuilles. Le fond reste lisible. */
 .glass {
   position: relative;
-  background: rgb(14 14 18 / 0.62);
-  backdrop-filter: blur(20px) saturate(150%);
-  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  background: rgb(255 255 255 / 0.7);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
   box-shadow:
-    inset 0 0 0 1px rgb(255 255 255 / 0.08),
-    inset 0 1px 0 0 rgb(255 255 255 / 0.1),
-    0 8px 24px -14px rgb(0 0 0 / 0.8);
+    inset 0 0 0 1px rgb(12 12 17 / 0.07),
+    0 8px 24px -16px rgb(12 12 17 / 0.2);
 }
 
-/* Le grain se pose par-dessus, sans intercepter le pointeur. */
+/* Le grain se pose par-dessus, sans intercepter le pointeur. Sur fond clair il
+   s'applique en `multiply` : en `overlay`, un grain clair sur du blanc ne
+   produit rien du tout. */
 .glass::before,
 .glass-premium::before {
   content: "";
@@ -422,27 +431,26 @@ body {
   inset: 0;
   border-radius: inherit;
   background-image: var(--xd-grain);
-  opacity: 0.035;
-  mix-blend-mode: overlay;
+  opacity: 0.025;
+  mix-blend-mode: multiply;
   pointer-events: none;
 }
 
 /*
   Niveau 2 — verre premium. Réservé aux quelques surfaces qui portent une
-  décision : la formule retenue, le devis, la carte d'une réalisation. Un reflet
-  parcourt l'arête haute, comme sur une vitre inclinée.
+  décision : la formule retenue, le devis, la carte d'une réalisation. La
+  lumière entre par le haut, comme sur une vitre inclinée.
 */
 .glass-premium {
   position: relative;
   background:
-    linear-gradient(180deg, rgb(255 255 255 / 0.05) 0%, transparent 42%),
-    rgb(16 16 20 / 0.72);
-  backdrop-filter: blur(28px) saturate(160%);
-  -webkit-backdrop-filter: blur(28px) saturate(160%);
+    linear-gradient(180deg, rgb(255 255 255 / 0.9) 0%, rgb(255 255 255 / 0.68) 42%),
+    rgb(255 255 255 / 0.8);
+  backdrop-filter: blur(28px) saturate(150%);
+  -webkit-backdrop-filter: blur(28px) saturate(150%);
   box-shadow:
-    inset 0 0 0 1px rgb(255 255 255 / 0.09),
-    inset 0 1px 0 0 rgb(255 255 255 / 0.14),
-    0 20px 48px -28px rgb(0 0 0 / 0.9);
+    inset 0 0 0 1px rgb(12 12 17 / 0.08),
+    0 20px 48px -30px rgb(12 12 17 / 0.3);
 }
 
 /*
@@ -461,19 +469,17 @@ body {
 .glass-interactive:focus-visible {
   transform: translateY(-1px);
   box-shadow:
-    inset 0 0 0 1px rgb(123 60 255 / 0.4),
-    inset 0 1px 0 0 rgb(157 107 255 / 0.28),
-    0 24px 56px -30px rgb(0 0 0 / 0.95),
-    0 0 40px -18px var(--xd-violet-glow);
+    inset 0 0 0 1px rgb(123 60 255 / 0.38),
+    0 16px 40px -28px rgb(12 12 17 / 0.32),
+    0 0 32px -20px var(--xd-violet-glow);
 }
 
 /* Surface sélectionnée : l'état persiste, il ne dépend pas du pointeur. */
 .glass-active {
+  background: var(--color-xd-violet-dark);
   box-shadow:
-    inset 0 0 0 1px rgb(123 60 255 / 0.48),
-    inset 0 1px 0 0 rgb(157 107 255 / 0.34),
-    0 24px 56px -30px rgb(0 0 0 / 0.95),
-    0 0 48px -20px var(--xd-violet-glow);
+    inset 0 0 0 1px rgb(123 60 255 / 0.5),
+    0 16px 40px -28px rgb(12 12 17 / 0.3);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

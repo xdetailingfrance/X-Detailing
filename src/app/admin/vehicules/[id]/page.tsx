@@ -60,7 +60,7 @@ export default async function VehiclePage({ params }: PageProps<"/admin/vehicule
         title={<>{label}</>}
         badges={<><Badge tone="neutral">{VEHICLE_LABEL[vehicle.vehicleClass]}</Badge> {vehicle.plate && <Badge tone="accent">{vehicle.plate}</Badge>}</>}
         lead={<><Link href={`/admin/clients/${vehicle.customer.id}`} className="hover:text-brand-600"> {customerName} </Link></>}
-        actions={<><Link href={`/admin/clients/${vehicle.customer.id}`} className="rounded-lg bg-white/[0.06] px-3 py-2 text-sm text-ink-600 hover:bg-white/[0.09] [box-shadow:inset_0_0_0_1px_var(--xd-hairline)]" > ← Fiche client </Link></>}
+        actions={<><Link href={`/admin/clients/${vehicle.customer.id}`} className="rounded-lg bg-black/[0.045] px-3 py-2 text-sm text-ink-600 hover:bg-black/[0.06] [box-shadow:inset_0_0_0_1px_var(--xd-hairline)]" > ← Fiche client </Link></>}
       />
 
       <StatRow columns={3}>

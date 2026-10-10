@@ -275,7 +275,7 @@ export function StatRow({
 // ═══════════════════════════════════════════════════════════════════════════
 
 const TONES = {
-  neutral: "bg-white/[0.06] text-xd-text-2",
+  neutral: "bg-black/[0.045] text-xd-text-2",
   accent: "bg-xd-purple/15 text-xd-purple-bright",
   ok: "bg-xd-ok/12 text-xd-ok",
   warn: "bg-xd-warn/12 text-xd-warn",
@@ -373,7 +373,7 @@ export function Td({ children, className = "" }: { children: ReactNode; classNam
 export function Tr({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
     <tr
-      className={`hairline-t transition-colors duration-150 hover:bg-white/[0.025] ${className}`}
+      className={`hairline-t transition-colors duration-150 hover:bg-black/[0.02] ${className}`}
     >
       {children}
     </tr>

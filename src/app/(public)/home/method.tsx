@@ -46,7 +46,7 @@ export function Method({ shortestMin, longestMin }: { shortestMin: number; longe
       : `Comptez ${formatDuration(shortestMin)} à ${formatDuration(longestMin)} selon la formule et la taille du véhicule.`;
 
   return (
-    <section id="methode" className="scroll-mt-24 border-y border-white/[0.06] bg-xd-abyss/60">
+    <section id="methode" className="scroll-mt-24 border-y border-black/[0.08] bg-xd-abyss/60">
       <div className="mx-auto max-w-6xl px-5 py-20 sm:py-28">
         <h2 className="max-w-2xl text-[2rem] font-semibold leading-[1.1] tracking-[-0.03em] text-xd-text sm:text-[2.6rem]">
           On ne vous demande pas de nous croire.
@@ -56,7 +56,7 @@ export function Method({ shortestMin, longestMin }: { shortestMin: number; longe
           recevez. L&apos;opérateur ne peut ni démarrer ni encaisser sans elles.
         </p>
 
-        <ol className="mt-12 grid gap-px overflow-hidden rounded-[--radius-xd-xl] bg-white/[0.07] sm:grid-cols-2 lg:grid-cols-5">
+        <ol className="mt-12 grid gap-px overflow-hidden rounded-[--radius-xd-xl] bg-black/[0.05] sm:grid-cols-2 lg:grid-cols-5">
           {STEPS.map((item) => (
             <li key={item.step} className="bg-xd-carbon px-6 py-7">
               <p className="tabular text-meta font-semibold text-xd-violet-highlight">

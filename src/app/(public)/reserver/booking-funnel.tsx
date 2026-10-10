@@ -256,7 +256,7 @@ export function BookingFunnel({
                     ? "bg-xd-violet/60"
                     : index === step
                       ? "bg-xd-violet"
-                      : "bg-white/[0.08]"
+                      : "bg-black/[0.055]"
                 }`}
               />
               <span className="sr-only">{name}</span>
@@ -271,7 +271,12 @@ export function BookingFunnel({
           <h1 className="text-[1.9rem] font-semibold leading-[1.1] tracking-[-0.03em] text-xd-text sm:text-[2.3rem]">
             Quel est votre véhicule ?
           </h1>
-          <p className="mt-1.5 text-sm text-xd-text-2">Le tarif et la durée en dépendent.</p>
+          <p className="mt-1.5 text-sm text-xd-text-2">
+            {/* Le prix ne dépend plus de la catégorie : le dire serait faux. Elle sert
+                encore à l'opérateur, qui prépare son matériel en conséquence. */}
+            Le tarif est le même pour toutes. L&apos;opérateur prépare son matériel en
+            conséquence.
+          </p>
 
           <div className="mt-6 grid gap-2.5 sm:grid-cols-2">
             {VEHICLES.map(([value, label, examples]) => {
@@ -343,14 +348,14 @@ export function BookingFunnel({
 
                   <span className="flex items-baseline justify-between gap-4">
                     <span className="min-w-0">
-                      <span className="font-display block text-base font-bold text-white">
+                      <span className="font-display block text-base font-bold text-xd-text">
                         {candidate.name}
                       </span>
                       <span className="mt-0.5 block text-meta text-xd-text-3">
                         {base ? `${formatDuration(base.durationMin)} sur place` : "non disponible"}
                       </span>
                     </span>
-                    <span className="tabular shrink-0 text-lg font-semibold text-white">
+                    <span className="tabular shrink-0 text-lg font-semibold text-xd-text">
                       {base ? euros(base.priceCents) : "—"}
                     </span>
                   </span>
@@ -377,7 +382,7 @@ export function BookingFunnel({
 
           {availableOptions.length > 0 && (
             <fieldset className="mt-7">
-              <legend className="font-display text-base font-bold text-white">
+              <legend className="font-display text-base font-bold text-xd-text">
                 Ajouter une option ?
               </legend>
               {optionGroups.map(([category, groupOptions]) => (
@@ -404,7 +409,7 @@ export function BookingFunnel({
                             );
                             setLookup(null);
                           }}
-                          className="size-4 rounded border-white/20 accent-xd-violet"
+                          className="size-4 rounded border-black/15 accent-xd-violet"
                         />
                         <span className="text-sm text-xd-text-2">{option.name}</span>
                       </span>
@@ -502,7 +507,7 @@ export function BookingFunnel({
                 className={`w-20 shrink-0 rounded-xl border px-2 py-2.5 text-center transition ${
                   immediate
                     ? "bg-xd-violet text-white [box-shadow:inset_0_1px_0_0_rgb(255_255_255/0.24)]"
-                    : "bg-white/[0.05] text-xd-text-2 [box-shadow:inset_0_0_0_1px_rgb(255_255_255/0.08)] hover:text-xd-text"
+                    : "bg-black/[0.04] text-xd-text-2 [box-shadow:inset_0_0_0_1px_rgb(12_12_17/0.1)] hover:text-xd-text"
                 }`}
               >
                 <span className="block text-[11px] opacity-80">Au plus</span>
@@ -521,7 +526,7 @@ export function BookingFunnel({
                     className={`w-16 shrink-0 rounded-xl border px-2 py-2.5 text-center transition ${
                       active && !immediate
                         ? "bg-xd-violet text-white [box-shadow:inset_0_1px_0_0_rgb(255_255_255/0.24)]"
-                        : "bg-white/[0.05] text-xd-text-2 [box-shadow:inset_0_0_0_1px_rgb(255_255_255/0.08)] hover:text-xd-text"
+                        : "bg-black/[0.04] text-xd-text-2 [box-shadow:inset_0_0_0_1px_rgb(12_12_17/0.1)] hover:text-xd-text"
                     }`}
                   >
                     <span className="block text-[11px] capitalize opacity-80">{weekday}</span>
@@ -552,7 +557,7 @@ export function BookingFunnel({
                       className={`rounded-xl border py-3 text-center text-base font-semibold transition ${
                         slotStart === slot.start
                           ? "bg-xd-violet text-white [box-shadow:inset_0_1px_0_0_rgb(255_255_255/0.24)]"
-                          : "bg-white/[0.05] text-xd-text-2 [box-shadow:inset_0_0_0_1px_rgb(255_255_255/0.08)] hover:text-xd-text"
+                          : "bg-black/[0.04] text-xd-text-2 [box-shadow:inset_0_0_0_1px_rgb(12_12_17/0.1)] hover:text-xd-text"
                       }`}
                     >
                       {slot.label}
@@ -734,7 +739,7 @@ export function BookingFunnel({
                           }
                         })
                       }
-                      className="press shrink-0 rounded-[--radius-xd-sm] bg-white/[0.06] px-4 text-meta font-medium text-xd-text-2 [box-shadow:inset_0_0_0_1px_var(--xd-hairline)] disabled:opacity-50"
+                      className="press shrink-0 rounded-[--radius-xd-sm] bg-black/[0.045] px-4 text-meta font-medium text-xd-text-2 [box-shadow:inset_0_0_0_1px_var(--xd-hairline)] disabled:opacity-50"
                     >
                       {checkingVoucher ? "…" : "Appliquer"}
                     </button>
@@ -749,7 +754,7 @@ export function BookingFunnel({
                 type="checkbox"
                 checked={contact.marketingOptIn}
                 onChange={(e) => setContact({ ...contact, marketingOptIn: e.target.checked })}
-                className="mt-0.5 size-4 rounded border-white/20 accent-xd-violet"
+                className="mt-0.5 size-4 rounded border-black/15 accent-xd-violet"
               />
               Me proposer un nouveau lavage quand ce sera le moment.
             </label>
@@ -765,7 +770,7 @@ export function BookingFunnel({
               {service?.name}
               {price.chosen.length > 0 && ` + ${price.chosen.length} option${price.chosen.length > 1 ? "s" : ""}`}
             </span>
-            <span className="tabular text-lg font-bold text-white">
+            <span className="tabular text-lg font-bold text-xd-text">
               {euros(price.totalCents - (voucher?.discountCents ?? 0))}
             </span>
           </div>
@@ -817,7 +822,7 @@ export function BookingFunnel({
               if (step === 2) goToSlots();
               else setStep(step + 1);
             }}
-            className="press flex-1 rounded-full bg-xd-violet px-6 py-3.5 text-body font-semibold text-white [box-shadow:inset_0_1px_0_0_rgb(255_255_255/0.24)] transition-colors duration-[--xd-micro] hover:bg-xd-violet-highlight disabled:bg-white/[0.06] disabled:text-xd-text-4 disabled:shadow-none"
+            className="press flex-1 rounded-full bg-xd-violet px-6 py-3.5 text-body font-semibold text-white [box-shadow:inset_0_1px_0_0_rgb(255_255_255/0.24)] transition-colors duration-[--xd-micro] hover:bg-xd-violet-highlight disabled:bg-black/[0.045] disabled:text-xd-text-4 disabled:shadow-none"
           >
             {step === 2 ? "Voir les créneaux" : step === 4 ? "Passer à mes coordonnées" : "Continuer"}
           </button>
@@ -828,7 +833,7 @@ export function BookingFunnel({
             type="button"
             disabled={!canContinue[5] || booking}
             onClick={submit}
-            className="press flex-1 rounded-full bg-xd-violet px-6 py-3.5 text-body font-semibold text-white [box-shadow:inset_0_1px_0_0_rgb(255_255_255/0.24)] transition-colors duration-[--xd-micro] hover:bg-xd-violet-highlight disabled:bg-white/[0.06] disabled:text-xd-text-4 disabled:shadow-none"
+            className="press flex-1 rounded-full bg-xd-violet px-6 py-3.5 text-body font-semibold text-white [box-shadow:inset_0_1px_0_0_rgb(255_255_255/0.24)] transition-colors duration-[--xd-micro] hover:bg-xd-violet-highlight disabled:bg-black/[0.045] disabled:text-xd-text-4 disabled:shadow-none"
           >
             {booking ? "Réservation…" : "Confirmer ma réservation"}
           </button>

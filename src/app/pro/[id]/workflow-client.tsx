@@ -80,7 +80,7 @@ type Props = {
 };
 
 const primaryButton =
-  "w-full rounded-xl bg-brand-600 px-5 py-4 text-base font-semibold text-white [box-shadow:inset_0_1px_0_0_rgb(255_255_255/0.22),0_8px_24px_-12px_rgb(0_0_0/0.7)] transition hover:bg-brand-500 disabled:bg-xd-graphite disabled:text-chrome-500 disabled:shadow-none";
+  "w-full rounded-xl bg-brand-600 px-5 py-4 text-base font-semibold text-white [box-shadow:inset_0_1px_0_0_rgb(255_255_255/0.22),0_8px_24px_-12px_rgb(12_12_17/0.18)] transition hover:bg-brand-500 disabled:bg-xd-graphite disabled:text-chrome-500 disabled:shadow-none";
 
 /** Position best-effort : une photo sans coordonnées reste acceptable (§13). */
 function currentPosition(): Promise<{ lat: number; lng: number } | null> {
@@ -113,7 +113,7 @@ function ElapsedTimer({ startedAt, durationMin }: { startedAt: string; durationM
   return (
     <div className="rounded-xl border border-night-700 bg-night-850 px-4 py-3 text-center">
       <p className="text-xs uppercase tracking-wide text-chrome-500">Temps écoulé</p>
-      <p className={`tabular mt-0.5 text-3xl font-bold ${over ? "text-xd-warn" : "text-white"}`}>
+      <p className={`tabular mt-0.5 text-3xl font-bold ${over ? "text-xd-warn" : "text-xd-text"}`}>
         {String(minutes).padStart(2, "0")}:{String(elapsed % 60).padStart(2, "0")}
       </p>
       <p className="mt-0.5 text-xs text-chrome-500">durée prévue {durationMin} min</p>
@@ -272,7 +272,7 @@ function PaymentStep({
           <div key={label} className="flex items-baseline justify-between px-4 py-3">
             <dt className="text-sm text-chrome-400">{label}</dt>
             <dd
-              className={`tabular font-semibold ${index === 2 ? "text-xl text-white" : "text-chrome-200"}`}
+              className={`tabular font-semibold ${index === 2 ? "text-xl text-xd-text" : "text-chrome-200"}`}
             >
               {value}
             </dd>
@@ -283,7 +283,7 @@ function PaymentStep({
       {payment.balanceCents > 0 && (
         <>
           <div className="rounded-xl border border-night-700 bg-night-850 p-4">
-            <h3 className="font-display text-sm font-bold text-white">Espèces</h3>
+            <h3 className="font-display text-sm font-bold text-xd-text">Espèces</h3>
             <label className="mt-3 block">
               <span className="text-xs text-chrome-400">Montant reçu</span>
               <input
@@ -292,7 +292,7 @@ function PaymentStep({
                 inputMode="decimal"
                 value={received}
                 onChange={(event) => setReceived(event.target.value)}
-                className="tabular mt-1 w-full rounded-lg border border-night-600 bg-night-900 px-4 py-3 text-right text-2xl font-semibold text-white outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-600/25"
+                className="tabular mt-1 w-full rounded-lg border border-night-600 bg-night-900 px-4 py-3 text-right text-2xl font-semibold text-xd-text outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-600/25"
               />
             </label>
 
@@ -317,14 +317,14 @@ function PaymentStep({
                   else onChanged();
                 })
               }
-              className="mt-3 w-full rounded-lg bg-xd-graphite px-4 py-3 text-sm font-semibold text-white transition hover:bg-xd-slate disabled:opacity-50"
+              className="mt-3 w-full rounded-lg bg-xd-graphite px-4 py-3 text-sm font-semibold text-xd-text transition hover:bg-xd-slate disabled:opacity-50"
             >
               {pending ? "Enregistrement…" : "Encaisser en espèces"}
             </button>
           </div>
 
           <div className="rounded-xl border border-night-700 bg-night-850 p-4">
-            <h3 className="font-display text-sm font-bold text-white">Carte</h3>
+            <h3 className="font-display text-sm font-bold text-xd-text">Carte</h3>
             <p className="mt-1 text-xs text-chrome-400">
               Le paiement est confirmé par le prestataire, jamais par vous : le solde
               restera dû tant que le règlement n&apos;est pas reçu.
@@ -482,7 +482,7 @@ export function JobWorkflow(props: Props) {
 
           <div>
             <div className="flex items-baseline justify-between gap-3">
-              <h2 className="font-display text-lg font-bold text-white">Photos avant</h2>
+              <h2 className="font-display text-lg font-bold text-xd-text">Photos avant</h2>
               {/* §33 — la progression se lit sans compter les vignettes. */}
               <PhotoProgress photos={photos} phase="BEFORE" />
             </div>
@@ -546,7 +546,7 @@ export function JobWorkflow(props: Props) {
 
           <div>
             <div className="flex items-baseline justify-between gap-3">
-              <h2 className="font-display text-lg font-bold text-white">Photos après</h2>
+              <h2 className="font-display text-lg font-bold text-xd-text">Photos après</h2>
               <PhotoProgress photos={photos} phase="AFTER" />
             </div>
             <p className="mt-0.5 text-sm text-chrome-400">
@@ -581,7 +581,7 @@ export function JobWorkflow(props: Props) {
 
       {status === "PAYMENT" && (
         <div className="space-y-4">
-          <h2 className="font-display text-lg font-bold text-white">Encaissement</h2>
+          <h2 className="font-display text-lg font-bold text-xd-text">Encaissement</h2>
 
           <PaymentStep
             appointmentId={appointmentId}

@@ -200,7 +200,7 @@ export function BookingForm({
               setForm((f) => ({ ...f, firstName: "", lastName: "", phone: "", email: "", addressLine1: "", postalCode: "", city: "", accessNotes: "", internalNotes: "" }));
               setOptionIds([]);
             }}
-            className="rounded-lg border-xd-ok/30 bg-white/[0.06] px-4 py-2 text-sm font-medium text-xd-ok hover:bg-xd-ok/12 [box-shadow:inset_0_0_0_1px_var(--xd-hairline)]"
+            className="rounded-lg border-xd-ok/30 bg-black/[0.045] px-4 py-2 text-sm font-medium text-xd-ok hover:bg-xd-ok/12 [box-shadow:inset_0_0_0_1px_var(--xd-hairline)]"
           >
             Nouveau rendez-vous
           </button>
@@ -369,7 +369,7 @@ export function BookingForm({
           type="button"
           onClick={onSearch}
           disabled={searching}
-          className="w-full rounded-xl bg-ink-900 px-4 py-3 text-sm font-semibold uppercase tracking-wide text-white transition hover:bg-ink-800 disabled:opacity-60"
+          className="w-full rounded-xl bg-ink-900 px-4 py-3 text-sm font-semibold uppercase tracking-wide text-xd-text transition hover:bg-ink-800 disabled:opacity-60"
         >
           {searching ? "Analyse du réseau…" : "Trouver le meilleur opérateur"}
         </button>
@@ -397,7 +397,7 @@ export function BookingForm({
 
         {result?.ok && (
           <>
-            <div className="rounded-xl bg-white/[0.06] px-4 py-3 [box-shadow:inset_0_0_0_1px_var(--xd-hairline)]">
+            <div className="rounded-xl bg-black/[0.045] px-4 py-3 [box-shadow:inset_0_0_0_1px_var(--xd-hairline)]">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <p className="text-sm font-semibold text-ink-800">
                   {result.candidates.length} opérateur{result.candidates.length > 1 ? "s" : ""} proposé
@@ -430,7 +430,7 @@ export function BookingForm({
                   className={`block cursor-pointer rounded-xl p-4 transition-all duration-200 ${
                     isSelected
                       ? "m-purple -translate-y-px"
-                      : "bg-white/[0.035] [box-shadow:inset_0_0_0_1px_var(--xd-hairline)] hover:bg-white/[0.06]"
+                      : "bg-black/[0.03] [box-shadow:inset_0_0_0_1px_var(--xd-hairline)] hover:bg-black/[0.045]"
                   }`}
                 >
                   <input

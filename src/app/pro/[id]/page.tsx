@@ -77,7 +77,7 @@ export default async function ProJobPage({ params }: PageProps<"/pro/[id]">) {
       </Link>
 
       <header>
-        <p className="tabular font-display text-3xl font-extrabold tracking-tight text-white">
+        <p className="tabular font-display text-3xl font-extrabold tracking-tight text-xd-text">
           {formatLocalTime(appointment.scheduledStart)}
           <span className="ml-2 text-lg font-medium text-chrome-500">
             → {formatLocalTime(appointment.scheduledEnd)}

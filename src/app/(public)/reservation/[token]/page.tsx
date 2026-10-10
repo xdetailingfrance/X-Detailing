@@ -62,7 +62,7 @@ export default async function ReservationPage({
         <p className="font-mono text-xs font-medium uppercase tracking-[0.16em] text-brand-400">
           {cancelled ? "Réservation annulée" : "Réservation confirmée"}
         </p>
-        <h1 className="font-display mt-2 text-2xl font-extrabold tracking-tight text-white">
+        <h1 className="font-display mt-2 text-2xl font-extrabold tracking-tight text-xd-text">
           {appointment.operator
             ? `${appointment.operator.firstName} vient laver votre véhicule`
             : "Votre lavage est enregistré"}
@@ -96,7 +96,7 @@ export default async function ReservationPage({
         ].map(([label, value]) => (
           <div key={label} className="flex items-baseline justify-between gap-4 px-4 py-3">
             <dt className="text-sm text-chrome-300">{label}</dt>
-            <dd className="tabular text-right text-sm font-medium text-white">{value}</dd>
+            <dd className="tabular text-right text-sm font-medium text-xd-text">{value}</dd>
           </div>
         ))}
       </dl>
@@ -135,7 +135,7 @@ export default async function ReservationPage({
       )}
 
       <section className="mt-8">
-        <h2 className="font-display text-base font-bold text-white">Et ensuite ?</h2>
+        <h2 className="font-display text-base font-bold text-xd-text">Et ensuite ?</h2>
         <ul className="mt-3 space-y-3 text-sm leading-relaxed text-chrome-300">
           <li>
             <span className="font-medium text-chrome-200">Le jour J</span> — vous recevrez un

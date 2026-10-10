@@ -27,8 +27,8 @@ export function NavLink({
       aria-current={active ? "page" : undefined}
       className={`group relative flex items-center gap-2.5 rounded-[--radius-xd-xs] px-3 py-2 text-meta transition-colors duration-150 ${
         active
-          ? "bg-white/[0.05] font-medium text-xd-text"
-          : "text-xd-text-3 hover:bg-white/[0.03] hover:text-xd-text-2"
+          ? "bg-black/[0.04] font-medium text-xd-text"
+          : "text-xd-text-3 hover:bg-black/[0.025] hover:text-xd-text-2"
       }`}
     >
       {active && (
@@ -61,7 +61,7 @@ export function NavToggle({ sections }: { sections: Section[] }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="press inline-flex items-center gap-1.5 rounded-[--radius-xd-xs] bg-white/[0.06] px-3 py-1.5 text-meta text-xd-text-2"
+        className="press inline-flex items-center gap-1.5 rounded-[--radius-xd-xs] bg-black/[0.045] px-3 py-1.5 text-meta text-xd-text-2"
       >
         {current}
         <IconChevron className="size-3.5 rotate-90" />
@@ -85,7 +85,7 @@ export function NavToggle({ sections }: { sections: Section[] }) {
                       <Link
                         href={item.href}
                         onClick={() => setOpen(false)}
-                        className="block rounded-[--radius-xd-xs] px-3 py-2.5 text-body text-xd-text-2 active:bg-white/[0.05]"
+                        className="block rounded-[--radius-xd-xs] px-3 py-2.5 text-body text-xd-text-2 active:bg-black/[0.04]"
                       >
                         {item.label}
                       </Link>

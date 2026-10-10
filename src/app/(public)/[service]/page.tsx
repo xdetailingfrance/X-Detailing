@@ -205,7 +205,7 @@ export default async function ServicePage({ params }: PageProps<"/[service]">) {
                   : "quelle que soit la voiture"}
               </p>
             </div>
-            <div className="hidden h-10 w-px bg-white/[0.08] sm:block" />
+            <div className="hidden h-10 w-px bg-black/[0.055] sm:block" />
             <div>
               <p className="tabular text-[2.2rem] font-semibold leading-none tracking-[-0.03em] text-xd-text">
                 {formatDuration(shortest)}
@@ -226,7 +226,7 @@ export default async function ServicePage({ params }: PageProps<"/[service]">) {
       </section>
 
       {/* ── Ce qui est réellement traité ────────────────────────────────── */}
-      <section className="border-y border-white/[0.06] bg-xd-abyss/60">
+      <section className="border-y border-black/[0.08] bg-xd-abyss/60">
         <div className="mx-auto max-w-6xl px-5 py-20 sm:py-24">
           <h2 className="max-w-2xl text-[2rem] font-semibold leading-[1.1] tracking-[-0.03em] text-xd-text sm:text-[2.4rem]">
             Ce qui est compris.
@@ -251,7 +251,7 @@ export default async function ServicePage({ params }: PageProps<"/[service]">) {
               <p className="mt-2 max-w-xl text-meta text-xd-text-3">
                 À cocher à la réservation, ou à décider avec l&apos;opérateur sur place.
               </p>
-              <ul className="mt-5 grid gap-px overflow-hidden rounded-[--radius-xd-xl] bg-white/[0.07] sm:grid-cols-2">
+              <ul className="mt-5 grid gap-px overflow-hidden rounded-[--radius-xd-xl] bg-black/[0.05] sm:grid-cols-2">
                 {service.options.map((link) => (
                   <li
                     key={link.optionId}
@@ -281,7 +281,7 @@ export default async function ServicePage({ params }: PageProps<"/[service]">) {
         même montant ne renseignent personne et laissent croire au contraire.
       */}
       {variesByVehicle && (
-        <section className="border-y border-white/[0.06] bg-xd-abyss/60">
+        <section className="border-y border-black/[0.08] bg-xd-abyss/60">
           <div className="mx-auto max-w-6xl px-5 py-20 sm:py-24">
             <h2 className="max-w-2xl text-[2rem] font-semibold leading-[1.1] tracking-[-0.03em] text-xd-text sm:text-[2.4rem]">
               Le prix, par catégorie.
@@ -290,7 +290,7 @@ export default async function ServicePage({ params }: PageProps<"/[service]">) {
               Prix ferme. Il dépend de la taille du véhicule, pas de son état.
             </p>
 
-            <ul className="mt-8 grid gap-px overflow-hidden rounded-[--radius-xd-xl] bg-white/[0.07] sm:grid-cols-2 lg:grid-cols-4">
+            <ul className="mt-8 grid gap-px overflow-hidden rounded-[--radius-xd-xl] bg-black/[0.05] sm:grid-cols-2 lg:grid-cols-4">
               {prices.map((row) => (
                 <li key={row.key} className="bg-xd-carbon px-5 py-5">
                   <p className="text-meta text-xd-text-3">{row.label}</p>

@@ -47,7 +47,7 @@ export default async function CustomerPage({ params }: PageProps<"/admin/clients
         title={<>{name}</>}
         badges={<>{customer.type === "BUSINESS" && <Badge tone="accent">Compte entreprise</Badge>} {customer.flexible && <Badge tone="ok">Accepte les créneaux de dernière minute</Badge>} {!customer.marketingOptIn && <Badge tone="neutral">Refuse le démarchage</Badge>}</>}
         lead={<>{customer.phone} {customer.email && ` · ${customer.email}`} {customer.siret && ` · SIRET ${customer.siret}`}</>}
-        actions={<><div className="flex flex-wrap gap-2"> {lastCompleted && ( <Link href={`/admin/rendez-vous/nouveau?client=${customer.id}&modele=${lastCompleted.id}`} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700" > Refaire la même prestation </Link> )} <Link href="/admin/clients" className="rounded-lg bg-white/[0.06] px-3 py-2 text-sm text-ink-600 hover:bg-white/[0.09] [box-shadow:inset_0_0_0_1px_var(--xd-hairline)]" > ← Clients </Link> </div></>}
+        actions={<><div className="flex flex-wrap gap-2"> {lastCompleted && ( <Link href={`/admin/rendez-vous/nouveau?client=${customer.id}&modele=${lastCompleted.id}`} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700" > Refaire la même prestation </Link> )} <Link href="/admin/clients" className="rounded-lg bg-black/[0.045] px-3 py-2 text-sm text-ink-600 hover:bg-black/[0.06] [box-shadow:inset_0_0_0_1px_var(--xd-hairline)]" > ← Clients </Link> </div></>}
       />
 
       <StatRow>

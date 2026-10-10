@@ -17,7 +17,7 @@ export function Footer({ sectors }: { sectors: string[] }) {
   const email = realValue(BUSINESS.email);
 
   return (
-    <footer className="border-t border-white/[0.06]">
+    <footer className="border-t border-black/[0.08]">
       <div className="mx-auto max-w-6xl px-5 py-20 sm:py-24">
         <p className="max-w-xl text-[2rem] font-semibold leading-[1.1] tracking-[-0.03em] text-xd-text sm:text-[2.6rem]">
           Votre prochaine voiture propre commence ici.
@@ -29,7 +29,7 @@ export function Footer({ sectors }: { sectors: string[] }) {
           Choisir un créneau
         </Link>
 
-        <div className="mt-16 grid gap-8 border-t border-white/[0.06] pt-10 text-meta sm:grid-cols-3">
+        <div className="mt-16 grid gap-8 border-t border-black/[0.08] pt-10 text-meta sm:grid-cols-3">
           <div>
             <p className="font-semibold text-xd-text">{BUSINESS.name}</p>
             <p className="mt-2 max-w-xs leading-relaxed text-xd-text-3">{BUSINESS.summary}</p>

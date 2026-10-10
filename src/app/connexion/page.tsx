@@ -33,7 +33,7 @@ export default async function LoginPage({
               priority
               className="h-20 w-auto"
             />
-            <p className="font-display mt-5 text-lg font-bold tracking-tight text-white">
+            <p className="font-display mt-5 text-lg font-bold tracking-tight text-xd-text">
               Système d&apos;exploitation
             </p>
             <p className="mt-0.5 text-meta text-xd-text-3">Pilotage du réseau</p>
