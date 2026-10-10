@@ -16,7 +16,7 @@ export default async function ProLayout({ children }: LayoutProps<"/pro">) {
   const operator = await requireOperator();
 
   return (
-    <div className="flex min-h-dvh flex-col bg-night-950 text-chrome-100 [color-scheme:dark]">
+    <div className="flex min-h-dvh flex-col bg-night-950 text-chrome-100 [color-scheme:light]">
       <header className="sticky top-0 z-20 border-b border-night-700 bg-night-950/90 backdrop-blur">
         <div className="mx-auto flex max-w-lg items-center justify-between gap-3 px-4 py-3">
           <Link href="/pro" className="flex items-center gap-2.5" aria-label="Ma journée">

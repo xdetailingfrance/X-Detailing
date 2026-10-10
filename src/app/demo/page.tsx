@@ -43,7 +43,7 @@ export default async function DemoPage() {
   const seeded = (await prisma.user.count()) > 0;
 
   return (
-    <div className="min-h-dvh bg-night-950 text-chrome-100 [color-scheme:dark]">
+    <div className="min-h-dvh bg-night-950 text-chrome-100 [color-scheme:light]">
       {/* Lumière de studio dirigée, pas une nappe violette centrée (§54). */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[520px] bg-[radial-gradient(70%_60%_at_18%_0%,rgb(123_60_255/0.16),transparent_70%)]" />
 

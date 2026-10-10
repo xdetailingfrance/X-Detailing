@@ -20,9 +20,10 @@ export default async function PublicLayout({ children }: LayoutProps<"/">) {
   });
 
   return (
-    // `color-scheme: dark` : sans lui, cases à cocher et sélecteurs de date sont
-    // rendus en clair par le navigateur, au milieu d'une page noire.
-    <div className="flex min-h-dvh flex-col bg-xd-void text-xd-text [color-scheme:dark]">
+    // `color-scheme: light` : il décide de l'habillage natif du navigateur — cases
+    // à cocher, sélecteurs de date, barres de défilement. Laissé sur `dark`, il les
+    // rendait sombres au milieu d'une page blanche.
+    <div className="flex min-h-dvh flex-col bg-xd-void text-xd-text [color-scheme:light]">
       <FloatingNav />
       <main className="flex-1">{children}</main>
       <Footer sectors={sectors.map((sector) => sector.name)} />
