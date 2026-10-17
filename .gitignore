@@ -40,9 +40,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-/src/generated/prisma
-
-# Photos stockées localement (§13) — données personnelles, jamais versionnées
+# Photos de l'ancienne version, stockées localement — données personnelles,
+# jamais versionnées. Le dossier peut être supprimé.
 /.data
 
 # Outillage local de l'éditeur. `.claude/skills/` ne contient que des liens

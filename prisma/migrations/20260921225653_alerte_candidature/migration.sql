@@ -1,3 +1,0 @@
--- AlterEnum
-ALTER TYPE "AlertType" ADD VALUE 'OPERATOR_APPLICATION';
-

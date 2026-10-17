@@ -1,32 +1,66 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono, Manrope } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
-import { siteUrl } from "@/lib/business";
+import { BUSINESS, siteUrl } from "@/lib/business";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
-const manrope = Manrope({ variable: "--font-manrope", subsets: ["latin"], weight: ["500", "700", "800"] });
+/**
+ * Police : SF Pro Display.
+ *
+ * Apple ne licencie pas SF Pro pour le web — elle ne peut pas être servie depuis
+ * le site. Elle est donc appelée par la pile système (voir `globals.css`) : tout
+ * Mac, iPhone et iPad l'affiche nativement. Inter, dessinée sur les mêmes
+ * proportions, prend le relais ailleurs. `next/font` l'auto-héberge : aucun appel
+ * à Google depuis le navigateur du visiteur.
+ */
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+
+const TITLE = `Lavage et detailing automobile à ${BUSINESS.city} · ${BUSINESS.name}`;
+const DESCRIPTION =
+  "Nettoyage intérieur ou intérieur + extérieur de votre voiture, chez vous ou au " +
+  "travail, à Bordeaux et alentours. Tarif annoncé à l'avance, dès 129 €. " +
+  "Réservation en ligne, trois créneaux par jour.";
 
 export const metadata: Metadata = {
   /**
-   * Sans base explicite, Next.js émet des canoniques relatives (`href="/"`), qui se
-   * résolvent contre l'hôte qui sert la page. Le même site répondant sur son domaine
-   * et sur plusieurs adresses `.vercel.app`, chaque copie se déclarait alors canonique
-   * d'elle-même : quatre sites identiques en concurrence au lieu d'un seul consolidé.
+   * Sans base explicite, Next émet des canoniques relatives, qui se résolvent
+   * contre l'hôte qui sert la page : chaque adresse `.vercel.app` se déclarerait
+   * alors canonique d'elle-même, en concurrence avec le domaine.
    */
   metadataBase: new URL(siteUrl()),
-  title: { default: "X Detailing", template: "%s" },
-  description:
-    "Lavage automobile mobile, intérieur et extérieur, à domicile et en entreprise.",
+  title: TITLE,
+  description: DESCRIPTION,
+  openGraph: {
+    type: "website",
+    locale: "fr_FR",
+    siteName: BUSINESS.name,
+    title: TITLE,
+    description: DESCRIPTION,
+    images: [
+      { url: "/marque/logo-x-detailing.jpeg", width: 1254, height: 1254, alt: BUSINESS.name },
+    ],
+  },
+  twitter: {
+    card: "summary",
+    title: TITLE,
+    description: DESCRIPTION,
+    images: ["/marque/logo-x-detailing.jpeg"],
+  },
   icons: {
     icon: [{ url: "/marque/icone-32.png", sizes: "32x32", type: "image/png" }],
     apple: [{ url: "/marque/icone-180.png", sizes: "180x180", type: "image/png" }],
   },
+  robots: { index: true, follow: true },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#ffffff",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="fr" className={`${geistSans.variable} ${geistMono.variable} ${manrope.variable} h-full`}>
+    <html lang="fr" className={`${inter.variable} h-full`}>
       <body className="min-h-full">{children}</body>
     </html>
   );

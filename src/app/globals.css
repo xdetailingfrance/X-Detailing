@@ -1,274 +1,61 @@
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   X DETAILING — SYSTÈME DE DESIGN
-   Verre fumé, reflets de carrosserie, violet de signature.
+   X DETAILING — une page, une charte.
+   Fond blanc, texte presque noir, violet de signature échantillonné sur le logo.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @theme {
-  /* ── Fonds ────────────────────────────────────────────────────────────────
-     Blanc pur pour le sol, puis des gris très légèrement biaisés vers le violet.
-     Un gris parfaitement neutre à côté d'un violet saturé paraît sale ; biaisé
-     de quelques points vers l'accent, il paraît choisi.
+  --color-xd-bg: #ffffff;
+  --color-xd-bg-2: #f6f6f9;
+  --color-xd-bg-3: #ebebf1;
 
-     Les noms viennent du système sombre et sont conservés : les renommer
-     obligerait à reprendre 800 classes pour un gain nul. Leur ordre est
-     préservé — `void` reste le fond le plus en retrait, `ash` le plus marqué. */
-  --color-xd-void: #ffffff;
-  --color-xd-abyss: #f7f7fa;
-  --color-xd-carbon: #ffffff;
-  --color-xd-graphite: #fbfbfd;
-  --color-xd-slate: #f2f2f6;
-  --color-xd-steel: #e8e8ee;
-  --color-xd-ash: #d8d8e1;
-
-  /* ── Texte ────────────────────────────────────────────────────────────────
-     Quatre niveaux suffisent. Un cinquième gris finit toujours illisible.
-     Jamais de #000 pur : un noir absolu sur blanc pur vibre à la lecture. */
+  /* Jamais de #000 pur : un noir absolu sur blanc pur vibre à la lecture. */
   --color-xd-text: #0c0c11;
   --color-xd-text-2: #44444f;
   --color-xd-text-3: #6b6b78;
   --color-xd-text-4: #9a9aa7;
 
-  /* ── Violet de signature ──────────────────────────────────────────────────
-     Échantillonné sur le logo. État actif, sélection, CTA, intelligence.
-
-     Deux valeurs, deux rôles de contraste. `violet` porte les aplats : du blanc
-     dessus donne 5,35:1. `highlight` porte le texte violet sur fond blanc et
-     l'état survolé : 7,3:1. Le clair du système sombre, #9d6bff, tombait à
-     3,5:1 sur blanc — sous le seuil, pour du texte courant. */
+  /* `violet` porte les aplats (du blanc dessus : 5,35:1) ; `violet-deep` porte le
+     texte violet sur blanc et le survol (7,3:1). */
   --color-xd-violet: #7b3cff;
-  --color-xd-violet-highlight: #6425e0;
-  --color-xd-violet-dark: #f1ebff;
+  --color-xd-violet-deep: #6425e0;
+  --color-xd-violet-pale: #f1ebff;
 
-  --color-xd-purple: #7b3cff;
-  --color-xd-purple-bright: #6425e0;
-  --color-xd-purple-deep: #5218c0;
-  --color-xd-purple-ink: #f1ebff;
-
-  /* ── Statuts : lisibles sur blanc, saturation tenue ─────────────────────*/
   --color-xd-ok: #0f8a5f;
-  --color-xd-ok-ink: #e6f6ef;
-  --color-xd-warn: #9a6400;
-  --color-xd-warn-ink: #fbf2e0;
+  --color-xd-ok-pale: #e6f6ef;
   --color-xd-danger: #c2353a;
-  --color-xd-danger-ink: #fdeced;
-  --color-xd-info: #1f6fb8;
-  --color-xd-info-ink: #e8f1fa;
+  --color-xd-danger-pale: #fdeced;
 
-  /* ── Rayons — une échelle, pas une valeur (§10) ──────────────────────────*/
-  --radius-xd-xs: 8px;
+  /* SF Pro Display : Apple ne la licencie pas pour le web, elle ne peut pas être
+     servie depuis le site. Elle est appelée par son nom puis par la pile système —
+     tout Mac, iPhone et iPad l'affiche nativement. Inter, dessinée sur les mêmes
+     proportions, prend le relais ailleurs. */
+  --font-sans: "SF Pro Display", "SF Pro Text", -apple-system, BlinkMacSystemFont,
+    var(--font-inter), "Segoe UI", Roboto, sans-serif;
+
   --radius-xd-sm: 12px;
   --radius-xd-md: 16px;
   --radius-xd-lg: 22px;
   --radius-xd-xl: 28px;
-  --radius-xd-2xl: 36px;
-
-  /* L'échelle par défaut de Tailwind est réécrite sur celle-ci. Les écrans
-     existants emploient `rounded-lg` et `rounded-xl` à 130 endroits : les
-     reposer sur la bonne échelle vaut mieux que renommer 130 classes, et
-     garantit qu'aucun rayon hors gamme ne puisse réapparaître. */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 22px;
-  --radius-2xl: 28px;
-  --radius-3xl: 36px;
-
-  /* ── Typographie — SF Pro sur Apple, sinon la pile système (§8) ──────────*/
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
-    "Helvetica Neue", "Segoe UI", Roboto, Arial, sans-serif;
-
-  /* ── Échelle typographique (§8) ─────────────────────────────────────────*/
-  --text-display: 3.5rem;
-  --text-display--line-height: 1.02;
-  --text-display--letter-spacing: -0.035em;
-  --text-display--font-weight: 600;
-
-  --text-h1: 2.5rem;
-  --text-h1--line-height: 1.08;
-  --text-h1--letter-spacing: -0.028em;
-  --text-h1--font-weight: 600;
-
-  --text-h2: 1.75rem;
-  --text-h2--line-height: 1.18;
-  --text-h2--letter-spacing: -0.022em;
-  --text-h2--font-weight: 600;
-
-  --text-h3: 1.25rem;
-  --text-h3--line-height: 1.3;
-  --text-h3--letter-spacing: -0.014em;
-  --text-h3--font-weight: 590;
 
   --text-body: 1rem;
   --text-body--line-height: 1.55;
-  --text-body--letter-spacing: -0.008em;
-
-  --text-meta: 0.8125rem;
-  --text-meta--line-height: 1.45;
-  --text-meta--letter-spacing: 0;
-
-  --text-micro: 0.6875rem;
-  --text-micro--line-height: 1.4;
-  --text-micro--letter-spacing: 0.06em;
-
-  /* L'échelle par défaut de Tailwind rejoint celle du §8 : `text-sm` devient la
-     métadonnée, `text-xs` le cran en dessous. Sans cela, quatre tailles de petit
-     texte cohabitaient — 14, 13, 12 et 11 px — pour dire la même chose. */
-  --text-sm: 0.8125rem;
-  --text-sm--line-height: 1.45;
-  --text-xs: 0.75rem;
-  --text-xs--line-height: 1.4;
-
-  /* ── Couche de compatibilité ──────────────────────────────────────────────
-     Les écrans existants utilisent trois anciennes palettes. Plutôt que de les
-     réécrire d'un bloc — ce que le §61 déconseille — on les remappe sur le
-     nouveau système : l'ensemble adopte la direction artistique d'un coup, de
-     façon cohérente, et chaque écran est ensuite affiné.
-
-     `ink` était une échelle pensée pour un fond clair : elle s'inverse. C'est
-     ce qui fait basculer tout le back-office en graphite (§25) sans toucher
-     à 800 classes une par une. */
-  --color-ink-50: #f7f7fa;
-  /* 100 à 300 ne tracent que des filets : ton sur ton, en noir translucide
-     désormais. Une bordure opaque sur du verre le change en carton. */
-  --color-ink-100: rgb(12 12 17 / 0.06);
-  --color-ink-200: rgb(12 12 17 / 0.09);
-  --color-ink-300: rgb(12 12 17 / 0.14);
-  --color-ink-400: #9a9aa7;
-  --color-ink-500: #6b6b78;
-  --color-ink-600: #6b6b78;
-  --color-ink-700: #44444f;
-  --color-ink-800: #1c1c24;
-  --color-ink-900: #0c0c11;
-  --color-ink-950: #000000;
-
-  /* `night` et `chrome` servaient un fond sombre : ils se retournent aussi. */
-  --color-night-950: #ffffff;
-  --color-night-900: #f7f7fa;
-  --color-night-850: #ffffff;
-  --color-night-800: #fbfbfd;
-  --color-night-700: rgb(12 12 17 / 0.06);
-  --color-night-600: rgb(12 12 17 / 0.1);
-
-  --color-chrome-100: #0c0c11;
-  --color-chrome-200: #44444f;
-  --color-chrome-300: #6b6b78;
-  --color-chrome-400: #9a9aa7;
-  --color-chrome-500: #c2c2cd;
-
-  /* `brand` devient le violet de signature, en échelle claire → foncée. */
-  --color-brand-50: #f6f2ff;
-  --color-brand-100: #ece3ff;
-  --color-brand-200: #d9c7ff;
-  --color-brand-400: #9d6bff;
-  --color-brand-500: #8a52ff;
-  --color-brand-600: #7b3cff;
-  --color-brand-700: #6425e0;
-  --color-brand-900: #4a14ad;
-  --color-brand-950: #330c7c;
 }
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   MATÉRIAUX (§5)
-   Quatre matériaux, chacun avec sa raison d'être. Une surface qui n'a besoin
-   d'aucun des quatre n'a besoin d'aucune surface (§3.2).
-   ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  --xd-blur-sm: 12px;
-  --xd-blur-md: 24px;
-  --xd-blur-lg: 40px;
-
-  /* Sur fond clair, l'épaisseur ne vient plus d'un reflet blanc sur l'arête
-     haute — il serait invisible — mais d'un filet sombre qui ferme la surface. */
-  --xd-edge-light: inset 0 0 0 1px rgb(12 12 17 / 0.07);
-  --xd-edge-light-strong: inset 0 0 0 1px rgb(12 12 17 / 0.11);
-
-  /* Ombre diffuse, jamais portée. Bien plus légère que sur fond sombre : sur du
-     blanc, une ombre appuyée se lit comme une tache. */
-  --xd-lift-1: 0 1px 2px rgb(12 12 17 / 0.05);
-  --xd-lift-2: 0 8px 24px -14px rgb(12 12 17 / 0.18);
-  --xd-lift-3: 0 24px 64px -28px rgb(12 12 17 / 0.26);
-
-  /* Séparations ton sur ton, pas des bordures (§4). */
   --xd-hairline: rgb(12 12 17 / 0.08);
   --xd-hairline-strong: rgb(12 12 17 / 0.14);
-
-  /* Le violet a quatre rôles, pas quatre nuances décoratives : ce qu'on peut
-     actionner, ce qui est sélectionné, la lumière qu'un élément actif projette,
-     et le fond sur lequel il se pose. */
-  --xd-violet: #7b3cff;
-  --xd-violet-highlight: #6425e0;
-  --xd-violet-glow: rgb(123 60 255 / 0.22);
-  --xd-violet-dark: #f1ebff;
-
-  /* Motion — 180 à 340 ms : assez lent pour se voir, assez court pour ne pas
-     attendre. Au-delà, une interface « calme » devient une interface lente. */
-  --xd-micro: 180ms;
-  --xd-component: 260ms;
-  --xd-context: 340ms;
+  --xd-lift: 0 1px 2px rgb(12 12 17 / 0.04), 0 18px 44px -26px rgb(12 12 17 / 0.28);
   --xd-spring: cubic-bezier(0.22, 1, 0.36, 1);
-  --xd-spring-soft: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-/* Material 01 — Verre clair.
-   Navigation, panneaux flottants, feuilles. Le fond doit rester visible. */
-.m-smoked {
-  background: rgb(255 255 255 / 0.72);
-  backdrop-filter: blur(var(--xd-blur-md)) saturate(140%);
-  -webkit-backdrop-filter: blur(var(--xd-blur-md)) saturate(140%);
-  box-shadow: var(--xd-edge-light), var(--xd-lift-2);
+html {
+  scroll-behavior: smooth;
 }
-
-/* Material 02 — Blanc poli.
-   Surfaces métier principales. Micro-variation de lumière plutôt qu'un aplat :
-   sur blanc, elle vient d'une ombre douce en haut, pas d'un reflet. */
-.m-polished {
-  background:
-    radial-gradient(120% 140% at 50% -20%, rgb(12 12 17 / 0.028), transparent 55%),
-    var(--color-xd-carbon);
-  box-shadow: var(--xd-edge-light), var(--xd-lift-1);
-}
-
-/* Material 03 — Gris perle.
-   Structure, métriques, éléments porteurs. La lumière glisse en diagonale,
-   comme sur de l'aluminium clair. */
-.m-graphite {
-  background:
-    linear-gradient(152deg, rgb(255 255 255 / 0.9) 0%, transparent 38%, rgb(12 12 17 / 0.035) 100%),
-    var(--color-xd-slate);
-  box-shadow: var(--xd-edge-light), var(--xd-lift-1);
-}
-
-/* Material 04 — Énergie violette.
-   État actif, sélection, CTA principal, intelligence du système. Jamais de fond
-   plein : une lumière violette diffuse, pas un aplat (§54). */
-.m-purple {
-  background:
-    linear-gradient(160deg, rgb(123 60 255 / 0.1), rgb(123 60 255 / 0.03)),
-    var(--color-xd-carbon);
-  box-shadow:
-    inset 0 0 0 1px rgb(123 60 255 / 0.22),
-    var(--xd-lift-2);
-}
-
-/* Séparation ton sur ton. Remplace les bordures sur la plupart des composants. */
-.hairline { box-shadow: inset 0 0 0 1px var(--xd-hairline); }
-.hairline-t { box-shadow: inset 0 1px 0 0 var(--xd-hairline); }
-.hairline-b { box-shadow: inset 0 -1px 0 0 var(--xd-hairline); }
-
-/* Lumière violette rasante sur un bord — la signature du §54. */
-.edge-purple {
-  box-shadow: inset 0 0 0 1px rgb(123 60 255 / 0.3);
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   BASE
-   ═══════════════════════════════════════════════════════════════════════════ */
 
 body {
-  background: var(--color-xd-void);
+  background: var(--color-xd-bg);
   color: var(--color-xd-text);
   font-family: var(--font-sans);
   font-size: 1rem;
@@ -279,229 +66,183 @@ body {
   color-scheme: light;
 }
 
-/* Les chiffres alignés en colonne : indispensable dès qu'il y a des euros. */
-.tabular { font-variant-numeric: tabular-nums; }
-
-/* Libellé de section : petite capitale espacée, jamais du texte courant. */
-.eyebrow {
-  font-size: var(--text-micro);
-  line-height: 1.4;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  font-weight: 590;
-}
-
-/* Focus visible et sobre — le §50 l'exige, le verre ne doit rien masquer.
-   Les champs en sont exclus : ils portent déjà leur propre marque de focus, un
-   liseré violet à l'intérieur de la surface. Cumulés, les deux traçaient deux
-   anneaux violets concentriques autour du champ actif. */
-:where(a, button, [tabindex]):focus-visible {
-  outline: 2px solid var(--color-xd-purple-bright);
+/* Focus visible et sobre. Les champs portent déjà leur propre marque de focus. */
+:where(a, button, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-xd-violet-deep);
   outline-offset: 2px;
-  border-radius: var(--radius-xd-xs);
+  border-radius: 8px;
 }
-
-/* Le focus d'un champ (§43) : un liseré violet dans l'épaisseur de la surface et
-   un halo court, jamais un anneau posé autour. Défini ici plutôt que composant par
-   composant, pour qu'un champ écrit à la main l'obtienne aussi. */
 :where(input, select, textarea):focus-visible {
   outline: none;
-  box-shadow:
-    inset 0 0 0 1px rgb(123 60 255 / 0.5),
-    0 0 0 4px rgb(123 60 255 / 0.14);
 }
 
-/* Pression physique sur les éléments interactifs (§12). */
-.press { transition: transform var(--xd-micro) var(--xd-spring); }
-.press:active { transform: scale(0.975); }
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPOSANTS
+   Dans la couche `components` : les utilitaires Tailwind posés sur un élément
+   (`flex`, `hidden`, `p-5`…) gardent le dernier mot sur ces règles.
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Chiffre qui compte : la progression numérique du §12. */
-@keyframes xd-rise {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: none; }
-}
-.rise { animation: xd-rise var(--xd-component) var(--xd-spring) both; }
+@layer components {
+  /* Les chiffres alignés en colonne : indispensable dès qu'il y a des euros. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
 
-/* Balayage de chargement — remplace les spinners génériques (§47). */
-@keyframes xd-shimmer {
-  from { background-position: -200% 0; }
-  to { background-position: 200% 0; }
-}
-.shimmer {
-  background: linear-gradient(
-    100deg,
-    var(--color-xd-slate) 40%,
-    var(--color-xd-steel) 50%,
-    var(--color-xd-slate) 60%
-  );
-  background-size: 200% 100%;
-  animation: xd-shimmer 1.6s linear infinite;
-}
+  /* Libellé de section : petite capitale espacée, jamais du texte courant. */
+  .eyebrow {
+    font-size: 0.6875rem;
+    line-height: 1.4;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
 
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+  /* Séparations ton sur ton, pas des bordures. */
+  .hairline {
+    box-shadow: inset 0 0 0 1px var(--xd-hairline);
+  }
+  .hairline-t {
+    box-shadow: inset 0 1px 0 0 var(--xd-hairline);
+  }
+  .hairline-b {
+    box-shadow: inset 0 -1px 0 0 var(--xd-hairline);
+  }
+
+  /* Surface porteuse : blanc, filet, ombre diffuse — jamais portée. */
+  .card {
+    background: #ffffff;
+    box-shadow: inset 0 0 0 1px var(--xd-hairline), var(--xd-lift);
+  }
+
+  /* ── Champs ────────────────────────────────────────────────────────────────
+     Des surfaces, pas des rectangles bordés. Le focus est un liseré violet dans
+     l'épaisseur de la surface et un halo court, jamais un anneau posé autour. */
+  .field {
+    display: block;
+    width: 100%;
+    background: rgb(12 12 17 / 0.03);
+    border: 0;
+    border-radius: var(--radius-xd-sm);
+    padding: 0.8rem 1rem;
+    font: inherit;
+    font-size: 1rem;
+    line-height: 1.4;
+    color: var(--color-xd-text);
+    box-shadow: inset 0 0 0 1px var(--xd-hairline);
+    outline: none;
+    transition: box-shadow 180ms, background-color 180ms;
+  }
+  .field::placeholder {
+    color: var(--color-xd-text-4);
+  }
+  .field:focus {
+    background: rgb(12 12 17 / 0.045);
+    box-shadow:
+      inset 0 0 0 1px rgb(123 60 255 / 0.5),
+      0 0 0 4px rgb(123 60 255 / 0.14);
+  }
+  .field[aria-invalid="true"] {
+    box-shadow: inset 0 0 0 1px rgb(194 53 58 / 0.6);
+  }
+  .field:disabled {
+    opacity: 0.6;
+  }
+
+  /* ── Boutons ────────────────────────────────────────────────────────────── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 999px;
+    padding: 0.9rem 1.6rem;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+    transition:
+      background-color 180ms,
+      color 180ms,
+      box-shadow 180ms,
+      transform 180ms var(--xd-spring);
+  }
+  .btn:active {
+    transform: scale(0.975);
+  }
+  .btn:disabled {
+    opacity: 0.55;
+    pointer-events: none;
+  }
+  .btn-primary {
+    background: var(--color-xd-violet);
+    color: #ffffff;
+    box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.22);
+  }
+  .btn-primary:hover {
+    background: var(--color-xd-violet-deep);
+  }
+  .btn-secondary {
+    background: rgb(12 12 17 / 0.045);
+    color: var(--color-xd-text);
+    box-shadow: inset 0 0 0 1px var(--xd-hairline);
+  }
+  .btn-secondary:hover {
+    background: rgb(12 12 17 / 0.07);
+  }
+  .btn-sm {
+    padding: 0.55rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  /* ── Option sélectionnable — formule, véhicule, lieu, case à cocher ──────────
+     La sélection ne se contente pas d'une bordure violette : la surface change
+     de matière et gagne une lumière rasante. */
+  .choice {
+    display: block;
+    width: 100%;
+    text-align: left;
+    border-radius: var(--radius-xd-md);
+    background: rgb(12 12 17 / 0.03);
+    box-shadow: inset 0 0 0 1px var(--xd-hairline);
+    transition:
+      background-color 180ms,
+      box-shadow 180ms,
+      transform 180ms var(--xd-spring);
+  }
+  .choice:hover {
+    background: rgb(12 12 17 / 0.045);
+  }
+  .choice:active {
+    transform: scale(0.985);
+  }
+  .choice[aria-pressed="true"],
+  .choice:has(input:checked) {
+    background:
+      linear-gradient(160deg, rgb(123 60 255 / 0.1), rgb(123 60 255 / 0.03)),
+      #ffffff;
+    box-shadow:
+      inset 0 0 0 1.5px rgb(123 60 255 / 0.55),
+      0 10px 28px -18px rgb(123 60 255 / 0.45);
+  }
+
+  /* Apparition d'une étape. L'état de repos est visible. */
+  .rise {
+    animation: xd-rise 260ms var(--xd-spring) both;
   }
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   CARTE (§20, §51)
-   Leaflet habille ses contrôles en blanc. Sur un fond graphite, ils ressortent
-   comme des autocollants : on les repose sur les mêmes matériaux que le reste.
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-.leaflet-container {
-  background: var(--color-xd-slate);
-  font-family: var(--font-sans);
-}
-
-/*
-  Plus aucun filtre sur les tuiles : le fond de carte OpenStreetMap est déjà
-  clair. L'inversion n'existait que pour le faire tenir sur un fond graphite —
-  la garder ici repeindrait la carte en négatif.
-  On la désature seulement, pour qu'elle reste un décor et non un sujet, et que
-  le violet des marqueurs soit la seule couleur franche de l'écran.
-*/
-.leaflet-tile-pane {
-  filter: saturate(0.7) brightness(1.02);
-}
-
-.leaflet-bar,
-.leaflet-bar a {
-  border: 0;
-  background: rgb(255 255 255 / 0.92);
-  color: var(--color-xd-text-2);
-  backdrop-filter: blur(var(--xd-blur-sm));
-  box-shadow: var(--xd-edge-light), var(--xd-lift-2);
-}
-
-.leaflet-bar a:hover {
-  background: #ffffff;
-  color: var(--color-xd-text);
-}
-
-.leaflet-control-attribution {
-  background: rgb(255 255 255 / 0.8) !important;
-  color: var(--color-xd-text-4);
-  font-size: 10px;
-  backdrop-filter: blur(var(--xd-blur-sm));
-}
-
-.leaflet-control-attribution a {
-  color: var(--color-xd-text-3);
-}
-
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   VERRE — TROIS NIVEAUX
-   Un `rgba` avec un `backdrop-filter` ne fait pas du verre : il fait un
-   rectangle translucide. Ce qui donne la matière, c'est le grain, le reflet
-   sur l'arête haute, et le fait que la lumière ne traverse pas uniformément.
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-:root {
-  /*
-    Grain. Une turbulence SVG en fond, à très faible opacité : c'est ce qui
-    empêche les grandes surfaces sombres de bander, et ce qui distingue une
-    vitre d'un aplat. Généré en CSS, aucun fichier à charger.
-  */
-  --xd-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
-}
-
-/* Niveau 1 — surface. Navigation, panneaux, feuilles. Le fond reste lisible. */
-.glass {
-  position: relative;
-  background: rgb(255 255 255 / 0.7);
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-  box-shadow:
-    inset 0 0 0 1px rgb(12 12 17 / 0.07),
-    0 8px 24px -16px rgb(12 12 17 / 0.2);
-}
-
-/* Le grain se pose par-dessus, sans intercepter le pointeur. Sur fond clair il
-   s'applique en `multiply` : en `overlay`, un grain clair sur du blanc ne
-   produit rien du tout. */
-.glass::before,
-.glass-premium::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background-image: var(--xd-grain);
-  opacity: 0.025;
-  mix-blend-mode: multiply;
-  pointer-events: none;
-}
-
-/*
-  Niveau 2 — verre premium. Réservé aux quelques surfaces qui portent une
-  décision : la formule retenue, le devis, la carte d'une réalisation. La
-  lumière entre par le haut, comme sur une vitre inclinée.
-*/
-.glass-premium {
-  position: relative;
-  background:
-    linear-gradient(180deg, rgb(255 255 255 / 0.9) 0%, rgb(255 255 255 / 0.68) 42%),
-    rgb(255 255 255 / 0.8);
-  backdrop-filter: blur(28px) saturate(150%);
-  -webkit-backdrop-filter: blur(28px) saturate(150%);
-  box-shadow:
-    inset 0 0 0 1px rgb(12 12 17 / 0.08),
-    0 20px 48px -30px rgb(12 12 17 / 0.3);
-}
-
-/*
-  Niveau 3 — verre interactif. Le contour violet n'apparaît qu'au survol ou au
-  focus, et la surface avance d'un pixel. Sans état de départ neutre, tout
-  l'écran brille en permanence et plus rien ne signale ce qui est actionnable.
-*/
-.glass-interactive {
-  transition:
-    transform var(--xd-micro) var(--xd-spring),
-    box-shadow var(--xd-component) var(--xd-spring),
-    background-color var(--xd-component) var(--xd-spring);
-}
-
-.glass-interactive:hover,
-.glass-interactive:focus-visible {
-  transform: translateY(-1px);
-  box-shadow:
-    inset 0 0 0 1px rgb(123 60 255 / 0.38),
-    0 16px 40px -28px rgb(12 12 17 / 0.32),
-    0 0 32px -20px var(--xd-violet-glow);
-}
-
-/* Surface sélectionnée : l'état persiste, il ne dépend pas du pointeur. */
-.glass-active {
-  background: var(--color-xd-violet-dark);
-  box-shadow:
-    inset 0 0 0 1px rgb(123 60 255 / 0.5),
-    0 16px 40px -28px rgb(12 12 17 / 0.3);
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   MOUVEMENT
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-/* Apparition au défilement. L'état de repos est visible : une section qui
-   attendrait un observateur pour exister ne serait pas lue par un crawler,
-   ni par quelqu'un qui arrive avec le mouvement désactivé. */
 @keyframes xd-rise {
-  from { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-.rise {
-  animation: xd-rise var(--xd-context) var(--xd-spring) both;
-}
-
-/*
-  §23 — tout le mouvement se coupe ici. Pas « se ralentit » : se coupe. Une
-  animation réduite reste une animation pour quelqu'un que le mouvement gêne.
-*/
+/* Tout le mouvement se coupe ici. Pas « se ralentit » : se coupe. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -510,9 +251,5 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
-  }
-
-  .glass-interactive:hover {
-    transform: none;
   }
 }

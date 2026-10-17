@@ -1,70 +1,55 @@
 /**
  * Identité de l'entreprise — source unique.
  *
- * Tout ce qui est factuel sur X Detailing passe par ici : le site, les données
- * structurées, le pied de page et les pages locales lisent les mêmes valeurs. C'est ce
- * qui garantit la cohérence NAP (nom, adresse, téléphone) que Google Local et les
- * moteurs génératifs vérifient d'une source à l'autre.
+ * Tout ce qui est factuel sur X Detailing passe par ici : la page, les données
+ * structurées, le pied de page et l'e-mail de demande lisent les mêmes valeurs.
+ * C'est ce qui garantit la cohérence nom / adresse / téléphone que Google recoupe
+ * entre le site et la fiche d'établissement.
  *
- * ────────────────────────────────────────────────────────────────────────────
- * AUCUNE DONNÉE N'EST INVENTÉE.
- *
- * Les valeurs entre crochets — `[VILLE]`, `[NOTE GOOGLE]` — sont des emplacements
- * à remplir. Elles s'affichent telles quelles à l'écran, volontairement : un
- * emplacement visible se remarque et se corrige, une donnée plausible inventée
- * traverse la mise en ligne sans que personne ne la voie.
- *
- * `isPlaceholder()` permet aux composants de masquer un bloc plutôt que d'afficher
- * un crochet là où ce serait gênant — une note Google inventée dans un balisage
- * Schema, par exemple, expose à une pénalité.
- * ────────────────────────────────────────────────────────────────────────────
+ * Les valeurs entre crochets — `[E-MAIL]` — sont des emplacements à remplir. Elles
+ * sont masquées à l'écran par `realValue()` plutôt qu'affichées : une donnée
+ * inventée traverserait la mise en ligne sans que personne ne la voie.
  */
 
 export const BUSINESS = {
   name: "X Detailing",
-  legalName: "[RAISON SOCIALE]",
+  legalName: "X DETAILING",
+  legalForm: "SASU",
+  siren: "131 212 250",
 
-  /** Ce que fait l'entreprise, en une phrase citable par un moteur génératif. */
+  /** Ce que fait l'entreprise, en une phrase citable. */
   summary:
-    "X Detailing est un service de lavage et de nettoyage automobile qui se déplace " +
-    "chez le client, à domicile ou sur son lieu de travail.",
+    "X Detailing est un service de lavage et de detailing automobile, intérieur et " +
+    "extérieur, à domicile et en entreprise, sur Bordeaux et ses alentours.",
 
-  city: "[VILLE]",
-  /** Zone réellement couverte. Les secteurs actifs en base la précisent. */
-  area: "[ZONE D'INTERVENTION]",
-
-  address: {
-    street: "[ADRESSE]",
-    postalCode: "[CODE POSTAL]",
-    city: "[VILLE]",
-    country: "FR",
-  },
-
-  /** Coordonnées de l'atelier ou du point de rattachement. */
-  geo: { lat: null as number | null, lng: null as number | null },
-
-  phone: "[TÉLÉPHONE]",
-  /** Format international, pour `tel:` et Schema. */
-  phoneE164: "[+33XXXXXXXXX]",
-  email: "[E-MAIL]",
+  /** La ville que les clients tapent dans Google. */
+  city: "Bordeaux",
+  area: "Bordeaux, sa métropole et l'Entre-deux-Mers",
 
   /**
-   * Horaires d'ouverture. `null` tant qu'ils ne sont pas connus : un horaire inventé
-   * envoie un client devant une porte fermée.
+   * Siège social — pour les mentions légales uniquement. L'entreprise se déplace
+   * chez le client : la fiche Google n'affiche pas d'adresse, et la page non plus.
    */
-  openingHours: null as Array<{ days: string[]; opens: string; closes: string }> | null,
+  siege: "Parc de Citon B03, chemin de Brondeau, 33370 Pompignac",
 
-  /** Note et nombre d'avis Google. Jamais renseignés à la main (§32). */
+  /**
+   * Numéro affiché sur la fiche Google de l'établissement. À confirmer : c'est la
+   * seule donnée de ce fichier qui n'a pas été communiquée directement.
+   */
+  phone: "06 49 36 83 28",
+  phoneE164: "+33649368328",
+  email: "[E-MAIL]",
+
+  /** Domaine de production. */
+  url: "https://xdetailing.fr",
+
   google: {
-    rating: "[NOTE GOOGLE]",
-    reviewCount: "[NOMBRE D'AVIS]",
-    profileUrl: "[LIEN FICHE GOOGLE]",
-  },
-
-  social: {
-    instagram: "[INSTAGRAM]",
-    facebook: "[FACEBOOK]",
-    tiktok: "[TIKTOK]",
+    /** Lien de partage de la fiche d'établissement. */
+    profileUrl: "https://share.google/j9knPSPvVLRsamIPP",
+    /** Identifiant de lieu de la fiche, lu sur Google Maps. */
+    placeId: "ChIJEzMakwWxtmgRyql-ew6fdeA",
+    /** Identifiant client de la même fiche, celui que la carte intégrée accepte. */
+    cid: "16174008521321261514",
   },
 } as const;
 
@@ -80,28 +65,43 @@ export function realValue(value: string | null | undefined): string | null {
   return isPlaceholder(value) ? null : (value ?? null);
 }
 
-/**
- * Le lien téléphonique, ou `null` si le numéro n'est pas renseigné.
- * Un `tel:` vers un numéro fictif est pire qu'un bouton absent.
- */
+/** Le lien téléphonique, ou `null` si le numéro n'est pas renseigné. */
 export function telHref(): string | null {
   const e164 = realValue(BUSINESS.phoneE164);
   return e164 ? `tel:${e164.replace(/\s/g, "")}` : null;
 }
 
 /**
+ * Lien « laisser un avis » : le formulaire d'avis Google, ouvert directement sur
+ * la fiche. `GOOGLE_REVIEW_URL` permet de le remplacer par le lien court fourni
+ * dans l'espace « Obtenir plus d'avis » de la fiche d'établissement.
+ */
+export function reviewUrl(): string {
+  return (
+    process.env.GOOGLE_REVIEW_URL?.trim() ||
+    `https://search.google.com/local/writereview?placeid=${BUSINESS.google.placeId}`
+  );
+}
+
+/**
+ * Carte intégrée, ouverte sur la fiche Google de l'entreprise par son identifiant —
+ * jamais par une recherche textuelle : « X DETAILING » près de Bordeaux renvoyait la
+ * fiche d'un concurrent. Sans clé d'API.
+ */
+export function mapEmbedUrl(): string {
+  return `https://www.google.com/maps/embed?pb=!1m3!3m2!1m1!4s${BUSINESS.google.cid}!3m1!1sfr!5m1!1sfr`;
+}
+
+/**
  * Adresse publique du site.
  *
- * Vercel expose le domaine de production ; en local on retombe sur le port de
- * développement. Les URL canoniques et le plan du site en dépendent — les laisser
- * relatives produirait des `canonical` vides.
+ * Le domaine de production sert de canonique partout où le site est construit —
+ * y compris sur les adresses de prévisualisation `.vercel.app`, qui ne doivent pas
+ * se déclarer canoniques d'elles-mêmes. En local, le port de développement.
  */
 export function siteUrl(): string {
   const configured = process.env.NEXT_PUBLIC_SITE_URL;
   if (configured) return configured.replace(/\/$/, "");
-
-  const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
-  if (vercel) return `https://${vercel}`;
-
+  if (process.env.NODE_ENV === "production") return BUSINESS.url;
   return "http://localhost:3000";
 }

@@ -1,8 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { prisma } from "@/server/db";
-import { notifyBusiness } from "@/server/notify-business";
+import { notifyBusiness } from "@/lib/web3forms";
 
 /**
  * Réception d'une candidature d'opérateur (§9).
@@ -74,47 +73,6 @@ export async function submitApplication(
 
   const data = parsed.data;
 
-  try {
-    await prisma.operatorApplication.create({
-      data: {
-        firstName: data.firstName,
-        lastName: data.lastName,
-        phone: data.phone,
-        email: data.email.toLowerCase(),
-        city: data.city,
-        status: data.status,
-        experience: data.experience,
-        hasFunding: data.hasFunding === "oui",
-        message: data.message || null,
-        consentAt: new Date(),
-      },
-    });
-
-    // La candidature remonte dans le back-office : un e-mail seul se perd dans une
-    // boîte, et une alerte seule suppose que quelqu'un ouvre le back-office (§9).
-    await prisma.alert.create({
-      data: {
-        type: "OPERATOR_APPLICATION",
-        severity: "INFO",
-        title: "Nouvelle candidature opérateur",
-        message: `${data.firstName} ${data.lastName} · ${data.city} · ${data.phone}`,
-      },
-    });
-  } catch {
-    return {
-      status: "error",
-      errors: {},
-      values,
-      message: "L'envoi n'a pas abouti. Réessayez dans un instant, ou appelez-nous.",
-    };
-  }
-
-  /*
-   * L'e-mail part après l'enregistrement, et son échec ne remonte pas au candidat :
-   * sa candidature est en base et visible dans le back-office. Lui afficher « l'envoi
-   * n'a pas abouti » le pousserait à recommencer et créerait un doublon, pour un
-   * incident qui ne le concerne pas.
-   */
   const notice = await notifyBusiness({
     subject: `Candidature opérateur — ${data.firstName} ${data.lastName} (${data.city})`,
     replyTo: data.email.toLowerCase(),
@@ -132,6 +90,12 @@ export async function submitApplication(
 
   if (!notice.sent) {
     console.warn(`[candidature] e-mail non transmis : ${notice.reason}`);
+    return {
+      status: "error",
+      errors: {},
+      values,
+      message: "L'envoi n'a pas abouti. Réessayez dans un instant, ou appelez-nous.",
+    };
   }
 
   return { status: "sent" };

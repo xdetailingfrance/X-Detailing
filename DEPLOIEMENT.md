@@ -1,22 +1,25 @@
-# Mettre la démonstration en ligne
+# Mettre le site en ligne
 
-Le projet Vercel est créé et lié : `prat-enzos-projects/xdetailing-demo`.
-Les variables d'environnement sont déjà posées, **sauf la base de données**.
+Le projet est hébergé sur Vercel. La base Postgres (Neon) ne garde qu'une chose :
+les créneaux réservés, pour qu'un créneau pris ne soit plus proposé à personne.
 
-## 1. Créer la base Postgres
+## 0. La base de données
 
-Une seule commande, à lancer depuis ce dossier, dans votre terminal — elle est
-interactive et vous demandera de confirmer :
+`DATABASE_URL` doit être posée sur Vercel (c'est déjà le cas si l'intégration Neon
+est restée en place ; sinon `vercel env add DATABASE_URL production` avec la chaîne
+de connexion « pooled » de Neon). La table `reservation` se crée toute seule au
+premier appel : rien à migrer.
+
+## 1. La clé Web3Forms
+
+Créer une clé sur [web3forms.com](https://web3forms.com) avec l'adresse e-mail qui
+doit recevoir les demandes, puis la poser sur Vercel :
 
 ```bash
-vercel integration add neon
+vercel env add WEB3FORMS_ACCESS_KEY production
 ```
 
-Choisissez le plan gratuit et le projet `xdetailing-demo`. Neon crée la base et
-renseigne `DATABASE_URL` tout seul.
-
-*Autre voie possible :* créer un compte sur neon.tech ou supabase.com, copier la
-chaîne de connexion, puis `vercel env add DATABASE_URL production`.
+Sans elle, le formulaire répond « L'envoi n'a pas abouti » en production.
 
 ## 2. Déployer
 
@@ -24,51 +27,35 @@ chaîne de connexion, puis `vercel env add DATABASE_URL production`.
 vercel deploy --prod
 ```
 
-Le build applique les migrations avant de compiler (`vercel-build` dans
-`package.json`) : la base est prête à la fin du déploiement.
+## 3. Vérifier
 
-## 3. Générer le jeu de démonstration
-
-Ouvrir `https://<le-domaine>/demo`. La base est vide au premier passage : la page
-propose **Générer le jeu de démonstration**. Quelques secondes, puis les quatre
-points de vue s'ouvrent sans mot de passe.
-
-C'est ce lien `/demo` qui se partage.
-
----
-
-## Ce qui change entre le local et l'hébergement
-
-| | En local | En ligne |
-|---|---|---|
-| Photos | dossier `.data/` | table `StoredFile` — un hébergeur serverless n'a pas de disque durable |
-| Flux temps réel | ouverts 30 min | refermés à 50 s, le navigateur se reconnecte seul |
-| Tâches récurrentes | `npm run check` à la main | Vercel Cron, une fois par jour à 6 h |
+- Dérouler le formulaire jusqu'à la réservation : l'e-mail doit arriver, et le
+  créneau choisi doit apparaître « déjà pris » en rechargeant la page.
+- `https://xdetailing.fr/sitemap.xml` et `/robots.txt` répondent.
+- Le lien « Laisser un avis » ouvre bien le formulaire d'avis de la fiche Google.
 
 ## Les variables
 
-| Variable | Rôle | Posée ? |
+| Variable | Rôle | Obligatoire |
 |---|---|---|
-| `DATABASE_URL` | Postgres | **à faire — étape 1** |
-| `AUTH_SECRET` | signature des sessions | oui |
-| `CRON_SECRET` | ferme `/api/cron` | oui |
-| `DEMO_MODE=1` | ouvre `/demo` | oui |
-| `STORAGE_PROVIDER=database` | photos en base | oui |
-| `ANTHROPIC_API_KEY` | analyse des photos à la réservation (§13) | non — facultatif |
-| `STRIPE_SECRET_KEY` | paiement réel | non — facultatif |
+| `DATABASE_URL` | Postgres : les créneaux réservés | **oui** |
+| `WEB3FORMS_ACCESS_KEY` | relais formulaire → boîte e-mail | **oui** |
+| `GESTION_MOT_DE_PASSE` | mot de passe de la page `/gestion` | **oui** |
+| `NEXT_PUBLIC_SITE_URL` | adresse canonique (par défaut `https://xdetailing.fr`) | non |
+| `GOOGLE_REVIEW_URL` | lien court « laisser un avis » de la fiche Google | non |
 
-Sans les deux dernières, tout fonctionne : l'analyse photo ne propose simplement
-aucune option, et le paiement est simulé. C'est le bon réglage pour une
-démonstration.
+Les anciennes variables (`AUTH_SECRET`, `CRON_SECRET`, `DEMO_MODE`,
+`STORAGE_PROVIDER`…) ne servent plus et peuvent être retirées du projet Vercel.
 
-## Le jour où ce n'est plus une démonstration
+## Libérer un créneau
 
-Trois gestes, dans cet ordre :
+Un client annule par téléphone ? Le créneau reste bloqué tant que sa réservation
+existe. La page `https://xdetailing.fr/gestion` liste les réservations à venir et
+libère un créneau en deux clics. Elle s'ouvre avec le mot de passe posé dans
+`GESTION_MOT_DE_PASSE` :
 
-1. **Retirer `DEMO_MODE`.** `/demo` disparaît, avec les sessions sans mot de passe
-   et le bouton qui efface la base.
-2. **Changer les mots de passe.** Tous les comptes du jeu de données partagent
-   `xdetailing`.
-3. **Passer les photos sur S3 ou R2.** La table `StoredFile` convient à une
-   démonstration et à quelques opérateurs ; au-delà, elle fait grossir les
-   sauvegardes pour rien. L'interface `StorageProvider` est prévue pour.
+```bash
+vercel env add GESTION_MOT_DE_PASSE production
+```
+
+La page n'est reliée nulle part sur le site et se déclare hors index.
