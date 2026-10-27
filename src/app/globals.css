@@ -1,240 +1,106 @@
 @import "tailwindcss";
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   X DETAILING — une page, une charte.
-   Fond blanc, texte presque noir, violet de signature échantillonné sur le logo.
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-@theme {
-  --color-xd-bg: #ffffff;
-  --color-xd-bg-2: #f6f6f9;
-  --color-xd-bg-3: #ebebf1;
-
-  /* Jamais de #000 pur : un noir absolu sur blanc pur vibre à la lecture. */
-  --color-xd-text: #0c0c11;
-  --color-xd-text-2: #44444f;
-  --color-xd-text-3: #6b6b78;
-  --color-xd-text-4: #9a9aa7;
-
-  /* `violet` porte les aplats (du blanc dessus : 5,35:1) ; `violet-deep` porte le
-     texte violet sur blanc et le survol (7,3:1). */
-  --color-xd-violet: #7b3cff;
-  --color-xd-violet-deep: #6425e0;
-  --color-xd-violet-pale: #f1ebff;
-
-  --color-xd-ok: #0f8a5f;
-  --color-xd-ok-pale: #e6f6ef;
-  --color-xd-danger: #c2353a;
-  --color-xd-danger-pale: #fdeced;
-
-  /* SF Pro Display : Apple ne la licencie pas pour le web, elle ne peut pas être
-     servie depuis le site. Elle est appelée par son nom puis par la pile système —
-     tout Mac, iPhone et iPad l'affiche nativement. Inter, dessinée sur les mêmes
-     proportions, prend le relais ailleurs. */
-  --font-sans: "SF Pro Display", "SF Pro Text", -apple-system, BlinkMacSystemFont,
-    var(--font-inter), "Segoe UI", Roboto, sans-serif;
-
-  --radius-xd-sm: 12px;
-  --radius-xd-md: 16px;
-  --radius-xd-lg: 22px;
-  --radius-xd-xl: 28px;
-
-  --text-body: 1rem;
-  --text-body--line-height: 1.55;
-}
-
 :root {
-  --xd-hairline: rgb(12 12 17 / 0.08);
-  --xd-hairline-strong: rgb(12 12 17 / 0.14);
-  --xd-lift: 0 1px 2px rgb(12 12 17 / 0.04), 0 18px 44px -26px rgb(12 12 17 / 0.28);
-  --xd-spring: cubic-bezier(0.22, 1, 0.36, 1);
+  --background: #0a0a0f;
+  --foreground: #f2f2f5;
+  --surface: #14141c;
+  --surface-2: #1c1c28;
+  --border: #2a2a38;
+  --accent: #9b5cf6;
+  --accent-2: #6d28d9;
+  --accent-clair: #c4a5ff;
+  --muted: #8b8b9a;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
 }
 
-html {
-  scroll-behavior: smooth;
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
 }
 
 body {
-  background: var(--color-xd-bg);
-  color: var(--color-xd-text);
-  font-family: var(--font-sans);
-  font-size: 1rem;
-  line-height: 1.55;
-  letter-spacing: -0.008em;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-  color-scheme: light;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
-/* Focus visible et sobre. Les champs portent déjà leur propre marque de focus. */
-:where(a, button, summary, [tabindex]):focus-visible {
-  outline: 2px solid var(--color-xd-violet-deep);
-  outline-offset: 2px;
-  border-radius: 8px;
-}
-:where(input, select, textarea):focus-visible {
-  outline: none;
+a {
+  color: inherit;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   COMPOSANTS
-   Dans la couche `components` : les utilitaires Tailwind posés sur un élément
-   (`flex`, `hidden`, `p-5`…) gardent le dernier mot sur ces règles.
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-@layer components {
-  /* Les chiffres alignés en colonne : indispensable dès qu'il y a des euros. */
-  .tabular {
-    font-variant-numeric: tabular-nums;
+/* Tiroir de navigation sur téléphone (src/app/back-office/NavBackOffice.tsx) */
+@keyframes menu-tiroir {
+  from {
+    transform: translateX(-100%);
   }
-
-  /* Libellé de section : petite capitale espacée, jamais du texte courant. */
-  .eyebrow {
-    font-size: 0.6875rem;
-    line-height: 1.4;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    font-weight: 600;
-  }
-
-  /* Séparations ton sur ton, pas des bordures. */
-  .hairline {
-    box-shadow: inset 0 0 0 1px var(--xd-hairline);
-  }
-  .hairline-t {
-    box-shadow: inset 0 1px 0 0 var(--xd-hairline);
-  }
-  .hairline-b {
-    box-shadow: inset 0 -1px 0 0 var(--xd-hairline);
-  }
-
-  /* Surface porteuse : blanc, filet, ombre diffuse — jamais portée. */
-  .card {
-    background: #ffffff;
-    box-shadow: inset 0 0 0 1px var(--xd-hairline), var(--xd-lift);
-  }
-
-  /* ── Champs ────────────────────────────────────────────────────────────────
-     Des surfaces, pas des rectangles bordés. Le focus est un liseré violet dans
-     l'épaisseur de la surface et un halo court, jamais un anneau posé autour. */
-  .field {
-    display: block;
-    width: 100%;
-    background: rgb(12 12 17 / 0.03);
-    border: 0;
-    border-radius: var(--radius-xd-sm);
-    padding: 0.8rem 1rem;
-    font: inherit;
-    font-size: 1rem;
-    line-height: 1.4;
-    color: var(--color-xd-text);
-    box-shadow: inset 0 0 0 1px var(--xd-hairline);
-    outline: none;
-    transition: box-shadow 180ms, background-color 180ms;
-  }
-  .field::placeholder {
-    color: var(--color-xd-text-4);
-  }
-  .field:focus {
-    background: rgb(12 12 17 / 0.045);
-    box-shadow:
-      inset 0 0 0 1px rgb(123 60 255 / 0.5),
-      0 0 0 4px rgb(123 60 255 / 0.14);
-  }
-  .field[aria-invalid="true"] {
-    box-shadow: inset 0 0 0 1px rgb(194 53 58 / 0.6);
-  }
-  .field:disabled {
-    opacity: 0.6;
-  }
-
-  /* ── Boutons ────────────────────────────────────────────────────────────── */
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    border-radius: 999px;
-    padding: 0.9rem 1.6rem;
-    font-size: 1rem;
-    font-weight: 600;
-    line-height: 1.2;
-    white-space: nowrap;
-    transition:
-      background-color 180ms,
-      color 180ms,
-      box-shadow 180ms,
-      transform 180ms var(--xd-spring);
-  }
-  .btn:active {
-    transform: scale(0.975);
-  }
-  .btn:disabled {
-    opacity: 0.55;
-    pointer-events: none;
-  }
-  .btn-primary {
-    background: var(--color-xd-violet);
-    color: #ffffff;
-    box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.22);
-  }
-  .btn-primary:hover {
-    background: var(--color-xd-violet-deep);
-  }
-  .btn-secondary {
-    background: rgb(12 12 17 / 0.045);
-    color: var(--color-xd-text);
-    box-shadow: inset 0 0 0 1px var(--xd-hairline);
-  }
-  .btn-secondary:hover {
-    background: rgb(12 12 17 / 0.07);
-  }
-  .btn-sm {
-    padding: 0.55rem 1rem;
-    font-size: 0.875rem;
-  }
-
-  /* ── Option sélectionnable — formule, véhicule, lieu, case à cocher ──────────
-     La sélection ne se contente pas d'une bordure violette : la surface change
-     de matière et gagne une lumière rasante. */
-  .choice {
-    display: block;
-    width: 100%;
-    text-align: left;
-    border-radius: var(--radius-xd-md);
-    background: rgb(12 12 17 / 0.03);
-    box-shadow: inset 0 0 0 1px var(--xd-hairline);
-    transition:
-      background-color 180ms,
-      box-shadow 180ms,
-      transform 180ms var(--xd-spring);
-  }
-  .choice:hover {
-    background: rgb(12 12 17 / 0.045);
-  }
-  .choice:active {
-    transform: scale(0.985);
-  }
-  .choice[aria-pressed="true"],
-  .choice:has(input:checked) {
-    background:
-      linear-gradient(160deg, rgb(123 60 255 / 0.1), rgb(123 60 255 / 0.03)),
-      #ffffff;
-    box-shadow:
-      inset 0 0 0 1.5px rgb(123 60 255 / 0.55),
-      0 10px 28px -18px rgb(123 60 255 / 0.45);
-  }
-
-  /* Apparition d'une étape. L'état de repos est visible. */
-  .rise {
-    animation: xd-rise 260ms var(--xd-spring) both;
+  to {
+    transform: none;
   }
 }
 
-@keyframes xd-rise {
+.menu-tiroir {
+  animation: menu-tiroir 0.2s ease-out both;
+}
+
+/* Lola — écran d'accueil (src/components/lola/) */
+@keyframes lola-respiration {
+  50% {
+    transform: scale(1.06);
+    box-shadow: 0 0 40px -2px var(--accent);
+  }
+}
+
+.lola-raccourci {
+  animation: lola-respiration 3.2s ease-in-out infinite;
+}
+
+.lola-ciel {
+  background:
+    radial-gradient(1px 1px at 12% 18%, rgba(255, 255, 255, 0.7), transparent 60%),
+    radial-gradient(1px 1px at 78% 12%, rgba(255, 255, 255, 0.5), transparent 60%),
+    radial-gradient(1.5px 1.5px at 32% 82%, rgba(255, 255, 255, 0.45), transparent 60%),
+    radial-gradient(1px 1px at 88% 68%, rgba(255, 255, 255, 0.6), transparent 60%),
+    radial-gradient(1px 1px at 55% 40%, rgba(255, 255, 255, 0.35), transparent 60%),
+    radial-gradient(1px 1px at 6% 62%, rgba(255, 255, 255, 0.5), transparent 60%),
+    radial-gradient(ellipse at 20% 30%, rgba(109, 40, 217, 0.28), transparent 60%),
+    radial-gradient(ellipse at 90% 90%, rgba(155, 92, 246, 0.14), transparent 55%),
+    var(--surface);
+}
+
+@keyframes lola-apparition {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(28px) scale(0.9);
+    filter: blur(10px);
+  }
+  60% {
+    opacity: 1;
+    filter: blur(0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+@keyframes lola-reflet {
+  from {
+    transform: translateX(-120%) skewX(-20deg);
+  }
+  to {
+    transform: translateX(220%) skewX(-20deg);
+  }
+}
+
+@keyframes lola-sous-titre {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -242,14 +108,82 @@ body {
   }
 }
 
-/* Tout le mouvement se coupe ici. Pas « se ralentit » : se coupe. */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+.lola-carte {
+  animation: lola-apparition 0.7s cubic-bezier(0.2, 0.9, 0.25, 1.15) both;
+}
+
+.lola-reflet {
+  background: linear-gradient(90deg, transparent, rgba(216, 180, 254, 0.25), transparent);
+  width: 45%;
+  animation: lola-reflet 1.1s ease-out 0.25s both;
+}
+
+@keyframes lola-bulle {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.85);
+    transform-origin: bottom left;
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
+
+.lola-bulle {
+  animation: lola-bulle 0.5s cubic-bezier(0.2, 0.9, 0.25, 1.3) 0.35s both;
+}
+
+.lola-sous-titre {
+  animation: lola-sous-titre 0.4s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-tiroir,
+  .lola-raccourci,
+  .lola-carte,
+  .lola-bulle,
+  .lola-reflet,
+  .lola-sous-titre {
+    animation: none;
+  }
+}
+
+/* Back-office : panneaux et cartes statistiques (noir, anthracite, violet) */
+.bo-panneau,
+.bo-stat {
+  border: 1px solid var(--border);
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(155, 92, 246, 0.07), transparent 55%),
+    linear-gradient(180deg, #17171f, #121218);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 18px 40px -28px rgba(0, 0, 0, 0.9);
+}
+.bo-stat {
+  animation: bo-apparition 0.4s ease-out both;
+}
+@keyframes bo-apparition {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bo-stat {
+    animation: none;
+  }
+}
+
+.bo-champ {
+  min-height: 2.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: #0f0f15;
+  padding: 0.35rem 0.6rem;
+  color: var(--foreground);
+  color-scheme: dark;
+}
+.bo-champ:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+

@@ -1,0 +1,413 @@
+// Base de données X Detailing (PostgreSQL) — source de vérité unique de
+// l'application (clients, réservations, devis, paiements, SMS, journal
+// d'audit). Les montants sont en euros TTC, Decimal(10, 2).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum CategorieVehicule {
+  CITADINE
+    BERLINE
+    SUV
+    MONOSPACE
+    UTILITAIRE
+}
+
+enum StatutOperateur {
+  ACTIF
+  SUSPENDU
+}
+
+// Workflow verrouillé opérateur : EN_ROUTE → CONTROLE (signature de début)
+// → PHOTOS_AVANT → LAVAGE → PHOTOS_APRES (+ signature de fin) → PAIEMENT →
+// TERMINE. ARRIVE et EN_COURS restent pour compatibilité.
+enum StatutRendezVous {
+  EN_ATTENTE
+  CONFIRME
+  EN_ROUTE
+  ARRIVE
+  CONTROLE
+  PHOTOS_AVANT
+  LAVAGE
+  PHOTOS_APRES
+  PAIEMENT
+  EN_COURS
+  TERMINE
+  ANNULE
+}
+
+enum SourceRendezVous {
+  SITE_CLIENT
+  TELEPHONE
+  LEAD_META
+  LAVER_MAINTENANT
+  DEVIS
+}
+
+// OWNER = directeur. Les rôles RESPONSABLE et COMPTABLE ont des périmètres
+// limités (voir src/lib/permissions.ts).
+enum RoleUtilisateur {
+  OWNER
+  RESPONSABLE
+  COMMERCIAL
+  OPERATEUR
+  COMPTABLE
+}
+
+enum ModePaiement {
+  CARTE
+  ESPECES
+}
+
+enum StatutAcompte {
+  EN_ATTENTE_PAIEMENT
+  PAYE
+}
+
+enum StatutDevis {
+  BROUILLON
+  ENVOYE
+  CONSULTE
+  ACCEPTE
+  ACOMPTE_PAYE
+  RDV_CREE
+  REFUSE
+}
+
+enum TypeClientDevis {
+  PARTICULIER
+  PRO
+}
+
+enum MotifSms {
+  CONFIRMATION_RDV
+  AFFECTATION_OPERATEUR
+  MODIFICATION_RDV
+  ANNULATION_RDV
+  RAPPEL_VEILLE
+  MANUEL
+}
+
+enum StatutSms {
+  ENVOYE
+  SIMULE
+  ECHEC
+}
+
+model Utilisateur {
+  id           String          @id @default(cuid())
+  email        String          @unique
+  passwordHash String
+  role         RoleUtilisateur
+  actif        Boolean         @default(true)
+  // Fiche opérateur liée (obligatoire pour OPERATEUR, possible pour le
+  // directeur qui opère aussi sur le terrain).
+  operateurId String?          @unique
+  operateur    Operateur?      @relation(fields: [operateurId], references: [id])
+  createdAt    DateTime        @default(now())
+  devis        Devis[]
+}
+
+model Secteur {
+  id         String       @id @default(cuid())
+  nom        String
+  ville      String?
+  createdAt DateTime      @default(now())
+  operateurs Operateur[]
+  rendezVous RendezVous[]
+}
+
+model Client {
+  id         String       @id @default(cuid())
+  prenom     String
+  nom        String
+  telephone String
+  email      String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  adresses   Adresse[]
+  vehicules Vehicule[]
+  rendezVous RendezVous[]
+
+    @@index([telephone])
+}
+
+model Adresse {
+  id         String       @id @default(cuid())
+  clientId   String
+  client     Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  libelle    String?
+  adresse    String
+  ville      String
+  codePostal String?
+  latitude   Float?
+  longitude Float?
+  createdAt DateTime      @default(now())
+  rendezVous RendezVous[]
+
+    @@index([clientId])
+}
+
+model Vehicule {
+  id              String            @id @default(cuid())
+  clientId        String
+  client          Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  categorie       CategorieVehicule
+  marque          String?
+  modele          String?
+  immatriculation String?
+  createdAt       DateTime          @default(now())
+  rendezVous      RendezVous[]
+
+    @@index([clientId])
+}
+
+model Operateur {
+  id                       String            @id @default(cuid())
+  prenom                   String
+    nom                   String
+    telephone             String
+    email                 String?
+    statut                StatutOperateur       @default(ACTIF)
+    secteurId             String?
+    secteur               Secteur?              @relation(fields: [secteurId], references: [id])
+    adresseDomicile       String?
+    latitudeDomicile      Float?
+    longitudeDomicile     Float?
+    // Horaires de travail (HH:mm, heure de Paris).
+    heureDebut            String                @default("08:30")
+    heureFin              String                @default("17:30")
+    kangooImmatriculation String?
+    createdAt             DateTime              @default(now())
+    updatedAt             DateTime              @updatedAt
+    rendezVous            RendezVous[]
+    candidatures          AffectationCandidat[]
+    utilisateur           Utilisateur?
+
+    @@index([secteurId])
+}
+
+// Prestation (« Lavage intérieur », « Lavage intérieur + extérieur »...).
+// Le prix dépend de la catégorie du véhicule : voir PackTarif.
+model Pack {
+  id              String       @id @default(cuid())
+  nom             String
+  description     String?
+  dureeMinMinutes Int
+  dureeMaxMinutes Int
+  actif           Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  tarifs          PackTarif[]
+  rendezVous      RendezVous[]
+  devis           Devis[]
+}
+
+// Grille de prix : un prix par prestation et par catégorie de véhicule.
+// Pas de ligne = catégorie non proposée pour cette prestation.
+model PackTarif {
+  id        String            @id @default(cuid())
+  packId    String
+  pack      Pack              @relation(fields: [packId], references: [id], onDelete: Cascade)
+  categorie CategorieVehicule
+  prix      Decimal           @db.Decimal(10, 2)
+  updatedAt DateTime          @updatedAt
+
+    @@unique([packId, categorie])
+}
+
+model Option {
+  id          String             @id @default(cuid())
+  nom         String
+  prix        Decimal            @db.Decimal(10, 2)
+  actif       Boolean            @default(true)
+  // Rubrique affichée à la réservation (ex. « État du véhicule »).
+  groupe      String?
+  // Option facturée à l'unité (ex. « siège ») : prix × quantité.
+  unite       String?
+  quantiteMax Int?
+  // Ordre d'affichage dans la rubrique.
+  ordre       Int                @default(0)
+  createdAt   DateTime           @default(now())
+  rendezVous RendezVousOption[]
+}
+
+model RendezVous {
+  id                       String                @id @default(cuid())
+  clientId                 String
+  client                   Client                @relation(fields: [clientId], references: [id])
+  vehiculeId               String
+  vehicule                 Vehicule              @relation(fields: [vehiculeId], references: [id])
+  adresseId                String
+  adresse                  Adresse               @relation(fields: [adresseId], references: [id])
+  packId                   String
+  pack                     Pack                  @relation(fields: [packId], references: [id])
+  // Catégorie et prix figés au moment de la réservation.
+  categorieVehicule        CategorieVehicule
+  secteurId                String?
+    secteur                  Secteur?              @relation(fields: [secteurId], references: [id])
+    operateurId              String?
+    operateur                Operateur?            @relation(fields: [operateurId], references: [id])
+    dateHeure                DateTime
+    dureeMinutes             Int
+    prixTotal                Decimal               @db.Decimal(10, 2)
+    acompte                  Decimal               @db.Decimal(10, 2)
+    statut                   StatutRendezVous      @default(EN_ATTENTE)
+    source                   SourceRendezVous      @default(TELEPHONE)
+    notes                    String?
+    createdAt                DateTime              @default(now())
+    updatedAt                DateTime              @updatedAt
+    // Verrou optimiste : chaque enregistrement incrémente la version.
+    version                  Int                   @default(0)
+
+    // Workflow opérateur.
+    suiviToken               String                @unique
+    routeDemarreeAt          DateTime?
+    signatureControleDataUrl String?
+    signatureControleAt      DateTime?
+    photosAvant              Json
+    lavageDemarreAt          DateTime?
+    photosApres              Json
+    signatureFinDataUrl      String?
+    signatureFinAt           DateTime?
+    modePaiement             ModePaiement?
+    lienPaiementEnvoyeAt     DateTime?
+    paiementConfirmeAt       DateTime?
+    numeroFacture            String?               @unique
+    // Journal des événements du RDV : [{ horodatage, libelle }].
+    historique               Json
+    noteClient               Int?
+    noteClientAt             DateTime?
+
+    // Acompte payé en ligne (Stripe) : « PAYE » seulement après validation
+    // réelle par Stripe.
+    acompteStatut            StatutAcompte?
+    stripeSessionId          String?               @unique
+
+    candidatures              AffectationCandidat[]
+    options                   RendezVousOption[]
+    sms                       Sms[]
+    devis                     Devis[]
+
+    @@index([operateurId])
+    @@index([dateHeure])
+    @@index([statut])
+}
+
+// Options retenues sur un RDV, prix unitaire figé au moment de l'ajout.
+model RendezVousOption {
+  id           String     @id @default(cuid())
+  rendezVousId String
+  rendezVous   RendezVous @relation(fields: [rendezVousId], references: [id], onDelete: Cascade)
+  optionId     String
+  option       Option     @relation(fields: [optionId], references: [id])
+  prixUnitaire Decimal    @db.Decimal(10, 2)
+  quantite     Int        @default(1)
+
+    @@unique([rendezVousId, optionId])
+}
+
+model AffectationCandidat {
+  id           String     @id @default(cuid())
+  rendezVousId String
+  rendezVous   RendezVous @relation(fields: [rendezVousId], references: [id], onDelete: Cascade)
+  operateurId String
+  operateur    Operateur @relation(fields: [operateurId], references: [id])
+  score        Float
+  distanceKm   Float
+  etaMinutes   Int
+  rang         Int
+  retenu       Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+
+    @@index([rendezVousId])
+}
+
+// Devis : le prospect n'est pas encore une fiche client ; la fiche est
+// créée à la conversion en RDV.
+model Devis {
+  id                   String            @id @default(cuid())
+  // Consultation publique /devis/[token], jamais l'id interne.
+  token                String            @unique
+  typeClient           TypeClientDevis
+  nomClient            String
+  telephoneClient      String
+  emailClient          String?
+  raisonSociale        String?
+  adresse              String
+  ville                String
+  vehiculeDescription String
+  categorieVehicule    CategorieVehicule
+  packId               String
+  pack                 Pack              @relation(fields: [packId], references: [id])
+  optionIds            String[]
+  prixTotal            Decimal           @db.Decimal(10, 2)
+  acompte              Decimal           @db.Decimal(10, 2)
+  statut               StatutDevis       @default(BROUILLON)
+  creeParUtilisateurId String
+  creePar              Utilisateur       @relation(fields: [creeParUtilisateurId], references: [id])
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  envoyeAt             DateTime?
+  consulteAt           DateTime?
+  accepteAt            DateTime?
+  acomptePayeAt        DateTime?
+  rendezVousId         String?
+  rendezVous           RendezVous?       @relation(fields: [rendezVousId], references: [id])
+  historique           Json
+
+    @@index([statut])
+}
+
+// Dépenses globales et budget publicitaire saisis par mois ("YYYY-MM").
+model DepensesMensuelles {
+  id        String   @id @default(cuid())
+  mois      String   @unique
+  depenses Decimal @db.Decimal(10, 2) @default(0)
+  publicite Decimal @db.Decimal(10, 2) @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+// Journal des SMS : envoyés via Twilio quand il est configuré, sinon
+// simulés — consignés dans les deux cas.
+model Sms {
+  id           String      @id @default(cuid())
+  destinataire String
+  telephone    String
+  message      String
+  motif        MotifSms
+  statut       StatutSms
+  erreur       String?
+  rendezVousId String?
+  rendezVous   RendezVous? @relation(fields: [rendezVousId], references: [id], onDelete: SetNull)
+  // E-mail de l'utilisateur, ou "automatique".
+  envoyePar    String
+  createdAt    DateTime    @default(now())
+
+    @@index([createdAt])
+}
+
+// Piste d'audit des actions sensibles (paiements, affectations,
+// annulations, connexions, modifications de tarifs...). Jamais modifiée
+// ni supprimée par l'application.
+model JournalAudit {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  // Auteur : id et e-mail de l'utilisateur, ou "systeme" / "stripe" /
+  // "client" pour les actions automatiques ou publiques.
+  acteurId      String?
+  acteur        String
+  action        String
+  entite        String
+  entiteId      String?
+  details       Json?
+
+    @@index([entite, entiteId])
+    @@index([createdAt])
+}
+

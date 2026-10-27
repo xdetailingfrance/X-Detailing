@@ -1,73 +1,133 @@
-import Image from "next/image";
-import { BUSINESS, realValue, telHref } from "@/lib/business";
-import { JsonLd, localBusinessSchema } from "@/lib/schema";
-import { Hero } from "@/components/hero";
-import { Devis } from "@/components/devis";
-import { Carte } from "@/components/carte";
-import { Footer } from "@/components/footer";
+import Link from "next/link";
+import type { Metadata } from "next";
+import IntroLogo from "@/components/accueil/IntroLogo";
+import { CLE_INTRO } from "@/components/accueil/intro";
+import LogoMarque from "@/components/accueil/LogoMarque";
+import ExperiencePrestations from "@/components/accueil/ExperiencePrestations";
+import Utilitaire from "@/components/accueil/voiture/Utilitaire";
+import { optionsPubliques, prestationsPubliques } from "@/lib/prestationsPubliques";
+import { paiementEnLigneActif } from "@/lib/paiement";
+import "@/components/accueil/accueil.css";
+import "@/components/accueil/voiture/voiture.css";
+import "@/components/accueil/parcours.css";
 
-/**
- * Le site tient sur cette page.
- *
- * Dans l'ordre : la promesse, le formulaire de réservation, les deux formules avec
- * leur contenu et les options, la carte, les informations. Pas de menu : il n'y a
- * nulle part ailleurs où aller.
- *
- * La page est générée au déploiement et servie telle quelle ; seuls les créneaux
- * libres sont lus en base, au moment où le visiteur les choisit. Les réservations
- * partent par e-mail.
- */
-
-export const metadata = {
-  alternates: { canonical: "/" },
+export const metadata: Metadata = {
+  title: "X Detailing — Le detailing automobile, directement chez vous",
+  description:
+    "Nettoyage intérieur et extérieur de votre véhicule à domicile ou au bureau, à Lyon et Villeurbanne. Opérateurs équipés, réservation simple.",
 };
 
-export default function HomePage() {
-  const phone = realValue(BUSINESS.phone);
-  const tel = telHref();
+// Prix des packs modifiables dans le back-office : page régénérée
+// régulièrement plutôt qu'à chaque visite (chargement léger).
+export const revalidate = 300;
 
-  return (
-    <>
-      <JsonLd data={[localBusinessSchema()]} />
+// Avant le premier rendu : l'ouverture ne se joue qu'une fois par session
+// et jamais si l'appareil demande moins d'animations.
+const SCRIPT_INTRO = `(function(){try{if(sessionStorage.getItem(${JSON.stringify(
+  CLE_INTRO
+)}))return;if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;document.documentElement.dataset.intro="en-cours";}catch(e){}})();`;
 
-      <header className="hairline-b sticky top-0 z-40 bg-white/85 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-5">
-          <a
-            href="#"
-            aria-label={`${BUSINESS.name} — haut de page`}
-            className="flex items-center gap-2.5"
-          >
-            <Image
-              src="/marque/x-mark.png"
-              alt=""
-              width={512}
-              height={364}
-              priority
-              className="h-6 w-auto"
-            />
-            <span className="eyebrow text-xd-text-2">Detailing</span>
+const TITRE = "Le detailing automobile, directement chez vous";
+
+const ETAPES = [
+  { titre: "Vous réservez", texte: "Choisissez votre formule, la date et l'adresse : domicile, bureau ou parking." },
+  { titre: "Nous venons à vous", texte: "Un opérateur X Detailing arrive avec son Kangoo équipé : eau, produits,aspirateurs." },
+  { titre: "Votre véhicule brille", texte: "Contrôle avant/après en photos, signature, paiement sur place ou parlien." },
+];
+
+export default async function Accueil() {
+  const [prestations, options] = await Promise.all([prestationsPubliques(), optionsPubliques()]);
+
+   return (
+     <div className="site-clair flex min-h-screen flex-col overflow-x-clip">
+       <script dangerouslySetInnerHTML={{ __html: SCRIPT_INTRO }} />
+       <IntroLogo />
+
+            <header className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-4 py-3 sm:px-8 sm:py-5">
+        <Link href="/" aria-label="X Detailing — accueil">
+          {/* Sur fond blanc : DETAILING en noir (variante claire du logo). */}
+          <LogoMarque id="logo-entete" variante="claire" className="h-16 w-16 sm:h-20 sm:w-20" />
+        </Link>
+        <nav className="flex items-center gap-4 text-xs font-medium uppercase tracking-[0.18em] text-[var(--chrome)]/80 sm:gap-8">
+          <a href="#prestations" className="hidden hover:text-[var(--encre)] sm:inline">
+            Prestations
           </a>
-
-          <div className="flex items-center gap-2">
-            {tel && phone && (
-              <a href={tel} className="btn btn-secondary btn-sm tabular hidden sm:inline-flex">
-                {phone}
-              </a>
-            )}
-            <a href="#reserver" className="btn btn-primary btn-sm">
-              Réserver
-            </a>
-          </div>
-        </div>
+          <a href="#fonctionnement" className="hidden hover:text-[var(--encre)] sm:inline">
+            Comment ça marche
+          </a>
+          <Link href="/back-office" className="hover:text-[var(--encre)]">
+            Espace équipe
+          </Link>
+        </nav>
       </header>
 
       <main>
-        <Hero />
-        <Devis />
-        <Carte />
+        {/* Après l'ouverture du logo, les prestations apparaissent directement. */}
+        <section id="prestations" className="relative flex min-h-[100svh] flex-col justify-center px-4 pb-16 pt-28 sm:px-8 sm:pt-32">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-[60%] bg-[radial-gradient(ellipse_70%_60%_at_50%_0%,rgba(155,92,246,0.12),transparent_70%)]" />
+          <div className="relative mx-auto w-full max-w-6xl">
+            <p
+              className="entree text-[11px] font-semibold uppercase tracking-[0.4em] text-[var(--violet-vif)]"
+              style={{ ["--delai" as string]: "0ms" }}
+            >
+              Lyon · Villeurbanne · à domicile
+            </p>
+            {/* Animation d'accueil : le titre monte mot par mot, l'utilitaire
+                traverse la page et sa traînée devient le trait sous le titre. */}
+            <h1 className="motion-titre mt-3 text-[1.9rem] font-semibold uppercase leading-[1.1] tracking-[0.06em] sm:text-5xl">
+              {TITRE.split(" ").map((mot, i) => (
+                <span key={i} className="mot">
+                  <span className="texte-chrome" style={{ ["--i" as string]: i }}>
+                    {mot}
+                  </span>
+                </span>
+              ))}
+            </h1>
+            <div className="motion-route" aria-hidden="true">
+              <span className="motion-trainee" />
+              <div className="motion-van">
+                <Utilitaire className="roule" />
+              </div>
+            </div>
+            <p className="motion-sous-titre mt-4 max-w-xl text-sm text-[var(--chrome)]/65 sm:text-base">
+              Choisissez votre prestation : nous venons laver votre véhicule à domicile ou au bureau.
+            </p>
+            <div className="mt-8 sm:mt-10">
+              <ExperiencePrestations prestations={prestations} options={options} paiementEnLigne={paiementEnLigneActif()} />
+            </div>
+          </div>
+        </section>
+
+        <section id="fonctionnement" className="scroll-mt-6 border-t border-[var(--encre)]/5 bg-white px-5 py-20sm:px-8">
+          <div className="mx-auto max-w-5xl">
+            <h2 className="texte-chrome text-2xl font-semibold uppercase tracking-[0.12em] sm:text-3xl">Comment ça marche</h2>
+            <ol className="mt-10 grid gap-8 sm:grid-cols-3">
+              {ETAPES.map((e, i) => (
+                <li key={e.titre} className="flex flex-col gap-2">
+                  <span className="text-3xl font-semibold text-[var(--violet-vif)]">{String(i + 1).padStart(2,"0")}</span>
+                  <h3 className="text-lg font-semibold text-[var(--encre)]">{e.titre}</h3>
+                  <p className="text-sm leading-relaxed text-[var(--chrome)]/70">{e.texte}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
       </main>
 
-      <Footer />
-    </>
-  );
+            <footer className="border-t border-[var(--encre)]/5 bg-white px-5 py-8 text-xs text-[var(--chrome)]/50 sm:px-8">
+          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4">
+            <span>© X Detailing</span>
+            <span className="flex gap-6">
+              <Link href="/back-office" className="hover:text-[var(--encre)]">
+                Espace équipe
+              </Link>
+              <Link href="/demo" className="hover:text-[var(--encre)]">
+                Démonstration
+              </Link>
+            </span>
+          </div>
+        </footer>
+      </div>
+    );
 }
+

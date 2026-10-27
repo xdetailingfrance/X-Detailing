@@ -1,0 +1,444 @@
+/* Page d'accueil publique + ouverture motion design du logo (IntroLogo.tsx).
+    Palette : noir profond, violet électrique du logo, blanc chrome. */
+
+:root {
+  --violet-logo: #9b5cf6;
+  --violet-vif: #b26bff;
+  --chrome: #ecebf2;
+}
+
+/* Site public en fond blanc (l'ouverture du logo reste sur noir). */
+.site-clair {
+  --encre: #120d1a;
+  --chrome: #120d1a;
+  --violet-vif: #7c3aed;
+  --surface-claire: #f6f4fa;
+  background: #fff;
+  color: var(--encre);
+}
+
+/* ------------------------------------------------------------------ */
+/* Ouverture                                                           */
+/* ------------------------------------------------------------------ */
+
+/* Masquée par défaut (visiteurs qui l'ont déjà vue, moins d'animations,
+   JavaScript absent) : le script en tête de page pose data-intro. */
+.intro {
+  display: none;
+}
+html[data-intro] .intro {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  overflow: hidden;
+  /* Filet de sécurité si le script ne termine jamais. */
+  animation: intro-securite 0.4s ease 11s forwards;
+}
+.intro:not(.intro-joue) *,
+.intro:not(.intro-joue) *::before,
+.intro:not(.intro-joue) *::after {
+  animation-play-state: paused !important;
+}
+.intro.intro-sortie {
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+.intro.intro-passee {
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.intro-noir {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  animation: intro-fondu-sortie 0.8s ease 5500ms both;
+}
+
+.intro-scene {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  perspective: 1100px;
+}
+.intro-scene > * {
+  grid-area: 1 / 1;
+}
+
+.intro-logo {
+  width: min(84vw, 560px, 64svh);
+  aspect-ratio: 1;
+}
+.intro-logo {
+  position: relative;
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
+  animation: intro-camera 5200ms cubic-bezier(0.25, 0.1, 0.2, 1) both;
+}
+
+/* 2. Ligne lumineuse le long des contours du X */
+.intro-trace {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  animation: intro-fondu-sortie 800ms ease 2300ms both;
+}
+.intro-trace path {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.intro-trace-ligne {
+  stroke: var(--violet-vif);
+  stroke-width: 1.6;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  filter: drop-shadow(0 0 3px var(--violet-logo)) drop-shadow(0 0 9px rgba(155, 92, 246, 0.55));
+  animation: intro-trace 1700ms cubic-bezier(0.45, 0, 0.2, 1) calc(300ms + var(--i) * 140ms) both;
+}
+.intro-trace-tete {
+  stroke: #f5edff;
+  stroke-width: 2.4;
+  stroke-dasharray: 0.035 2;
+  stroke-dashoffset: 0.035;
+  filter: drop-shadow(0 0 6px #fff) drop-shadow(0 0 14px var(--violet-vif));
+  animation: intro-tete 1700ms cubic-bezier(0.45, 0, 0.2, 1) calc(300ms + var(--i) * 140ms) both;
+}
+
+/* 3. Révélation du X : métal 3D, reflets violets, éclat contrôlé */
+.intro-x {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  animation: intro-revele-x 1400ms cubic-bezier(0.2, 0.7, 0.2, 1) 1500ms both;
+}
+.intro-eclat {
+  position: absolute;
+  width: 22%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.95) 0 2.5%, rgba(226, 204, 255, 0.55) 7%, rgba(155, 92, 246, 0.18) 22%, transparent 45%),
+    linear-gradient(90deg, transparent 8%, rgba(255, 255, 255, 0.7) 50%, transparent 92%) center / 100% 1.5px no-repeat,
+    linear-gradient(0deg, transparent 25%, rgba(255, 255, 255, 0.55) 50%, transparent 75%) center / 1.5px 70% no-repeat;
+  animation: intro-eclat 1000ms ease-out var(--d) both;
+}
+.intro-eclat--petit {
+  width: 14%;
+}
+
+/* 4. Reflets blancs de studio, limités aux surfaces du logo */
+.intro-reflet {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  background: linear-gradient(
+      112deg,
+      transparent 0 40%,
+      rgba(255, 255, 255, 0) 44%,
+      rgba(255, 255, 255, 0.85) 50%,
+      rgba(255, 255, 255, 0) 56%,
+      transparent 60% 100%
+    )
+    no-repeat;
+  background-size: 300% 100%;
+  background-position: 130% 0;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+   -webkit-mask-repeat: no-repeat;
+   mask-repeat: no-repeat;
+}
+.intro-reflet--x {
+  -webkit-mask-image: url(/marque/x-640.webp);
+  mask-image: url(/marque/x-640.webp);
+  animation: intro-reflets 2600ms ease-in-out 2600ms both;
+}
+.intro-reflet--texte {
+  -webkit-mask-image: url(/marque/detailing-640.webp);
+  mask-image: url(/marque/detailing-640.webp);
+  animation: intro-reflet-unique 900ms ease-in-out 3900ms both;
+}
+
+/* 5. « DETAILING » net au centre */
+.intro-texte {
+  position: absolute;
+  left: 0;
+  right: 0;
+  animation: intro-texte 1000ms cubic-bezier(0.2, 0.7, 0.2, 1) 3000ms both;
+}
+.intro-texte img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.intro-passer {
+  position: absolute;
+  left: 50%;
+  bottom: max(1.5rem, env(safe-area-inset-bottom));
+  translate: -50% 0;
+  border: 1px solid rgba(236, 235, 242, 0.25);
+  border-radius: 999px;
+  padding: 0.4rem 1rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(236, 235, 242, 0.7);
+  background: rgba(0, 0, 0, 0.35);
+  animation: intro-fondu-entree 600ms ease 900ms both;
+}
+
+@keyframes intro-trace {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes intro-tete {
+  0% {
+    stroke-dashoffset: 0.035;
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: -0.965;
+    opacity: 0;
+  }
+}
+@keyframes intro-revele-x {
+  0% {
+    opacity: 0;
+    filter: brightness(0.25) saturate(0.6) blur(3px);
+    transform: translateZ(-60px) rotateY(-26deg) rotateX(6deg) scale(0.94);
+  }
+  45% {
+    opacity: 1;
+    filter: brightness(1.85) saturate(1.25) blur(0) drop-shadow(0 0 16px rgba(155, 92, 246, 0.55));
+  }
+  100% {
+    opacity: 1;
+    filter: brightness(1) saturate(1) blur(0) drop-shadow(0 0 0 rgba(155, 92, 246, 0));
+    transform: none;
+  }
+}
+@keyframes intro-eclat {
+  0% {
+      opacity: 0;
+      transform: scale(0.2) rotate(-20deg);
+   }
+   35% {
+     opacity: 1;
+     transform: scale(1) rotate(0);
+   }
+   100% {
+     opacity: 0;
+     transform: scale(0.55) rotate(18deg);
+   }
+}
+@keyframes intro-reflets {
+  0% {
+    background-position: 130% 0;
+  }
+  35% {
+    background-position: -30% 0;
+  }
+  65% {
+    background-position: 130% 0;
+  }
+  100% {
+    background-position: -30% 0;
+  }
+}
+@keyframes intro-reflet-unique {
+  from {
+    background-position: 130% 0;
+  }
+  to {
+    background-position: -30% 0;
+  }
+}
+@keyframes intro-texte {
+  0% {
+    opacity: 0;
+    clip-path: inset(0 50% 0 50%);
+    filter: blur(6px) brightness(2.2);
+  }
+  100% {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+    filter: blur(0) brightness(1);
+  }
+}
+@keyframes intro-camera {
+  0% {
+    transform: translateZ(-170px) rotateX(13deg) rotateY(-9deg) scale(0.9);
+  }
+  62% {
+    transform: translateZ(30px) rotateX(-2.5deg) rotateY(2.5deg) scale(1.02);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes intro-fondu-sortie {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes intro-fondu-entree {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes intro-securite {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Page d'accueil                                                      */
+/* ------------------------------------------------------------------ */
+
+.texte-chrome {
+    background: linear-gradient(180deg, #120d1a 0%, #2a2140 60%, #4c3a73 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+/* Entrée du titre et des boutons à la fin de l'ouverture. Sans ouverture,
+   le contenu est visible tout de suite. */
+.entree {
+  transition:
+    opacity 0.9s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition-delay: var(--delai, 0ms);
+}
+html[data-intro="en-cours"] .entree {
+  opacity: 0;
+  transform: translateY(18px);
+}
+html[data-intro="en-cours"] #logo-entete {
+  opacity: 0;
+}
+#logo-entete {
+  transition: opacity 0.3s ease 0.6s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entree {
+    transition: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Animation d'accueil (après l'ouverture du logo)                     */
+/* ------------------------------------------------------------------ */
+
+.mot {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  padding-bottom: 0.08em;
+  margin-right: 0.28em;
+}
+.mot > span {
+  display: inline-block;
+  animation: motion-mot 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) calc(150ms + var(--i) * 75ms) both;
+}
+@keyframes motion-mot {
+  from {
+    transform: translateY(105%);
+  }
+}
+
+/* La route traverse toute la largeur de l'écran. */
+.motion-route {
+  position: relative;
+  width: 100vw;
+  height: clamp(54px, 9vw, 96px);
+  margin: 0.75rem 0 0 calc(50% - 50vw);
+}
+.motion-trainee {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 5px;
+  height: 3px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, transparent 0%, rgba(155, 92, 246, 0.25) 15%, #9b5cf6 55%, #b26bff 85%, transparent 100%);
+  box-shadow: 0 0 14px rgba(155, 92, 246, 0.45);
+  transform-origin: left;
+  animation: motion-trainee 2.2s cubic-bezier(0.55, 0.05, 0.35, 1) 0.7s both;
+}
+@keyframes motion-trainee {
+  from {
+    transform: scaleX(0);
+  }
+  75% {
+    opacity: 1;
+  }
+   to {
+     transform: scaleX(1);
+     opacity: 0.4;
+   }
+}
+.motion-van {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: clamp(150px, 24vw, 290px);
+  animation: motion-van 2.2s cubic-bezier(0.55, 0.05, 0.35, 1) 0.7s both;
+}
+@keyframes motion-van {
+  from {
+    transform: translateX(-105%);
+  }
+  to {
+    transform: translateX(calc(100vw + 5%));
+  }
+}
+.motion-sous-titre {
+  animation: motion-fondu 0.9s ease 1.2s both;
+}
+@keyframes motion-fondu {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* Pendant l'ouverture du logo, l'animation attend son tour. */
+html[data-intro="en-cours"] .mot > span,
+html[data-intro="en-cours"] .motion-trainee,
+html[data-intro="en-cours"] .motion-van,
+html[data-intro="en-cours"] .motion-sous-titre {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mot > span,
+  .motion-trainee,
+  .motion-sous-titre {
+    animation: none;
+  }
+  .motion-trainee {
+    opacity: 0.4;
+  }
+  .motion-van {
+    display: none;
+  }
+}
+

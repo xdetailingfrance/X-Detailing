@@ -1,0 +1,137 @@
+// Création de client partagée entre le formulaire du back-office
+// (/api/clients) et l'assistante Lola.
+import type { CategorieVehicule } from "@/lib/types";
+import { db, type Tx } from "@/lib/db";
+import { geocoderAdresse } from "@/lib/geo";
+
+export const CATEGORIES_VEHICULE: CategorieVehicule[] = ["CITADINE", "BERLINE", "SUV", "MONOSPACE", "UTILITAIRE"];
+
+export type NouveauClient = {
+  prenom: string;
+  nom: string;
+  telephone: string;
+  email?: string | null;
+  adresse?: {
+    libelle?: string | null;
+    adresse: string;
+    ville: string;
+    codePostal?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+  } | null;
+  vehicule?: {
+    categorie: CategorieVehicule;
+    marque?: string | null;
+    modele?: string | null;
+    immatriculation?: string | null;
+  } | null;
+};
+
+async function position(adresse: NonNullable<NouveauClient["adresse"]>) {
+  // Sans coordonnées, le moteur « meilleur opérateur » ne peut pas calculer
+  // les trajets : on géocode l'adresse.
+  if (adresse.latitude != null && adresse.longitude != null) return { latitude: adresse.latitude, longitude: adresse.longitude };
+  const trouvee = await geocoderAdresse(adresse.adresse, adresse.ville, adresse.codePostal);
+  return { latitude: trouvee?.latitude ?? null, longitude: trouvee?.longitude ?? null };
+}
+
+export async function creerClient(donnees: NouveauClient, tx: Tx = db) {
+  const coordonnees = donnees.adresse ? await position(donnees.adresse) : null;
+  return tx.client.create({
+    data: {
+      prenom: donnees.prenom,
+      nom: donnees.nom,
+      telephone: donnees.telephone,
+      email: donnees.email ?? null,
+      adresses: donnees.adresse
+        ? {
+            create: {
+              libelle: donnees.adresse.libelle ?? "Domicile",
+              adresse: donnees.adresse.adresse,
+              ville: donnees.adresse.ville,
+              codePostal: donnees.adresse.codePostal ?? null,
+              ...coordonnees,
+            },
+          }
+        : undefined,
+      vehicules: donnees.vehicule
+        ? {
+            create: {
+              categorie: donnees.vehicule.categorie,
+              marque: donnees.vehicule.marque ?? null,
+              modele: donnees.vehicule.modele ?? null,
+              immatriculation: donnees.vehicule.immatriculation ?? null,
+            },
+          }
+        : undefined,
+    },
+    include: { adresses: true, vehicules: true },
+  });
+}
+
+// Chiffres d'un numéro français, « +33 6 12… » et « 06 12… » confondus.
+export function chiffresTelephone(telephone: string) {
+  return telephone.replace(/\D/g, "").replace(/^33/, "0");
+}
+
+// Client dont le numéro correspond (format libre : espaces, +33…).
+export async function trouverClientParTelephone(telephone: string, tx: Tx = db) {
+  const chiffres = chiffresTelephone(telephone);
+  if (chiffres.length < 9) return null;
+  const fin = chiffres.slice(-9);
+  const candidats = await tx.client.findMany({ where: { telephone: { contains: fin.slice(-4) } } });
+  return candidats.find((c) => chiffresTelephone(c.telephone) === chiffres) ?? null;
+}
+
+// Réservation en ligne : un client déjà connu (même téléphone) est
+// retrouvé plutôt que dupliqué ; l'adresse et le véhicule saisis lui sont
+// ajoutés s'ils sont nouveaux.
+export async function trouverOuCreerClient(
+  donnees: NouveauClient & {
+    adresse: NonNullable<NouveauClient["adresse"]>;
+    vehicule: NonNullable<NouveauClient["vehicule"]>;
+  },
+  tx: Tx = db
+) {
+  const existant = await trouverClientParTelephone(donnees.telephone, tx);
+  if (!existant) {
+    const client = await creerClient(donnees, tx);
+    return { client, adresseId: client.adresses[0].id, vehiculeId: client.vehicules[0].id };
+  }
+
+  const normaliser = (t: string) => t.trim().toLowerCase().replace(/\s+/g, " ");
+  const adresses = await tx.adresse.findMany({ where: { clientId: existant.id } });
+  let adresse = adresses.find(
+    (a) => normaliser(a.adresse) === normaliser(donnees.adresse.adresse) && normaliser(a.ville) === normaliser(donnees.adresse.ville)
+  );
+   if (!adresse) {
+     adresse = await tx.adresse.create({
+       data: {
+         clientId: existant.id,
+         libelle: "Réservation en ligne",
+         adresse: donnees.adresse.adresse,
+         ville: donnees.adresse.ville,
+         codePostal: donnees.adresse.codePostal ?? null,
+         ...(await position(donnees.adresse)),
+       },
+     });
+   }
+
+  const vehicules = await tx.vehicule.findMany({ where: { clientId: existant.id } });
+  let vehicule = vehicules.find(
+    (v) => v.categorie === donnees.vehicule.categorie && normaliser(v.modele ?? "") === normaliser(donnees.vehicule.modele ?? "")
+  );
+  if (!vehicule) {
+    vehicule = await tx.vehicule.create({
+      data: {
+        clientId: existant.id,
+        categorie: donnees.vehicule.categorie,
+        marque: donnees.vehicule.marque ?? null,
+        modele: donnees.vehicule.modele ?? null,
+        immatriculation: donnees.vehicule.immatriculation ?? null,
+      },
+    });
+  }
+  return { client: existant, adresseId: adresse.id, vehiculeId: vehicule.id };
+}
+

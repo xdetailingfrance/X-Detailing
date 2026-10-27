@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -40,19 +41,15 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Photos de l'ancienne version, stockées localement — données personnelles,
-# jamais versionnées. Le dossier peut être supprimé.
-/.data
+/src/generated/prisma
 
-# Outillage local de l'éditeur. `.claude/skills/` ne contient que des liens
-# symboliques vers `.agents/`, absent du dépôt : les versionner livrerait des
-# liens cassés — et c'est déjà ce qui avait fait échouer un déploiement.
-/.claude
-/.agents
-skills-lock.json
+# Archives de livraison (générées par git archive)
+/livraison/
 
-# Doublons créés par la synchronisation iCloud (« fichier 2.ts »). Ils cassent
-# la compilation en redéclarant les mêmes identifiants.
-*\ 2.ts
-*\ 2.tsx
-*\ 2.json
+
+# Artefacts locaux, jamais versionnés
+/.data/
+# Les dossiers d'outillage contiennent des liens symboliques qui n'existent pas
+# sur l'hôte de build : clonés par Vercel, ils font échouer l'installation.
+/.claude/
+/.agents/
