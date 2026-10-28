@@ -149,7 +149,7 @@ const OUTILS_ACTION = [
   {
     name: "affecter_operateur",
     description:
-      "Met un opérateur sur un rendez-vous (le confirme s'il était en attente). Prévient l'opérateur et le clientpar SMS si envoyerSms est vrai. Signale les chevauchements avec ses autres RDV.",
+      "Met un opérateur sur un rendez-vous (le confirme s'il était en attente). Prévient l'opérateur et le client par SMS si envoyerSms est vrai. Signale les chevauchements avec ses autres RDV.",
     input_schema: {
       type: "object",
       properties: {
@@ -298,7 +298,7 @@ async function finances() {
     return { operateur: `${o.prenom} ${o.nom}`, nbRdv: rdvs.length, ca: rdvs.reduce((t, r) => t + r.prixTotal, 0)};
   });
   return {
-    note: "Mois en cours (heure de Paris), RDV non annulés (y compris à venir dans le mois). Estimations, pas desmontants comptables.",
+    note: "Mois en cours (heure de Paris), RDV non annulés (y compris à venir dans le mois). Estimations, pas des montants comptables.",
     caJour: ca(jour),
     caSemaine: ca(semaine),
     caMois,
@@ -427,7 +427,7 @@ async function executer(nom: string, entree: Entree, ctx: ContexteOutils): Promi
       if (!rdv) throw new ErreurOutil("rendez-vous introuvable");
       const adresse = await db.adresse.findUnique({ where: { id: rdv.adresseId } });
       if (adresse?.latitude == null || adresse.longitude == null) {
-        throw new ErreurOutil("adresse non géolocalisée : impossible de calculer les trajets, choisir l'opérateurmanuellement");
+        throw new ErreurOutil("adresse non géolocalisée : impossible de calculer les trajets, choisir l'opérateur manuellement");
       }
       const candidats = await evaluerCandidats({
         latitude: adresse.latitude,

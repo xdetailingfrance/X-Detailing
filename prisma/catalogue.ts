@@ -44,13 +44,33 @@ const OPTIONS: { id: string; groupe: string; nom: string; prix: number; unite?: 
 ];
 
 const SECTEURS = [
-  { id: "secteur-lyon-centre", nom: "Lyon Centre", ville: "Lyon" },
-  { id: "secteur-villeurbanne", nom: "Villeurbanne", ville: "Villeurbanne" },
+  { id: "secteur-bordeaux-centre", nom: "Bordeaux Centre", ville: "Bordeaux" },
+  { id: "secteur-bordeaux-rive-droite", nom: "Bordeaux Rive Droite", ville: "Bordeaux" },
 ];
 
 export async function semerCatalogue(db: PrismaClient) {
   for (const secteur of SECTEURS) {
-    await db.secteur.upsert({ where: { id: secteur.id }, update: {}, create: secteur });
+    // On met à jour le nom : un secteur renommé doit suivre, sinon la base garde
+    // indéfiniment l'ancienne ville sous un identifiant qui ne lui correspond plus.
+    await db.secteur.upsert({
+      where: { id: secteur.id },
+      update: { nom: secteur.nom, ville: secteur.ville },
+      create: secteur,
+    });
+  }
+
+  // Secteurs retirés du catalogue : supprimés, mais seulement s'ils ne servent
+  // plus à personne. Les laisser les rendrait éternellement sélectionnables à la
+  // création d'un opérateur ; les supprimer sans vérifier effacerait l'historique.
+  const gardes = SECTEURS.map((s) => s.id);
+  const anciens = await db.secteur.findMany({
+    where: { id: { notIn: gardes } },
+    include: { _count: { select: { operateurs: true, rendezVous: true } } },
+  });
+  for (const ancien of anciens) {
+    if (ancien._count.operateurs === 0 && ancien._count.rendezVous === 0) {
+      await db.secteur.delete({ where: { id: ancien.id } });
+    }
   }
   for (const { tarifs, ...pack } of PACKS) {
     await db.pack.upsert({ where: { id: pack.id }, update: {}, create: pack });

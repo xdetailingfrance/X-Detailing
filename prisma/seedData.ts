@@ -19,10 +19,10 @@ export async function semerDemo(db: PrismaClient) {
   const hash = await hashMotDePasse(MOT_DE_PASSE_DEMO);
 
   const operateurs = [
-    { id: "demo-operateur-mathieu", prenom: "Mathieu", nom: "Caumeil", telephone: "0600000000", secteurId: "secteur-lyon-centre", adresseDomicile: "1 place Bellecour, Lyon", latitudeDomicile: 45.7578, longitudeDomicile: 4.832,kangooImmatriculation: "XD-001-OS" },
-    { id: "demo-operateur-karim", prenom: "Karim", nom: "B.", telephone: "0611111111", secteurId: "secteur-lyon-centre", adresseDomicile: "12 rue de la République, Lyon", latitudeDomicile: 45.764, longitudeDomicile: 4.8357, kangooImmatriculation: "AB-123-CD" },
-    { id: "demo-operateur-sofia", prenom: "Sofia", nom: "M.", telephone: "0622222222", secteurId: "secteur-lyon-centre", adresseDomicile: "5 quai Saint-Antoine, Lyon", latitudeDomicile: 45.759, longitudeDomicile: 4.827, kangooImmatriculation: "EF-456-GH" },
-    { id: "demo-operateur-yanis", prenom: "Yanis", nom: "T.", telephone: "0633333333", secteurId: "secteur-villeurbanne", adresseDomicile: "20 cours Émile Zola, Villeurbanne", latitudeDomicile: 45.7667, longitudeDomicile: 4.8803, kangooImmatriculation: "IJ-789-KL" },
+    { id: "demo-operateur-mathieu", prenom: "Mathieu", nom: "Caumeil", telephone: "0600000000", secteurId: "secteur-bordeaux-centre", adresseDomicile: "1 place de la Bourse, Bordeaux", latitudeDomicile: 44.8412, longitudeDomicile: -0.5698,kangooImmatriculation: "XD-001-OS" },
+    { id: "demo-operateur-karim", prenom: "Karim", nom: "B.", telephone: "0611111111", secteurId: "secteur-bordeaux-centre", adresseDomicile: "12 rue Sainte-Catherine, Bordeaux", latitudeDomicile: 44.8378, longitudeDomicile: -0.5742, kangooImmatriculation: "AB-123-CD" },
+    { id: "demo-operateur-sofia", prenom: "Sofia", nom: "M.", telephone: "0622222222", secteurId: "secteur-bordeaux-centre", adresseDomicile: "5 quai des Chartrons, Bordeaux", latitudeDomicile: 44.8521, longitudeDomicile: -0.5705, kangooImmatriculation: "EF-456-GH" },
+    { id: "demo-operateur-yanis", prenom: "Yanis", nom: "T.", telephone: "0633333333", secteurId: "secteur-bordeaux-rive-droite", adresseDomicile: "20 avenue Thiers, Bordeaux", latitudeDomicile: 44.8457, longitudeDomicile: -0.5527, kangooImmatriculation: "IJ-789-KL" },
   ];
   for (const o of operateurs) {
     await db.operateur.upsert({ where: { id: o.id }, update: {}, create: { ...o, heureDebut: "08:30", heureFin:"17:30" } });
@@ -48,7 +48,7 @@ export async function semerDemo(db: PrismaClient) {
       nom: "Dupont",
       telephone: "0700000000",
       email: "julien.dupont@example.com",
-      adresse: { id: "demo-adresse-julien", libelle: "Domicile", adresse: "18 rue Victor Hugo", ville: "Lyon", codePostal: "69002", latitude: 45.7558, longitude: 4.8322 },
+      adresse: { id: "demo-adresse-julien", libelle: "Domicile", adresse: "18 cours Victor Hugo", ville: "Bordeaux", codePostal: "33000", latitude: 44.8356, longitude: -0.5721 },
       vehicule: { id: "demo-vehicule-julien", categorie: "BERLINE" as const, marque: "Peugeot", modele: "308", immatriculation: "AA-111-BB" },
     },
     {
@@ -57,7 +57,7 @@ export async function semerDemo(db: PrismaClient) {
       nom: "Leroy",
       telephone: "0711111111",
       email: "nadia.leroy@example.com",
-      adresse: { id: "demo-adresse-nadia", libelle: "Bureau", adresse: "45 avenue Roger Salengro", ville: "Villeurbanne", codePostal: "69100", latitude: 45.7719, longitude: 4.8902 },
+      adresse: { id: "demo-adresse-nadia", libelle: "Bureau", adresse: "45 avenue Thiers", ville: "Bordeaux", codePostal: "33100", latitude: 44.8462, longitude: -0.5489 },
       vehicule: { id: "demo-vehicule-nadia", categorie: "SUV" as const, marque: "Peugeot", modele: "3008", immatriculation: "CC-222-DD" },
     },
   ];
@@ -93,7 +93,7 @@ export async function semerDemo(db: PrismaClient) {
         adresseId: r.client.adresse.id,
         packId: pack.id,
         categorieVehicule: r.client.vehicule.categorie,
-        secteurId: r.client.adresse.ville === "Villeurbanne" ? "secteur-villeurbanne" : "secteur-lyon-centre",
+        secteurId: r.client.adresse.codePostal === "33100" ? "secteur-bordeaux-rive-droite" : "secteur-bordeaux-centre",
         operateurId: r.operateurId,
         dateHeure: dateParis(decalerJour(aujourdhui, r.jours), r.heure),
         dureeMinutes: pack.dureeMinMinutes,
@@ -104,7 +104,7 @@ export async function semerDemo(db: PrismaClient) {
         suiviToken: `${r.id}-suivi`,
         photosAvant: photosInitiales(),
         photosApres: photosInitiales(),
-        historique: historique(r.operateurId ? "Rendez-vous de démonstration créé et affecté." : "Rendez-vous dedémonstration créé, en attente d'affectation."),
+        historique: historique(r.operateurId ? "Rendez-vous de démonstration créé et affecté." : "Rendez-vous de démonstration créé, en attente d'affectation."),
       },
     });
   }
@@ -119,7 +119,7 @@ export async function semerDemo(db: PrismaClient) {
       emailClient: "claire.martin@example.com",
       raisonSociale: null,
       adresse: "42 avenue Jean Jaurès",
-      ville: "Lyon",
+      ville: "Bordeaux",
       vehiculeDescription: "Renault Clio",
       categorieVehicule: "CITADINE" as const,
       packId: "pack-concession-luxe",
@@ -138,7 +138,7 @@ export async function semerDemo(db: PrismaClient) {
       emailClient: "n.perrin@example.com",
       raisonSociale: "Garage Perrin SARL",
       adresse: "8 rue de la Part-Dieu",
-      ville: "Lyon",
+      ville: "Bordeaux",
       vehiculeDescription: "Audi Q5",
       categorieVehicule: "SUV" as const,
       packId: "pack-concession-luxe",

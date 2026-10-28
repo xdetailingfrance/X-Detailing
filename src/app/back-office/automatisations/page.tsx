@@ -79,7 +79,7 @@ export default async function AutomatisationsPage() {
       <Section titre="À venir (phase 8)">
         <Panneau className="text-sm text-[var(--muted)]">
           Moteur de règles sans code : déclencheur, conditions et actions configurables, rappel du jour J, relances de devis,
-          message de satisfaction et avis Google avec consentement, historique d&apos;exécution, test d&apos;unerègle et
+          message de satisfaction et avis Google avec consentement, historique d&apos;exécution, test d&apos;une règle et
           reprise en cas d&apos;erreur.
         </Panneau>
       </Section>

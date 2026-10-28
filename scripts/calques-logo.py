@@ -9,17 +9,37 @@ import numpy as np, cv2
 from PIL import Image
 
 src, out = sys.argv[1], sys.argv[2]
-im = np.asarray(Image.open(src).convert("RGB")).astype(np.float64)
+_src = Image.open(src)
+# Le logo d'origine est fourni sur fond noir, sans transparence : on la déduit
+# alors de la luminance. Mais un fichier qui porte déjà son canal alpha est
+# découpé proprement — la recalculer l'écrase et ne laisse qu'un trait violet.
+_a_alpha = _src.mode in ("RGBA", "LA") and np.asarray(_src.convert("RGBA"))[..., 3].min() == 0
+im = np.asarray(_src.convert("RGB")).astype(np.float64)
 H, W, _ = im.shape
-BANDE = (562, 662) # lignes du mot DETAILING (aucun pixel du X dedans)
+# Lignes du mot DETAILING et du trait qui le souligne — tout ce qui est sous le X.
+# Détectées au lieu d'être codées en dur : la bande dépend du cadrage du fichier
+# source, et une valeur figée découpe le logo au mauvais endroit dès qu'il change.
+def _bande(mx_, hauteur_, largeur_):
+    encre = (mx_ > 20).sum(axis=1)
+    pleines = np.where(encre > largeur_ * 0.01)[0]
+    coupures = [i for i in range(1, len(pleines)) if pleines[i] - pleines[i - 1] > 5]
+    if not coupures:
+        raise SystemExit("Aucune séparation trouvée entre le X et le texte.")
+    return (int(pleines[coupures[0]]), hauteur_)
 
 mx = im.max(axis=2)
+BANDE = _bande(mx, H, W)
+print(f"bande détectée : lignes {BANDE[0]}–{BANDE[1]}")
 # Fond quasi noir (≤ 14/255, invisible sur le noir de la page) → transparent :
 # sans cela le léger bruit du fond rend les fichiers lourds.
-mx_util = np.where(mx <= 14, 0, mx)
-alpha = mx_util / 255.0
-rgb = np.where(alpha[..., None] > 0, im / np.maximum(alpha[..., None], 1e-6), 0)
-rgba = np.dstack([np.clip(rgb, 0, 255), alpha * 255]).astype(np.uint8)
+if _a_alpha:
+    rgba = np.asarray(_src.convert("RGBA")).astype(np.uint8)
+    mx = rgba[..., :3].max(axis=2).astype(np.float64) * (rgba[..., 3] > 0)
+else:
+    mx_util = np.where(mx <= 14, 0, mx)
+    alpha = mx_util / 255.0
+    rgb = np.where(alpha[..., None] > 0, im / np.maximum(alpha[..., None], 1e-6), 0)
+    rgba = np.dstack([np.clip(rgb, 0, 255), alpha * 255]).astype(np.uint8)
 
 x_seul = rgba.copy()
 x_seul[BANDE[0]:BANDE[1], :, 3] = 0

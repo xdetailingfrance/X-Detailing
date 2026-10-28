@@ -41,7 +41,7 @@ export default async function DemoPage() {
     },
     {
       titre: "Conseiller",
-      description: "Back-office Commercial : clients, planning, création de RDV, affectation — sans aucune donnéefinancière.",
+      description: "Back-office Commercial : clients, planning, création de RDV, affectation — sans aucune donnée financière.",
       href: "/api/demo/persona?role=COMMERCIAL",
       email: emailCommercial,
       disponible: true,

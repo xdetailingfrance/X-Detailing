@@ -1,7 +1,5 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import IntroLogo from "@/components/accueil/IntroLogo";
-import { CLE_INTRO } from "@/components/accueil/intro";
 import LogoMarque from "@/components/accueil/LogoMarque";
 import ExperiencePrestations from "@/components/accueil/ExperiencePrestations";
 import Utilitaire from "@/components/accueil/voiture/Utilitaire";
@@ -14,25 +12,19 @@ import "@/components/accueil/parcours.css";
 export const metadata: Metadata = {
   title: "X Detailing — Le detailing automobile, directement chez vous",
   description:
-    "Nettoyage intérieur et extérieur de votre véhicule à domicile ou au bureau, à Lyon et Villeurbanne. Opérateurs équipés, réservation simple.",
+    "Nettoyage intérieur et extérieur de votre véhicule à domicile ou au bureau, à Bordeaux et alentours. Opérateurs équipés, réservation simple.",
 };
 
 // Prix des packs modifiables dans le back-office : page régénérée
 // régulièrement plutôt qu'à chaque visite (chargement léger).
 export const revalidate = 300;
 
-// Avant le premier rendu : l'ouverture ne se joue qu'une fois par session
-// et jamais si l'appareil demande moins d'animations.
-const SCRIPT_INTRO = `(function(){try{if(sessionStorage.getItem(${JSON.stringify(
-  CLE_INTRO
-)}))return;if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;document.documentElement.dataset.intro="en-cours";}catch(e){}})();`;
-
 const TITRE = "Le detailing automobile, directement chez vous";
 
 const ETAPES = [
   { titre: "Vous réservez", texte: "Choisissez votre formule, la date et l'adresse : domicile, bureau ou parking." },
-  { titre: "Nous venons à vous", texte: "Un opérateur X Detailing arrive avec son Kangoo équipé : eau, produits,aspirateurs." },
-  { titre: "Votre véhicule brille", texte: "Contrôle avant/après en photos, signature, paiement sur place ou parlien." },
+  { titre: "Nous venons à vous", texte: "Un opérateur X Detailing arrive avec son Kangoo équipé : eau, produits, aspirateurs." },
+  { titre: "Votre véhicule brille", texte: "Contrôle avant/après en photos, signature, paiement sur place ou par lien." },
 ];
 
 export default async function Accueil() {
@@ -40,8 +32,6 @@ export default async function Accueil() {
 
    return (
      <div className="site-clair flex min-h-screen flex-col overflow-x-clip">
-       <script dangerouslySetInnerHTML={{ __html: SCRIPT_INTRO }} />
-       <IntroLogo />
 
             <header className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-4 py-3 sm:px-8 sm:py-5">
         <Link href="/" aria-label="X Detailing — accueil">
@@ -70,7 +60,7 @@ export default async function Accueil() {
               className="entree text-[11px] font-semibold uppercase tracking-[0.4em] text-[var(--violet-vif)]"
               style={{ ["--delai" as string]: "0ms" }}
             >
-              Lyon · Villeurbanne · à domicile
+              Bordeaux et alentours · à domicile
             </p>
             {/* Animation d'accueil : le titre monte mot par mot, l'utilitaire
                 traverse la page et sa traînée devient le trait sous le titre. */}

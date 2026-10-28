@@ -134,7 +134,7 @@ export default function ExperiencePrestations({
           setMessage("Le paiement n'a pas été validé : aucune réservation n'est confirmée. Vous pouvez réessayer.");
         }
       })
-      .catch(() => setMessage("Impossible de vérifier le paiement pour le moment. Contactez-nous si vous avez étédébité."));
+      .catch(() => setMessage("Impossible de vérifier le paiement pour le moment. Contactez-nous si vous avez été débité."));
   }, [prestations]);
 
     return (
@@ -415,7 +415,7 @@ function Parcours({
                 Des options ?
               </h2>
               <div className="mt-5 grid gap-3">
-                {options.length === 0 && <p className="text-sm text-[var(--chrome)]/60">Aucune option disponiblepour le moment.</p>}
+                {options.length === 0 && <p className="text-sm text-[var(--chrome)]/60">Aucune option disponible pour le moment.</p>}
                 {groupes.map((groupe) => (
                   <div key={groupe ?? "autres"} className="grid gap-3">
                     {groupe && <p className="pr-groupe">{groupe}</p>}
