@@ -4,6 +4,7 @@
 // client) et reste figé jusqu'à conversion en RDV.
 import type { Devis } from "@/lib/types";
 import { photosInitiales } from "@/lib/types";
+import { emailDevis } from "@/lib/email";
 import { db, genToken, historiserDevis, premierEvenement, versDevis } from "@/lib/db";
 
 export type ResultatDevis = { ok: true } | { ok: false; error: string };
@@ -37,7 +38,14 @@ export async function envoyerDevis(devis: Devis): Promise<ResultatDevis> {
   devis.statut = "ENVOYE";
   devis.envoyeAt = new Date();
   await enregistrer(devis);
-  await historiserDevis(devis, "Devis envoyé au client (SMS/e-mail simulé).");
+
+  const courriel = await emailDevis(devis);
+  await historiserDevis(
+    devis,
+    courriel.envoye
+      ? `Devis envoyé par e-mail à ${devis.emailClient}.`
+      : `Devis marqué envoyé, mais e-mail non transmis (${courriel.erreur}).`,
+  );
   return { ok: true };
 }
 

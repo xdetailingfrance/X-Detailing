@@ -12,6 +12,7 @@ import Stripe from "stripe";
 import type { Devis, RendezVous } from "@/lib/types";
 import { db, enregistrerRdv, historiserDevis, historiserRdv, versRdv } from "@/lib/db";
 import { changerStatut, trouverRendezVous } from "@/lib/rendezVous";
+import { emailConfirmationReservation } from "@/lib/email";
 import { MODELES_SMS, smsAuClient } from "@/lib/sms";
 import { journaliser } from "@/lib/audit";
 
@@ -107,7 +108,10 @@ export async function enregistrerPaiement(rdvId: string, sessionId: string) {
   }
   await historiserRdv(rdv, `Acompte de ${rdv.acompte} € payé (Stripe).`);
   const dejaEnvoye = await db.sms.count({ where: { rendezVousId: rdv.id, motif: "CONFIRMATION_RDV" } });
-  if (!dejaEnvoye) await smsAuClient(rdv, await MODELES_SMS.confirmationClient(rdv), "CONFIRMATION_RDV", "site");
+  if (!dejaEnvoye) {
+    await smsAuClient(rdv, await MODELES_SMS.confirmationClient(rdv), "CONFIRMATION_RDV", "site");
+    await emailConfirmationReservation(rdv);
+  }
   return rdv;
 }
 

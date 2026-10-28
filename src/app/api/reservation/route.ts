@@ -5,6 +5,7 @@ import { packAvecTarifs } from "@/lib/queries";
 import { CATEGORIES_VEHICULE, chiffresTelephone, trouverOuCreerClient } from "@/lib/clients";
 import { creerRendezVous } from "@/lib/rendezVous";
 import { creneauxDisponibles, dateLocale } from "@/lib/disponibilites";
+import { emailConfirmationReservation } from "@/lib/email";
 import { MODELES_SMS, smsAuClient } from "@/lib/sms";
 import { titrePrestation } from "@/lib/prestationsPubliques";
 import { libelleDateHeure } from "@/lib/heure";
@@ -180,6 +181,10 @@ export async function POST(request: Request) {
 
    // Sans Stripe configuré : réservation enregistrée sans paiement en ligne.
    const sms = await smsAuClient(rdv, await MODELES_SMS.confirmationClient(rdv), "CONFIRMATION_RDV", "site");
+   // L'e-mail double le SMS : il porte l'adresse, le détail du prix et le lien
+   // de suivi, qu'un message de 160 caractères ne peut pas contenir. Son échec
+   // n'empêche pas la réservation, déjà enregistrée.
+   await emailConfirmationReservation(rdv);
   return NextResponse.json({ ...confirmation, paye: false, smsEnvoye: sms?.statut === "ENVOYE" }, { status: 201});
 }
 

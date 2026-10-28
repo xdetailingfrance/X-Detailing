@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ConflitDeVersion } from "@/lib/db";
+import { emailFacture } from "@/lib/email";
 import { rendezVousAvecRelations } from "@/lib/queries";
 import { trouverRendezVous } from "@/lib/rendezVous";
 import { getSession } from "@/lib/session";
@@ -72,6 +73,16 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       const resultat = await appliquerActionWorkflow(rdv, action);
       if (!resultat.ok) {
         return NextResponse.json({ error: resultat.error }, { status: 400 });
+      }
+      /*
+       * La facture part à la clôture, et depuis la route plutôt que depuis le
+       * workflow : celui-ci est une transition d'état pure, testée comme telle,
+       * et un appel réseau dedans le rendrait lent et faillible. Un échec
+       * d'envoi est consigné mais ne défait pas la clôture — le dossier est
+       * terminé, la facture numérotée, et le client peut la redemander.
+       */
+      if (action.type === "CONFIRMER_PAIEMENT" && rdv.statut === "TERMINE") {
+        await emailFacture(rdv);
       }
     } catch (e) {
       if (e instanceof ConflitDeVersion) return NextResponse.json({ error: e.message }, { status: 409 });
