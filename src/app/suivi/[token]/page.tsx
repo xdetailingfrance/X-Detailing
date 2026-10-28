@@ -3,7 +3,7 @@ import { rendezVousParToken } from "@/lib/workflow";
 import { rendezVousAvecRelations } from "@/lib/queries";
 import { formatParis } from "@/lib/heure";
 import { LIBELLE_ANGLE_PHOTO, type PhotoPrestation } from "@/lib/types";
-import GpsLiveSimule from "@/components/GpsLiveSimule";
+import SuiviTrajet from "@/components/SuiviTrajet";
 import NoteClient from "./NoteClient";
 
 export const dynamic = "force-dynamic";
@@ -49,9 +49,9 @@ export default async function SuiviPage({ params }: { params: Promise<{ token: s
                <p className="font-medium">{LIBELLE_CLIENT[rdv.statut] ?? rdv.statut}</p>
              </div>
 
-             {rdv.statut === "EN_ROUTE" && rdv.routeDemarreeAt && (
-               <GpsLiveSimule
-                 demarreAt={rdv.routeDemarreeAt.toISOString()}
+             {rdv.statut === "EN_ROUTE" && (
+               <SuiviTrajet
+                 token={token}
                  destinationLabel={`${rdv.adresse.adresse}, ${rdv.adresse.ville}`}
                />
              )}

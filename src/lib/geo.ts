@@ -52,3 +52,43 @@ export async function geocoderAdresse(
   }
 }
 
+
+/**
+ * Itinéraire routier réel entre deux points, via la Géoplateforme IGN
+ * (data.geopf.fr : service public français, gratuit, sans clé).
+ *
+ * Remplace l'estimation à vol d'oiseau là où la précision compte — l'heure
+ * d'arrivée annoncée au client pendant que son opérateur roule. Un détour par
+ * la rocade ne se devine pas avec un rayon et une vitesse moyenne.
+ *
+ * `optimization=fastest` : l'itinéraire qu'un conducteur suit réellement, qui
+ * n'est pas le plus court. Renvoie null si le service ne répond pas ;
+ * l'appelant retombe alors sur l'estimation géométrique plutôt que de ne rien
+ * afficher.
+ */
+export async function itineraireRoutier(
+  departLat: number,
+  departLng: number,
+  arriveeLat: number,
+  arriveeLng: number,
+): Promise<{ distanceKm: number; minutes: number } | null> {
+  const url = new URL("https://data.geopf.fr/navigation/itineraire");
+  url.searchParams.set("resource", "bdtopo-osrm");
+  url.searchParams.set("start", `${departLng},${departLat}`);
+  url.searchParams.set("end", `${arriveeLng},${arriveeLat}`);
+  url.searchParams.set("profile", "car");
+  url.searchParams.set("optimization", "fastest");
+  url.searchParams.set("getSteps", "false");
+  url.searchParams.set("distanceUnit", "kilometer");
+  url.searchParams.set("timeUnit", "minute");
+
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { distance?: number; duration?: number };
+    if (typeof data.distance !== "number" || typeof data.duration !== "number") return null;
+    return { distanceKm: Math.round(data.distance * 10) / 10, minutes: Math.round(data.duration) };
+  } catch {
+    return null;
+  }
+}

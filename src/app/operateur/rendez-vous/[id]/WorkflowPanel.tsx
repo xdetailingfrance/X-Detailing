@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AnglePhoto, ModePaiement, PhotoPrestation, StatutRendezVous } from "@/lib/types";
-import GpsLiveSimule from "@/components/GpsLiveSimule";
+import PartagePosition from "@/components/PartagePosition";
 import PhotoTiles from "@/components/PhotoTiles";
 import SignaturePad from "@/components/SignaturePad";
 import { formatParis } from "@/lib/heure";
@@ -213,7 +213,7 @@ export default function WorkflowPanel({
 
       {etat.statut === "EN_ROUTE" && etat.routeDemarreeAt && (
         <Etape titre="En route vers le client">
-          <GpsLiveSimule demarreAt={etat.routeDemarreeAt} destinationLabel={adresse} />
+          <PartagePosition rendezVousId={rendezVousId} />
           <button
             onClick={() => envoyer({ type: "CONFIRMER_ARRIVEE" })}
             disabled={enCours}
