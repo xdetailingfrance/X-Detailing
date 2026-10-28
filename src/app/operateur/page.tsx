@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { listerRendezVousAvecRelations } from "@/lib/queries";
-import { dateParis, debutSemaineParis, decalerJour, formatParis, jourParis } from "@/lib/heure";
+import { dateParis, debutSemaineParis, decalerJour, dureeLisible, formatParis, jourParis } from "@/lib/heure";
 
 export const dynamic = "force-dynamic";
 
@@ -99,7 +99,7 @@ export default async function EspaceOperateurPage() {
                         {r.vehicule.marque ?? r.categorieVehicule} {r.vehicule.modele ?? ""} ({r.categorieVehicule}) ·{" "}
                         {r.pack.nom}
                         {r.options.length > 0 ? ` + ${r.options.map((o) => o.option.nom).join(", ")}` : ""} ·{""}
-                        {r.dureeMinutes} min
+                        {dureeLisible(r.dureeMinutes)}
                       </p>
                       <div className="flex items-center justify-between pt-1">
                         <span className="text-xs text-[var(--accent)]">Ouvrir le suivi de prestation →</span>

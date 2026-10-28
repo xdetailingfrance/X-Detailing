@@ -167,3 +167,11 @@ export async function deplacerRendezVous(rdv: RendezVous, dateHeure: Date) {
   await historiserRdv(rdv, `Déplacé du ${court(avant)} au ${court(dateHeure)}.`);
 }
 
+// Une facture émise ou un encaissement font du rendez-vous une pièce
+// comptable : elle se conserve (et se rembourse), elle ne s'efface pas.
+// Reste l'annulation, qui garde la ligne et libère le créneau.
+export function suppressionDefinitivePossible(
+  rdv: Pick<RendezVous, "numeroFacture" | "acompteStatut" | "paiementConfirmeAt">
+) {
+  return !rdv.numeroFacture && rdv.acompteStatut !== "PAYE" && !rdv.paiementConfirmeAt;
+}

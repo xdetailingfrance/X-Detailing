@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Prisma } from "@/generated/prisma/client";
 import { listerRendezVousAvecRelations } from "@/lib/queries";
-import { dateParis, decalerJour, formatParis } from "@/lib/heure";
+import { dateParis, decalerJour, dureeLisible, formatParis } from "@/lib/heure";
 import { db } from "@/lib/db";
 import { SOURCES } from "@/lib/indicateurs";
 import { titrePrestation } from "@/lib/prestationsPubliques";
@@ -161,7 +161,7 @@ export default async function ReservationsPage({ searchParams }: { searchParams:
                 </td>
                 <td className="px-4 py-2.5">
                   {titrePrestation(r.pack.id, r.pack.nom)}
-                  <p className="text-xs text-[var(--muted)]">{r.dureeMinutes} min</p>
+                  <p className="text-xs text-[var(--muted)]">{dureeLisible(r.dureeMinutes)}</p>
                 </td>
                 <td className="px-4 py-2.5 text-right tabular-nums">
                   {euros(r.prixTotal, 2)}

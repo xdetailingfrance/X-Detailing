@@ -243,3 +243,62 @@ export async function emailFacture(rdv: RendezVous) {
     rendezVous: rdv,
   });
 }
+
+/** Rendez-vous décalé : le client est prévenu de l'ancienne et de la nouvelle date. */
+export async function emailRendezVousDecale(rdv: RendezVous, ancienneDate: Date) {
+  const { client, adresse, pack } = await contexte(rdv);
+  if (!client?.email) return { envoye: false, erreur: "client sans adresse e-mail" };
+
+  const prestation = pack ? titrePrestation(pack.id, pack.nom) : "votre prestation";
+  const corps = `
+    <p>Bonjour ${client.prenom},</p>
+    <p>Votre rendez-vous a été déplacé.</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:16px;font-size:15px">
+      <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Prestation</td><td>${prestation}</td></tr>
+      <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Ancienne date</td><td style="text-decoration:line-through;color:#6b6b78">${quand(ancienneDate)}</td></tr>
+      <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Nouvelle date</td><td><strong>${quand(rdv.dateHeure)}</strong></td></tr>
+      <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Adresse</td><td>${adresse?.adresse ?? ""}, ${adresse?.ville ?? ""}</td></tr>
+    </table>
+    <p style="margin-top:20px">Si cette nouvelle date ne vous convient pas, répondez à ce message ou appelez-nous.</p>`;
+
+  return envoyerEmail({
+    destinataire: client.email,
+    nom: `${client.prenom} ${client.nom}`,
+    sujet: `Votre rendez-vous est déplacé au ${quand(rdv.dateHeure)}`,
+    html: gabarit("Rendez-vous déplacé", corps, {
+      libelle: "Voir mon rendez-vous",
+      href: `${origineSite()}/suivi/${rdv.suiviToken}`,
+    }),
+    action: "EMAIL_RDV_DECALE",
+    entite: "RendezVous",
+    entiteId: rdv.id,
+    rendezVous: rdv,
+  });
+}
+
+/** Rendez-vous annulé. */
+export async function emailRendezVousAnnule(rdv: RendezVous, motif?: string | null) {
+  const { client, pack } = await contexte(rdv);
+  if (!client?.email) return { envoye: false, erreur: "client sans adresse e-mail" };
+
+  const prestation = pack ? titrePrestation(pack.id, pack.nom) : "votre prestation";
+  const corps = `
+    <p>Bonjour ${client.prenom},</p>
+    <p>Votre rendez-vous ${prestation} du ${quand(rdv.dateHeure)} a été annulé.</p>
+    ${motif ? `<p>Motif : ${motif}</p>` : ""}
+    <p>Si vous souhaitez reprendre un créneau, notre site reste à votre disposition — ou appelez-nous, nous trouverons une date.</p>`;
+
+  return envoyerEmail({
+    destinataire: client.email,
+    nom: `${client.prenom} ${client.nom}`,
+    sujet: `Annulation de votre rendez-vous du ${quand(rdv.dateHeure)}`,
+    html: gabarit("Rendez-vous annulé", corps, {
+      libelle: "Reprendre un créneau",
+      href: origineSite(),
+    }),
+    action: "EMAIL_RDV_ANNULE",
+    entite: "RendezVous",
+    entiteId: rdv.id,
+    rendezVous: rdv,
+  });
+}

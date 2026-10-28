@@ -120,3 +120,20 @@ export function lireDateSaisie(valeur: unknown): Date {
   return m ? dateParis(m[1], m[2]) : new Date(valeur);
 }
 
+// Durée d'une prestation telle qu'on la dit : « 2h30 », « 3h », « 45 min ».
+// Un client ne compte pas en minutes au-delà d'une heure.
+export function dureeLisible(minutes: number): string {
+  if (!Number.isFinite(minutes) || minutes <= 0) return "—";
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+  if (h === 0) return `${m} min`;
+  return m === 0 ? `${h}h` : `${h}h${String(m).padStart(2, "0")}`;
+}
+
+// Fourchette annoncée. Deux bornes égales (le cas courant depuis que les
+// durées sont fermes) se disent d'une seule voix.
+export function plageDureeLisible(minMinutes: number, maxMinutes: number): string {
+  return minMinutes === maxMinutes
+    ? dureeLisible(minMinutes)
+    : `${dureeLisible(minMinutes)} à ${dureeLisible(maxMinutes)}`;
+}

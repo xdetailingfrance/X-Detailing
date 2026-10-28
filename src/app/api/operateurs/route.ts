@@ -35,7 +35,7 @@ export async function POST(request: Request) {
         latitudeDomicile: nombre(body.latitudeDomicile),
         longitudeDomicile: nombre(body.longitudeDomicile),
         heureDebut: body.heureDebut ?? "08:30",
-        heureFin: body.heureFin ?? "17:30",
+        heureFin: body.heureFin ?? "18:00",
         kangooImmatriculation: body.kangooImmatriculation || null,
       },
     });

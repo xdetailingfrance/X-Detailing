@@ -6,7 +6,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import type { StatutRendezVous } from "@/lib/types";
 import { db, historiserRdv, sansDecimal, versRdv } from "@/lib/db";
-import { dateParis, debutJourParis, debutMoisParis, debutSemaineParis, decalerJour, formatParis, libelleDateHeure, moisParis } from "@/lib/heure";
+import { dateParis, debutJourParis, debutMoisParis, debutSemaineParis, decalerJour, formatParis, libelleDateHeure, moisParis, plageDureeLisible } from "@/lib/heure";
 import type { SessionPayload } from "@/lib/auth";
 import { listerOptionsActives, listerPacksAvecTarifs } from "@/lib/queries";
 import { evaluerCandidats } from "@/lib/affectation";
@@ -393,7 +393,7 @@ async function executer(nom: string, entree: Entree, ctx: ContexteOutils): Promi
             id: p.id,
             nom: p.nom,
             description: p.description,
-            duree: `${p.dureeMinMinutes}–${p.dureeMaxMinutes} min`,
+            duree: plageDureeLisible(p.dureeMinMinutes, p.dureeMaxMinutes),
             prixParCategorie: Object.fromEntries(p.tarifs.map((t) => [t.categorie, t.prix])),
           })),
           options: (await listerOptionsActives()).map((o) => ({

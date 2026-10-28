@@ -17,7 +17,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
 import { listerRendezVousAvecRelations, rendezVousAvecRelations, type RdvComplet } from "@/lib/queries";
-import { dateParis, decalerJour, formatParis, jourParis, jourSemaineParis } from "@/lib/heure";
+import { dateParis, decalerJour, dureeLisible, formatParis, jourParis, jourSemaineParis } from "@/lib/heure";
 import type { SessionPayload } from "@/lib/auth";
 import { executerOutil, outilsLola, type ContexteOutils } from "@/lib/lolaOutils";
 import { smsReelsActives } from "@/lib/sms";
@@ -178,7 +178,7 @@ function planningEnTexte(planning: Planning) {
       const c = r.carte;
       const prix = r.prixTotal !== null ? ` · ${r.prixTotal} €` : "";
       lignes.push(
-        `- [${c.id}] ${c.heure} · ${c.operateur ?? "NON AFFECTÉ"} · ${r.prestationOrale} (pack ${c.prestation},${c.dureeMinutes} min) · client ${c.client} · ${c.adresse}, ${c.ville} · ${c.vehicule} · ${c.statut}${prix}`
+        `- [${c.id}] ${c.heure} · ${c.operateur ?? "NON AFFECTÉ"} · ${r.prestationOrale} (pack ${c.prestation}, ${dureeLisible(c.dureeMinutes)}) · client ${c.client} · ${c.adresse}, ${c.ville} · ${c.vehicule} · ${c.statut}${prix}`
       );
     }
     }

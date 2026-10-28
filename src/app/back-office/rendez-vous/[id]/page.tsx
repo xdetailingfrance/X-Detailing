@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
-import { formatParis } from "@/lib/heure";
+import { dureeLisible, formatParis, heureParis, jourParis } from "@/lib/heure";
 import { rendezVousAvecRelations } from "@/lib/queries";
+import { getSession } from "@/lib/session";
+import { suppressionDefinitivePossible } from "@/lib/rendezVous";
 import AffectationPanel from "./AffectationPanel";
+import GestionPanel from "./GestionPanel";
 
 const LIBELLE_STATUT: Record<string, string> = {
   EN_ATTENTE: "En attente",
@@ -26,6 +29,7 @@ export default async function RendezVousPage({
   const { id } = await params;
   const rendezVous = await rendezVousAvecRelations(id);
   if (!rendezVous) notFound();
+  const session = await getSession();
 
     // nbPrestationsJour/caJour ne sont pas persistés (uniquement calculés à la
     // volée par le moteur d'affectation) : absents tant que le bouton
@@ -57,7 +61,7 @@ export default async function RendezVousPage({
         <Info titre="Client" valeur={`${rendezVous.client.prenom} ${rendezVous.client.nom} · ${rendezVous.client.telephone}`} />
         <Info titre="Adresse" valeur={`${rendezVous.adresse.adresse}, ${rendezVous.adresse.ville}`} />
         <Info titre="Véhicule" valeur={`${rendezVous.vehicule.marque ?? rendezVous.categorieVehicule} ${rendezVous.vehicule.modele ?? ""}`} />
-        <Info titre="Pack" valeur={`${rendezVous.pack.nom} (${rendezVous.dureeMinutes} min)`} />
+        <Info titre="Pack" valeur={`${rendezVous.pack.nom} (${dureeLisible(rendezVous.dureeMinutes)})`} />
         <Info
           titre="Options"
           valeur={rendezVous.options.length > 0 ? rendezVous.options.map((o) => (o.quantite > 1 ? `${o.option.nom} × ${o.quantite}` : o.option.nom)).join(", ") : "Aucune"}
@@ -95,6 +99,16 @@ export default async function RendezVousPage({
           rendezVousId={rendezVous.id}
           operateurActuelId={rendezVous.operateurId}
           candidatsInitiaux={candidatsInitiaux}
+        />
+
+        <GestionPanel
+          rendezVousId={rendezVous.id}
+          packId={rendezVous.packId}
+          jourActuel={jourParis(rendezVous.dateHeure)}
+          heureActuelle={heureParis(rendezVous.dateHeure)}
+          statut={rendezVous.statut}
+          suppressionPossible={suppressionDefinitivePossible(rendezVous)}
+          peutSupprimer={session?.role === "OWNER" || session?.role === "RESPONSABLE"}
         />
       </div>
     );

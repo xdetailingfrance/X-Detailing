@@ -2,6 +2,7 @@
 // prix et les options viennent TOUJOURS de la grille du back-office
 // (Packs & Tarifs) : ce fichier ne fait que les présenter.
 import { listerOptionsActives, listerPacksAvecTarifs } from "@/lib/queries";
+import { plageDureeLisible } from "@/lib/heure";
 
 export type PrestationPublique = {
   packId: string;
@@ -47,7 +48,7 @@ export async function prestationsPubliques(): Promise<PrestationPublique[]> {
         titre: titrePrestation(p.id, p.nom),
         accroche: presentation?.accroche ?? p.description ?? "",
         description: p.description,
-        duree: `${p.dureeMinMinutes}–${p.dureeMaxMinutes} min`,
+        duree: plageDureeLisible(p.dureeMinMinutes, p.dureeMaxMinutes),
         tarifs: [...p.tarifs]
           .sort((a, b) => ORDRE_CATEGORIES.indexOf(a.categorie) - ORDRE_CATEGORIES.indexOf(b.categorie))
           .map((t) => ({ categorie: t.categorie, prix: t.prix })),

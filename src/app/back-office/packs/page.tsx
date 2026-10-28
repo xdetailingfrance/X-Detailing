@@ -5,6 +5,7 @@ import { getSession } from "@/lib/session";
 import { aLaPermission } from "@/lib/permissions";
 import TarifGrid from "./TarifGrid";
 import NouvelleOptionForm from "./NouvelleOptionForm";
+import { plageDureeLisible } from "@/lib/heure";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +35,7 @@ export default async function PacksPage() {
             <div>
               <h2 className="font-medium">{pack.nom}</h2>
               <p className="text-[var(--muted)] text-xs mt-0.5">
-                {pack.description} · Durée visible : {pack.dureeMinMinutes}-{pack.dureeMaxMinutes} min
+                {pack.description} · Durée visible : {plageDureeLisible(pack.dureeMinMinutes, pack.dureeMaxMinutes)}
               </p>
             </div>
             <TarifGrid

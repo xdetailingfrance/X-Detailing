@@ -1,7 +1,7 @@
 // Heure de Paris indépendante du fuseau du serveur (lancé en TZ=UTC).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { dateParis, debutSemaineParis, decalerJour, formatParis, heureParis, jourParis, jourSemaineParis, lireDateSaisie } from "@/lib/heure";
+import { dateParis, debutSemaineParis, decalerJour, dureeLisible, formatParis, heureParis, jourParis, jourSemaineParis, lireDateSaisie, plageDureeLisible } from "@/lib/heure";
 
 test("08:30 à Paris en hiver = 07:30 UTC, en été = 06:30 UTC", () => {
   assert.equal(dateParis("2026-01-15", "08:30").toISOString(), "2026-01-15T07:30:00.000Z");
@@ -29,3 +29,14 @@ test("affichage et saisie de formulaire en heure de Paris", () => {
   assert.equal(lireDateSaisie("2026-10-26T08:30:00.000Z").toISOString(), "2026-10-26T08:30:00.000Z");
 });
 
+test("durées annoncées en heures, pas en minutes", () => {
+  assert.equal(dureeLisible(150), "2h30");
+  assert.equal(dureeLisible(180), "3h");
+  assert.equal(dureeLisible(60), "1h");
+  assert.equal(dureeLisible(70), "1h10");
+  assert.equal(dureeLisible(45), "45 min");
+  assert.equal(dureeLisible(0), "—");
+  // Deux bornes égales se disent d'une seule voix, pas « 2h30 à 2h30 ».
+  assert.equal(plageDureeLisible(150, 150), "2h30");
+  assert.equal(plageDureeLisible(150, 180), "2h30 à 3h");
+});

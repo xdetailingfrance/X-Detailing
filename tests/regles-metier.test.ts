@@ -5,7 +5,14 @@ import { after, before, beforeEach, test } from "node:test";
 import assert from "node:assert/strict";
 import { table } from "@/lib/connexion";
 import { db, ConflitDeVersion, enregistrerRdv, historiserRdv } from "@/lib/db";
-import { calculerPrix, creerRendezVous, trouverRendezVous } from "@/lib/rendezVous";
+import {
+  calculerPrix,
+  conflitsOperateur,
+  creerRendezVous,
+  deplacerRendezVous,
+  suppressionDefinitivePossible,
+  trouverRendezVous,
+} from "@/lib/rendezVous";
 import { creneauxDisponibles } from "@/lib/disponibilites";
 import { enregistrerPaiement, libererReservation } from "@/lib/paiement";
 import { appliquerActionWorkflow } from "@/lib/workflow";
@@ -30,8 +37,11 @@ function prochain(jourSemaine: number) {
   return jour;
 }
 
+// Horaires laissés au défaut du schéma (08:30–18:00) : le jour où ils
+// changent, les tests de créneaux suivent la réalité au lieu de figer
+// l'ancienne journée.
 async function operateur(id = "op-test") {
-  return db.operateur.create({ data: { id, prenom: "Test", nom: "Opérateur", telephone: "0600000001", heureDebut:"08:30", heureFin: "17:30" } });
+  return db.operateur.create({ data: { id, prenom: "Test", nom: "Opérateur", telephone: "0600000001" } });
 }
 
 async function clientAvecVehicule(categorie: "BERLINE" | "SUV" | "MONOSPACE" = "BERLINE") {
@@ -202,3 +212,44 @@ test("workflow opérateur : photos et signatures obligatoires avant la clôture"
   assert.ok(final.photosAvant.every((p) => p.prise) && final.photosApres.every((p) => p.prise));
 });
 
+test("décalage : la journée va jusqu'à 18h, donc le départ de 15h reste ouvert pour 3 h", async () => {
+  await operateur();
+  const lundi = prochain(1);
+  // 15h + 3 h = 18h pile : le créneau n'existe que si la journée finit à 18h.
+  assert.ok((await creneauxDisponibles(lundi, 180)).includes("15:00"));
+  await db.operateur.update({ where: { id: "op-test" }, data: { heureFin: "17:30" } });
+  assert.ok(!(await creneauxDisponibles(lundi, 180)).includes("15:00"));
+});
+
+test("décalage : le chevauchement avec la tournée de l'opérateur est détecté", async () => {
+  const op = await operateur();
+  const lundi = prochain(1);
+  const matin = await nouveauRdv(dateParis(lundi, "08:30"));
+  const apresMidi = await nouveauRdv(dateParis(lundi, "15:00"));
+  for (const r of [matin, apresMidi]) {
+    await db.rendezVous.update({ where: { id: r.id }, data: { operateurId: op.id, dureeMinutes: 180 } });
+  }
+
+    // 13h + 3 h mord sur le rendez-vous de 15h...
+    const conflits = await conflitsOperateur(op.id, dateParis(lundi, "13:00"), 180, matin.id);
+    assert.deepEqual(conflits.map((c) => c.id), [apresMidi.id]);
+    // ...alors que 11h30 + 3 h s'arrête juste avant.
+    assert.equal((await conflitsOperateur(op.id, dateParis(lundi, "11:30"), 180, matin.id)).length, 0);
+
+    // Le décalage effectif laisse une trace datée dans l'historique.
+    const frais = await trouverRendezVous(matin.id);
+    await deplacerRendezVous(frais!, dateParis(lundi, "11:30"));
+    const relu = await trouverRendezVous(matin.id);
+    assert.equal(relu!.dateHeure.getTime(), dateParis(lundi, "11:30").getTime());
+    assert.ok(relu!.historique.some((h) => /^Déplacé du .* au /.test(h.libelle)));
+});
+
+test("suppression définitive refusée dès qu'il y a une pièce comptable", () => {
+  const nu = { numeroFacture: null, acompteStatut: null, paiementConfirmeAt: null };
+  assert.ok(suppressionDefinitivePossible(nu));
+  assert.ok(!suppressionDefinitivePossible({ ...nu, numeroFacture: "F2026-0001" }));
+  assert.ok(!suppressionDefinitivePossible({ ...nu, acompteStatut: "PAYE" }));
+  assert.ok(!suppressionDefinitivePossible({ ...nu, paiementConfirmeAt: new Date() }));
+  // Un acompte seulement en attente n'engage rien : le RDV reste supprimable.
+  assert.ok(suppressionDefinitivePossible({ ...nu, acompteStatut: "EN_ATTENTE_PAIEMENT" }));
+});

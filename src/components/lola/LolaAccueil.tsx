@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import LolaPlanete, { type EtatLola } from "./LolaPlanete";
 import type { CarteRdvLola, CarteSmsLola, ReponseLola, SegmentLola } from "@/lib/lola";
-import { composantesParis } from "@/lib/heure";
+import { composantesParis, dureeLisible } from "@/lib/heure";
 
 // Web Speech API : pas (encore) typée dans lib.dom de TypeScript, et
 // préfixée « webkit » sur Chrome/Safari. On ne déclare que ce qu'on utilise.
@@ -627,7 +627,7 @@ function CarteRdv({ carte, active }: { carte: CarteRdvLola; active: boolean }) {
         <span className="text-2xl font-semibold tabular-nums">{carte.heure}</span>
       </div>
       <p className="mt-3 text-sm font-medium text-[var(--accent)]">
-        {carte.prestation} · {carte.dureeMinutes} min
+        {carte.prestation} · {dureeLisible(carte.dureeMinutes)}
       </p>
       <p className="mt-1 flex items-start gap-1.5 text-sm">
         <svg viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 shrink-0 fill-none stroke-current" strokeWidth={2}>

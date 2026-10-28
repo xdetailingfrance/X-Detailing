@@ -6,7 +6,7 @@ import type { AnglePhoto, ModePaiement, PhotoPrestation, StatutRendezVous } from
 import PartagePosition from "@/components/PartagePosition";
 import PhotoTiles from "@/components/PhotoTiles";
 import SignaturePad from "@/components/SignaturePad";
-import { formatParis } from "@/lib/heure";
+import { dureeLisible, formatParis } from "@/lib/heure";
 
 type Historique = { horodatage: string; libelle: string };
 
@@ -176,7 +176,7 @@ export default function WorkflowPanel({
       <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 grid grid-cols-2 gap-4 text-sm">
         <Info titre="Adresse" valeur={adresse} />
         <Info titre="Véhicule" valeur={vehicule} />
-        <Info titre="Pack" valeur={`${pack} (${dureeMinutes} min)`} />
+        <Info titre="Pack" valeur={`${pack} (${dureeLisible(dureeMinutes)})`} />
         <Info titre="Options" valeur={options.length > 0 ? options.join(", ") : "Aucune"} />
         <Info titre="Reste à payer" valeur={`${resteAPayer.toFixed(2)} €`} />
         <Info

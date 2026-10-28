@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { plageDureeLisible } from "@/lib/heure";
 
 type Client = {
   id: string;
@@ -184,7 +185,7 @@ export default function NouveauRdvForm({
           >
             {packs.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.nom} — {p.dureeMinMinutes}-{p.dureeMaxMinutes} min
+                {p.nom} — {plageDureeLisible(p.dureeMinMinutes, p.dureeMaxMinutes)}
               </option>
             ))}
           </select>

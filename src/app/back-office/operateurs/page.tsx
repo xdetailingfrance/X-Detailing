@@ -4,6 +4,7 @@ import { getSession } from "@/lib/session";
 import { aLaPermission } from "@/lib/permissions";
 import NouvelOperateurForm from "./NouvelOperateurForm";
 import StatutToggle from "./StatutToggle";
+import HorairesForm from "./HorairesForm";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +49,7 @@ export default async function OperateursPage() {
                   </td>
                   <td className="px-4 py-2">{op.secteur?.nom ?? "—"}</td>
                   <td className="px-4 py-2">
-                    {op.heureDebut} – {op.heureFin}
+                    <HorairesForm operateurId={op.id} heureDebut={op.heureDebut} heureFin={op.heureFin} />
                   </td>
                   <td className="px-4 py-2">{op.kangooImmatriculation ?? "—"}</td>
                   <td className="px-4 py-2">
