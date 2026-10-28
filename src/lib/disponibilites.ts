@@ -19,7 +19,7 @@ export const HEURES_CRENEAUX_SAMEDI = ["09:00", "12:00"];
 // exceptionnelle, pas une journée de travail ordinaire.
 export const HEURES_CRENEAUX_DIMANCHE = ["10:00"];
 const MARGE_MINUTES = 15; // même marge que le moteur d'affectation
-const DELAI_MINIMUM_HEURES = 3; // pas de réservation en ligne à moins de 3 h
+export const DELAI_MINIMUM_HEURES = 3; // pas de réservation en ligne à moins de 3 h
 export const JOURS_RESERVABLES = 21;
 
 function minutes(hhmm: string) {

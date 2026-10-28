@@ -2,7 +2,12 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import LogoMarque from "@/components/accueil/LogoMarque";
 import { prestationsPubliques } from "@/lib/prestationsPubliques";
-import { HEURES_CRENEAUX, HEURES_CRENEAUX_DIMANCHE, HEURES_CRENEAUX_SAMEDI } from "@/lib/disponibilites";
+import {
+  DELAI_MINIMUM_HEURES,
+  HEURES_CRENEAUX,
+  HEURES_CRENEAUX_DIMANCHE,
+  HEURES_CRENEAUX_SAMEDI,
+} from "@/lib/disponibilites";
 import { TRANCHES_DEPLACEMENT } from "@/lib/deplacement";
 import { ENTREPRISE, adresseComplete, mentionsManquantes } from "@/lib/entreprise";
 
@@ -17,6 +22,13 @@ export const revalidate = 3600;
 // datées d'aujourd'hui à chaque visite ne prouvent plus rien. À faire suivre
 // quand le texte change.
 const EN_VIGUEUR_AU = "28 octobre 2026";
+
+// Délai d'annulation sans perte de l'acompte. Purement contractuel : aucun
+// code ne le fait respecter, c'est la direction qui tranche au cas par cas.
+const DELAI_ANNULATION_HEURES = 24;
+// Conservation des données de réservation. Les pièces comptables y échappent :
+// la loi impose dix ans, et le code refuse d'effacer un RDV facturé.
+const CONSERVATION_ANS = 2;
 
 /**
  * Conditions générales de vente.
@@ -131,8 +143,8 @@ export default async function ConditionsGenerales() {
             dimanche. Un créneau n&apos;est proposé que si un opérateur peut le tenir en entier.
           </p>
           <p>
-            La réservation en ligne n&apos;est pas possible à moins de trois heures du créneau.
-            Au-delà, le client peut contacter l&apos;entreprise directement.
+            La réservation en ligne n&apos;est pas possible à moins de {DELAI_MINIMUM_HEURES} heures
+            du créneau. En deçà, le client peut contacter l&apos;entreprise directement.
           </p>
         </Article>
 
@@ -149,9 +161,18 @@ export default async function ConditionsGenerales() {
 
         <Article titre="7. Annulation et report">
           <p>
-            Toute annulation ou demande de report doit être signalée au plus tard [DÉLAI
-            D&apos;ANNULATION] avant le créneau. Passé ce délai, l&apos;acompte [SORT DE L&apos;ACOMPTE :
-            conservé / remboursé].
+            Toute annulation ou demande de report doit être signalée au plus tard{" "}
+            {DELAI_ANNULATION_HEURES} heures avant le créneau. Annulée dans ce délai, la prestation
+            est reportée ou remboursée intégralement, acompte compris.
+          </p>
+          <p>
+            Passé ce délai, l&apos;acompte est conservé : le créneau a été immobilisé et ne peut
+            plus être proposé à un autre client. Le solde, lui, n&apos;est jamais dû pour une
+            prestation non réalisée.
+          </p>
+          <p>
+            Cette règle s&apos;applique sans préjudice du droit de rétractation prévu à
+            l&apos;article 8.
           </p>
           <p>
             X Detailing peut reporter une intervention en cas d&apos;intempéries rendant la
@@ -199,9 +220,11 @@ export default async function ConditionsGenerales() {
         <Article titre="11. Données personnelles">
           <p>
             Les informations recueillies sont nécessaires au traitement de la réservation et à la
-            facturation. Elles sont conservées [DURÉE DE CONSERVATION] et ne sont transmises à aucun
-            tiers en dehors des prestataires techniques nécessaires au service — paiement, envoi des
-            messages, hébergement.
+            facturation. Elles sont conservées {CONSERVATION_ANS} ans à compter de la dernière
+            prestation, à l&apos;exception des pièces comptables — factures et justificatifs de
+            paiement — que l&apos;article L. 123-22 du code de commerce impose de garder dix ans.
+            Elles ne sont transmises à aucun tiers en dehors des prestataires techniques
+            nécessaires au service : paiement, envoi des messages, hébergement.
           </p>
           <p>
             Le client dispose d&apos;un droit d&apos;accès, de rectification et d&apos;effacement,
