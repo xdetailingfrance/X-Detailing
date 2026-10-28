@@ -22,7 +22,7 @@ import {
 } from "@/lib/rendezVous";
 import { convertirDevisEnRdv, trouverDevis } from "@/lib/devis";
 import { journaliser } from "@/lib/audit";
-import { MODELES_SMS, envoyerRappels, envoyerSms, smsAOperateur, smsAuClient, smsReelsActives } from "@/lib/sms";
+import { MODELES_SMS, envoyerRappels, envoyerSms, fournisseurSms, smsAOperateur, smsAuClient, smsReelsActives } from "@/lib/sms";
 
 const TAUX_COMMISSION = 0.18;
 
@@ -452,7 +452,7 @@ async function executer(nom: string, entree: Entree, ctx: ContexteOutils): Promi
         const limite = typeof entree.limite === "number" ? Math.min(50, entree.limite) : 15;
         const sms = await db.sms.findMany({ orderBy: { createdAt: "desc" }, take: limite });
         return {
-          mode: smsReelsActives() ? "réel (Twilio)" : "simulé (aucun fournisseur SMS configuré)",
+          mode: smsReelsActives() ? `réel (${fournisseurSms() === "brevo" ? "Brevo" : "Twilio"})` : "simulé (aucun fournisseur SMS configuré)",
           sms: sms.map((s) => ({
             id: s.id,
             a: s.destinataire,

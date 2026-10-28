@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { fournisseurSms } from "@/lib/sms";
 import { LIBELLE_ROLE } from "@/lib/permissions";
 import { formatParis } from "@/lib/heure";
 import { EnTete, Panneau, Section } from "@/components/backoffice/ui";
@@ -17,7 +18,7 @@ export default async function ParametresPage() {
     { nom: "Base de données", ok: Boolean(process.env.DATABASE_URL), detail: "PostgreSQL" },
     { nom: "Connexion sécurisée", ok: process.env.DISABLE_AUTH === "false" && Boolean(process.env.SESSION_SECRET), detail: "DISABLE_AUTH=false et SESSION_SECRET" },
     { nom: "Paiement Stripe", ok: Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET), detail: "Clé secrète et webhook" },
-    { nom: "SMS Twilio", ok: Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_FROM), detail: "Envoi réel des SMS" },
+    { nom: "SMS", ok: fournisseurSms() !== null, detail: fournisseurSms() === "brevo" ? "Brevo" : fournisseurSms() === "twilio" ? "Twilio" : "BREVO_API_KEY ou TWILIO_*" },
     { nom: "Rappels automatiques", ok: Boolean(process.env.CRON_SECRET), detail: "CRON_SECRET" },
     { nom: "Lola (Claude)", ok: Boolean(process.env.ANTHROPIC_API_KEY), detail: "ANTHROPIC_API_KEY" },
     { nom: "Meta Ads", ok: false, detail: "Phase 4" },

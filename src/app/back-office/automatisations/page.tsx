@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { smsReelsActives } from "@/lib/sms";
+import { fournisseurSms, smsReelsActives } from "@/lib/sms";
 import { paiementEnLigneActif } from "@/lib/paiement";
 import { EnTete, Panneau, Section } from "@/components/backoffice/ui";
 
@@ -17,6 +17,7 @@ export default async function AutomatisationsPage() {
   const parMotif = await db.sms.groupBy({ by: ["motif"], where: { createdAt: { gte: depuis } }, _count: true });
   const nb = (motif: string) => parMotif.find((m) => m.motif === motif)?._count ?? 0;
   const sms = smsReelsActives();
+  const fournisseur = fournisseurSms();
 
   const regles = [
     {
@@ -55,7 +56,7 @@ export default async function AutomatisationsPage() {
     <div className="flex flex-col gap-6">
       <EnTete titre="Automatisations" sousTitre="Règles automatiques en service et messages envoyés ces 30 derniers jours." />
       <Panneau className="text-sm">
-        SMS : {sms ? <span className="text-[var(--success)]">envoi réel par Twilio</span> : <span className="text-[var(--warning)]">simulés (Twilio non configuré), consignés dans le journal</span>}.{" "}
+        SMS : {sms ? <span className="text-[var(--success)]">envoi réel par {fournisseur === "brevo" ? "Brevo" : "Twilio"}</span> : <span className="text-[var(--warning)]">simulés (aucun fournisseur configuré), consignés dans le journal</span>}.{" "}
         <a href="/back-office/sms" className="text-[var(--accent-clair)] hover:underline">
           Voir le journal des SMS →
         </a>

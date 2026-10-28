@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { formatParis } from "@/lib/heure";
-import { smsReelsActives } from "@/lib/sms";
+import { fournisseurSms, smsReelsActives } from "@/lib/sms";
 
 export const dynamic = "force-dynamic";
 
@@ -24,13 +24,14 @@ const STYLE_STATUT: Record<string, string> = {
 export default async function SmsPage() {
   const sms = await db.sms.findMany({ orderBy: { createdAt: "desc" }, take: 200 });
   const reels = smsReelsActives();
+  const fournisseur = fournisseurSms();
   return (
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-xl md:text-2xl font-semibold">SMS</h1>
         <p className="text-[var(--muted)] text-sm mt-1">
           {reels
-            ? "Envoi réel via Twilio."
+            ? `Envoi réel via ${fournisseur === "brevo" ? "Brevo" : "Twilio"}.`
             : "Mode simulé : aucun fournisseur SMS n'est configuré (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM) — les messages sont consignés ici sans être envoyés."}
         </p>
       </div>

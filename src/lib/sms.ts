@@ -1,9 +1,13 @@
 // Envoi de SMS (confirmations, affectations, rappels, messages libres).
 //
-// Envoi réel via l'API Twilio quand TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN
-// et TWILIO_FROM sont définis ; sinon le SMS est SIMULÉ (même comportement
-// que le reste du mode démo). Dans tous les cas il est consigné dans le
-// journal (table Sms, page /back-office/sms) et dans l'historique du RDV.
+// Deux fournisseurs possibles, choisis selon les variables présentes :
+// Brevo (BREVO_API_KEY + BREVO_SMS_SENDER) ou Twilio (TWILIO_ACCOUNT_SID,
+// TWILIO_AUTH_TOKEN, TWILIO_FROM). Aucun des deux : le SMS est SIMULÉ.
+//
+// Dans tous les cas il est consigné dans le journal (table Sms, page
+// /back-office/sms) et dans l'historique du RDV — y compris un échec, avec
+// sa raison. Un SMS qu'on croit parti et qui ne l'est pas coûte un
+// rendez-vous.
 import type { MotifSms, RendezVous, Sms, StatutSms } from "@/lib/types";
 import { db, historiserRdv, versRdv } from "@/lib/db";
 import { titrePrestation } from "@/lib/prestationsPubliques";
@@ -17,8 +21,21 @@ function configurationTwilio() {
   return { sid: TWILIO_ACCOUNT_SID, jeton: TWILIO_AUTH_TOKEN, expediteur: TWILIO_FROM };
 }
 
+function configurationBrevo() {
+  const { BREVO_API_KEY, BREVO_SMS_SENDER } = process.env;
+  if (!BREVO_API_KEY || !BREVO_SMS_SENDER) return null;
+  return { cle: BREVO_API_KEY, expediteur: BREVO_SMS_SENDER };
+}
+
+/** Le fournisseur retenu, ou null si les SMS sont simulés. */
+export function fournisseurSms(): "brevo" | "twilio" | null {
+  if (configurationBrevo()) return "brevo";
+  if (configurationTwilio()) return "twilio";
+  return null;
+}
+
 export function smsReelsActives() {
-  return configurationTwilio() !== null;
+  return fournisseurSms() !== null;
 }
 
 // Numéro français saisi « 06 12 34 56 78 » → format international E.164.
@@ -46,6 +63,34 @@ async function envoyerViaTwilio(telephone: string, message: string) {
   }
 }
 
+/**
+ * Brevo — SMS transactionnel.
+ *
+ * L'expéditeur est alphanumérique (« XDetailing »), limité à 11 caractères
+ * en France, et le destinataire attendu sans le « + » de l'E.164.
+ */
+async function envoyerViaBrevo(telephone: string, message: string) {
+  const config = configurationBrevo()!;
+  const res = await fetch("https://api.brevo.com/v3/transactionalSMS/sms", {
+    method: "POST",
+    headers: {
+      "api-key": config.cle,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({
+      type: "transactional",
+      sender: config.expediteur.slice(0, 11),
+      recipient: normaliserTelephone(telephone).replace(/^\+/, ""),
+      content: message,
+    }),
+  });
+  if (!res.ok) {
+    const detail = await res.json().catch(() => null);
+    throw new Error(detail?.message ?? `Brevo a répondu ${res.status}`);
+  }
+}
+
 export async function envoyerSms(params: {
   destinataire: string;
   telephone: string;
@@ -58,7 +103,8 @@ export async function envoyerSms(params: {
   let erreur: string | null = null;
   if (smsReelsActives()) {
     try {
-      await envoyerViaTwilio(params.telephone, params.message);
+      if (fournisseurSms() === "brevo") await envoyerViaBrevo(params.telephone, params.message);
+      else await envoyerViaTwilio(params.telephone, params.message);
       statut = "ENVOYE";
     } catch (e) {
       statut = "ECHEC";
