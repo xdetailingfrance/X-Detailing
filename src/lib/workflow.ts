@@ -14,10 +14,10 @@ export type ActionWorkflow =
   | { type: "CONFIRMER_ARRIVEE" }
   | { type: "SIGNATURE_CONTROLE"; dataUrl: string }
   | { type: "PASSER_PHOTOS_AVANT" }
-  | { type: "PHOTO_AVANT"; angle: AnglePhoto }
+  | { type: "PHOTO_AVANT"; angle: AnglePhoto; chemin?: string }
   | { type: "PASSER_LAVAGE" }
   | { type: "TERMINER_LAVAGE" }
-  | { type: "PHOTO_APRES"; angle: AnglePhoto }
+  | { type: "PHOTO_APRES"; angle: AnglePhoto; chemin?: string }
   | { type: "SIGNATURE_FIN"; dataUrl: string }
   | { type: "PASSER_PAIEMENT" }
   | { type: "CHOISIR_MODE_PAIEMENT"; mode: ModePaiement }
@@ -84,6 +84,7 @@ function transition(rdv: RendezVous, action: ActionWorkflow, historiser: (libell
         if (!photo) return { ok: false, error: "Angle inconnu." };
         photo.prise = true;
         photo.prisAt = new Date();
+        photo.chemin = action.chemin ?? null;
         historiser(`Photo avant prise (${action.angle}).`);
         return { ok: true };
       }
@@ -110,6 +111,7 @@ function transition(rdv: RendezVous, action: ActionWorkflow, historiser: (libell
         if (!photo) return { ok: false, error: "Angle inconnu." };
         photo.prise = true;
         photo.prisAt = new Date();
+        photo.chemin = action.chemin ?? null;
         historiser(`Photo après prise (${action.angle}).`);
         return { ok: true };
       }

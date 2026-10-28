@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { rendezVousParToken } from "@/lib/workflow";
 import { rendezVousAvecRelations } from "@/lib/queries";
 import { formatParis } from "@/lib/heure";
+import { LIBELLE_ANGLE_PHOTO, type PhotoPrestation } from "@/lib/types";
 import GpsLiveSimule from "@/components/GpsLiveSimule";
 import NoteClient from "./NoteClient";
 
@@ -67,6 +68,21 @@ export default async function SuiviPage({ params }: { params: Promise<{ token: s
           <Info titre="Reste à payer" valeur={`${resteAPayer.toFixed(2)} €`} />
         </div>
 
+          <Galerie
+            titre="Avant la prestation"
+            etape="avant"
+            photos={rdv.photosAvant}
+            rdvId={rdv.id}
+            token={token}
+          />
+          <Galerie
+            titre="Après la prestation"
+            etape="apres"
+            photos={rdv.photosApres}
+            rdvId={rdv.id}
+            token={token}
+          />
+
           {rdv.statut === "TERMINE" && (
             <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 flex flex-col gap-3">
               <p className="text-sm text-[var(--success)]">Facture {rdv.numeroFacture}</p>
@@ -76,6 +92,54 @@ export default async function SuiviPage({ params }: { params: Promise<{ token: s
         </div>
       </div>
     );
+}
+
+/**
+ * Les photos du véhicule, telles que l'opérateur les a prises.
+ *
+ * Servies par une route qui revérifie le jeton contre CE rendez-vous : le
+ * stockage est privé, et une photo de voiture devant un domicile ne se trouve
+ * à aucune URL devinable.
+ *
+ * Le bloc disparaît tant qu'aucune photo n'est prise, plutôt que d'afficher
+ * quatre cadres vides pendant la moitié de la prestation.
+ */
+function Galerie({
+  titre,
+  etape,
+  photos,
+  rdvId,
+  token,
+}: {
+  titre: string;
+  etape: "avant" | "apres";
+  photos: PhotoPrestation[];
+  rdvId: string;
+  token: string;
+}) {
+  const prises = photos.filter((p) => p.prise && p.chemin);
+  if (prises.length === 0) return null;
+
+  return (
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 flex flex-col gap-3">
+      <p className="text-sm font-medium">{titre}</p>
+      <div className="grid grid-cols-2 gap-2">
+        {prises.map((photo) => (
+          <figure key={photo.angle} className="flex flex-col gap-1">
+            {/* eslint-disable-next-line @next/next/no-img-element -- flux privé, pas d'optimisation possible */}
+            <img
+              src={`/api/photos/${rdvId}/${etape}/${photo.angle.toLowerCase()}?token=${encodeURIComponent(token)}`}
+              alt={`${LIBELLE_ANGLE_PHOTO[photo.angle]} — ${titre.toLowerCase()}`}
+              className="w-full rounded object-cover"
+            />
+            <figcaption className="text-xs text-[var(--muted)]">
+              {LIBELLE_ANGLE_PHOTO[photo.angle]}
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function Info({ titre, valeur }: { titre: string; valeur: string }) {

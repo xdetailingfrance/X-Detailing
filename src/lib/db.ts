@@ -50,8 +50,19 @@ function lireHistorique(json: Prisma.JsonValue): EvenementHistorique[] {
 function lirePhotos(json: Prisma.JsonValue): PhotoPrestation[] {
   if (!Array.isArray(json)) return [];
   return json.map((p) => {
-    const photo = p as { angle: PhotoPrestation["angle"]; prise: boolean; prisAt: string | null };
-    return { angle: photo.angle, prise: photo.prise, prisAt: photo.prisAt ? new Date(photo.prisAt) : null };
+    const photo = p as {
+      angle: PhotoPrestation["angle"];
+      prise: boolean;
+      prisAt: string | null;
+      chemin?: string | null;
+    };
+    return {
+      angle: photo.angle,
+      prise: photo.prise,
+      prisAt: photo.prisAt ? new Date(photo.prisAt) : null,
+      // Absent sur les prestations antérieures à la prise de vue réelle.
+      chemin: photo.chemin ?? null,
+    };
   });
 }
 

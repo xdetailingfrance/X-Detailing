@@ -42,10 +42,19 @@ export type PhotoPrestation = {
   angle: AnglePhoto;
   prise: boolean;
   prisAt: Date | null;
+  /**
+   * Emplacement de l'image dans le stockage privé, jamais une URL publique :
+   * ces clichés montrent une plaque d'immatriculation devant un domicile. Ils
+   * ne sont servis que par une route qui vérifie l'appelant.
+   *
+   * `null` sur les prestations antérieures à la prise de vue réelle : l'angle
+   * était alors coché sans qu'aucune image existe.
+   */
+  chemin: string | null;
 };
 
 export function photosInitiales(): PhotoPrestation[] {
-  return ANGLES_PHOTO.map((angle) => ({ angle, prise: false, prisAt: null }));
+  return ANGLES_PHOTO.map((angle) => ({ angle, prise: false, prisAt: null, chemin: null }));
 }
 
 export type EvenementHistorique = {

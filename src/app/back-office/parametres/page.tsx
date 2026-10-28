@@ -23,7 +23,7 @@ export default async function ParametresPage() {
     { nom: "Meta Ads", ok: false, detail: "Phase 4" },
     { nom: "Cartographie et GPS", ok: false, detail: "Phase 6" },
     { nom: "E-mail (devis, factures)", ok: false, detail: "Phase 4 / 7" },
-    { nom: "Stockage photos et justificatifs", ok: false, detail: "Phase 5" },
+    { nom: "Stockage photos et justificatifs", ok: Boolean(process.env.BLOB_READ_WRITE_TOKEN), detail: "BLOB_READ_WRITE_TOKEN" },
   ];
 
   return (

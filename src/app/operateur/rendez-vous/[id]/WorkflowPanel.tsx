@@ -127,12 +127,38 @@ export default function WorkflowPanel({
      router.refresh();
    }
 
-   async function photoAvant(angle: AnglePhoto) {
-     await envoyer({ type: "PHOTO_AVANT", angle });
-   }
-   async function photoApres(angle: AnglePhoto) {
-     await envoyer({ type: "PHOTO_APRES", angle });
-   }
+  /**
+   * Envoi d'une photo réelle. L'image part en multipart vers une route dédiée
+   * qui la dépose d'abord dans le stockage privé, puis seulement ensuite coche
+   * l'angle : dans l'autre ordre, une coupure réseau validerait une étape sans
+   * photo, et le workflow autoriserait la suite sur une preuve absente.
+   *
+   * Rend le message d'erreur plutôt que de le poser dans l'état global : il
+   * s'affiche sous la tuile concernée, là où l'opérateur regarde.
+   */
+  async function envoyerPhoto(etape: "avant" | "apres", angle: AnglePhoto, fichier: File) {
+    const formulaire = new FormData();
+    formulaire.append("etape", etape);
+    formulaire.append("angle", angle);
+    formulaire.append("fichier", fichier);
+
+    const res = await fetch(`/api/operateur/rendez-vous/${rendezVousId}/photo`, {
+      method: "POST",
+      body: formulaire,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return data.error ?? "Envoi impossible.";
+
+    setEtat((precedent) => ({
+      ...precedent,
+      statut: data.statut,
+      photosAvant: data.photosAvant,
+      photosApres: data.photosApres,
+      historique: data.historique,
+    }));
+    router.refresh();
+    return null;
+  }
 
    const toutesPhotosAvant = etat.photosAvant.every((p) => p.prise);
    const toutesPhotosApres = etat.photosApres.every((p) => p.prise);
@@ -226,7 +252,13 @@ export default function WorkflowPanel({
 
       {etat.statut === "PHOTOS_AVANT" && (
         <Etape titre="Photos avant prestation (4 angles obligatoires)">
-          <PhotoTiles photos={etat.photosAvant} onSimuler={photoAvant} disabled={enCours} />
+          <PhotoTiles
+            photos={etat.photosAvant}
+            rdvId={rendezVousId}
+            etape="avant"
+            onPhoto={(angle, fichier) => envoyerPhoto("avant", angle, fichier)}
+            disabled={enCours}
+          />
           {toutesPhotosAvant && (
             <button
               onClick={() => envoyer({ type: "PASSER_LAVAGE" })}
@@ -254,7 +286,13 @@ export default function WorkflowPanel({
 
       {etat.statut === "PHOTOS_APRES" && (
         <Etape titre="Photos après prestation (4 angles obligatoires)">
-          <PhotoTiles photos={etat.photosApres} onSimuler={photoApres} disabled={enCours} />
+          <PhotoTiles
+            photos={etat.photosApres}
+            rdvId={rendezVousId}
+            etape="apres"
+            onPhoto={(angle, fichier) => envoyerPhoto("apres", angle, fichier)}
+            disabled={enCours}
+          />
           {toutesPhotosApres && !etat.signatureFinDataUrl && (
             <SignaturePad
               label="Signature du client (fin de prestation)"
