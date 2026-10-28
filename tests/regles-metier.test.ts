@@ -14,7 +14,7 @@ import {
   trouverRendezVous,
 } from "@/lib/rendezVous";
 import { creneauxDisponibles, DELAI_MINIMUM_MINUTES } from "@/lib/disponibilites";
-import { enregistrerPaiement, libererReservation } from "@/lib/paiement";
+import { DUREE_BLOCAGE_MINUTES, enregistrerPaiement, libererReservation } from "@/lib/paiement";
 import { appliquerActionWorkflow } from "@/lib/workflow";
 import { dateParis, decalerJour, jourParis, jourSemaineParis } from "@/lib/heure";
 import { ANGLES_PHOTO } from "@/lib/types";
@@ -254,7 +254,7 @@ test("suppression définitive refusée dès qu'il y a une pièce comptable", () 
   assert.ok(suppressionDefinitivePossible({ ...nu, acompteStatut: "EN_ATTENTE_PAIEMENT" }));
 });
 
-test("un créneau libre se réserve jusqu'à 30 minutes avant le départ, pas moins", async () => {
+test("un créneau libre se réserve jusqu'au délai minimum avant le départ, pas en deçà", async () => {
   await operateur();
   const lundi = prochain(1);
   const depart = dateParis(lundi, "08:30");
@@ -271,4 +271,14 @@ test("un créneau libre se réserve jusqu'à 30 minutes avant le départ, pas mo
     } finally {
       mock.timers.reset();
     }
+});
+
+test("le dernier créneau réservable laisse le temps de payer avant le départ", () => {
+  // Stripe impose un plancher de 30 min à l'expiration d'une session
+  // Checkout : si on pouvait réserver à moins que cela du départ, l'acompte
+  // se finaliserait après l'heure de la prestation.
+  assert.ok(
+    DELAI_MINIMUM_MINUTES > DUREE_BLOCAGE_MINUTES,
+    `réservable à ${DELAI_MINIMUM_MINUTES} min du départ alors que le paiement reste ouvert ${DUREE_BLOCAGE_MINUTES} min`
+  );
 });

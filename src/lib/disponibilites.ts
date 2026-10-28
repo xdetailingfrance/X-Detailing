@@ -19,10 +19,14 @@ export const HEURES_CRENEAUX_SAMEDI = ["09:00", "12:00"];
 // exceptionnelle, pas une journée de travail ordinaire.
 export const HEURES_CRENEAUX_DIMANCHE = ["10:00"];
 const MARGE_MINUTES = 15; // même marge que le moteur d'affectation
-// Un créneau libre se réserve jusqu'à la dernière minute : 30 minutes avant
-// le départ. En minutes et non en heures — une demi-heure ne s'écrit pas
-// « 0,5 heure » dans des conditions générales.
-export const DELAI_MINIMUM_MINUTES = 30;
+// Un créneau libre se réserve jusqu'à la dernière minute. La valeur doit
+// rester STRICTEMENT supérieure à DUREE_BLOCAGE_MINUTES (src/lib/paiement.ts,
+// 30 min, plancher imposé par Stripe pour l'expiration d'une session
+// Checkout) : sinon le paiement de l'acompte peut se finaliser après l'heure
+// de départ, et on encaisse pour un créneau déjà commencé.
+// En minutes et non en heures : « 45 minutes » ne s'écrit pas « 0,75 heure »
+// dans des conditions générales.
+export const DELAI_MINIMUM_MINUTES = 45;
 export const JOURS_RESERVABLES = 21;
 
 function minutes(hhmm: string) {
