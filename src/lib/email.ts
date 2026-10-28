@@ -178,8 +178,22 @@ export async function emailDevis(devis: Devis) {
     <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:16px;font-size:15px">
       <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Véhicule</td><td>${devis.vehiculeDescription}</td></tr>
       <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Lieu</td><td>${devis.adresse}, ${devis.ville}</td></tr>
+      ${
+        Number(devis.remisePourcent) > 0
+          ? `<tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Remise</td><td>${devis.remisePourcent} %</td></tr>`
+          : ""
+      }
+      ${
+        Number(devis.fraisDeplacement) > 0
+          ? `<tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Déplacement</td><td>${euros(Number(devis.fraisDeplacement))}</td></tr>`
+          : ""
+      }
       <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Total</td><td><strong>${euros(devis.prixTotal)}</strong></td></tr>
-      <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Acompte à la réservation</td><td>${euros(devis.acompte)}</td></tr>
+      ${
+        devis.avecAcompte
+          ? `<tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Acompte à la réservation</td><td>${euros(devis.acompte)}</td></tr>`
+          : ""
+      }
     </table>
     <p style="margin-top:20px">Le détail des prestations et des options se trouve sur la page du devis.</p>`;
 

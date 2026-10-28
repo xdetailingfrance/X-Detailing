@@ -5,6 +5,7 @@ import { getSession } from "@/lib/session";
 import { calculerPrix } from "@/lib/rendezVous";
 import { CATEGORIES_VEHICULE } from "@/lib/clients";
 import { journaliser } from "@/lib/audit";
+import { envoyerDevis, trouverDevis } from "@/lib/devis";
 
 // Création d'un devis par le commercial ou le directeur. Le prix n'est
 // jamais reçu du client : il est recalculé côté serveur depuis la grille
@@ -32,6 +33,21 @@ export async function POST(request: Request) {
   const prix = await calculerPrix(body.packId, body.categorieVehicule, optionIds);
   if (!prix.ok) return NextResponse.json({ error: prix.erreur }, { status: 400 });
 
+  /*
+   * Remise, frais de route et acompte sont recalculés ici et jamais repris du
+   * formulaire : le prix total envoyé par un navigateur n'engage personne.
+   * La remise ne porte que sur les prestations — les frais de déplacement sont
+   * un coût, pas une marge sur laquelle négocier.
+   */
+  const remisePourcent = Math.min(100, Math.max(0, Number(body.remisePourcent) || 0));
+  const fraisDeplacement = Math.max(0, Number(body.fraisDeplacement) || 0);
+  const avecAcompte = body.avecAcompte !== false;
+
+  const arrondi = (v: number) => Math.round(v * 100) / 100;
+  const base = prix.valeur.prixTotal;
+  const prixTotal = arrondi(base * (1 - remisePourcent / 100) + fraisDeplacement);
+  const acompte = avecAcompte ? arrondi(prixTotal * 0.1) : 0;
+
   const devis = await db.devis.create({
     data: {
       token: genToken(),
@@ -46,14 +62,37 @@ export async function POST(request: Request) {
       categorieVehicule: body.categorieVehicule,
       packId: body.packId,
       optionIds,
-      prixTotal: prix.valeur.prixTotal,
-      acompte: prix.valeur.acompte,
+      remisePourcent,
+      fraisDeplacement,
+      avecAcompte,
+      prixTotal,
+      acompte,
       creeParUtilisateurId: session.sub,
       historique: premierEvenement("Devis créé."),
     },
   });
-  await journaliser({ acteur: session, action: "DEVIS_CREE", entite: "Devis", entiteId: devis.id, details: { prixTotal: prix.valeur.prixTotal } });
+  await journaliser({ acteur: session, action: "DEVIS_CREE", entite: "Devis", entiteId: devis.id, details: { base, remisePourcent, fraisDeplacement, prixTotal, acompte } });
 
-    return NextResponse.json(await devisAvecRelations(devis.id), { status: 201 });
+  /*
+   * Envoi immédiat quand la direction le demande. L'échec n'annule pas le
+   * devis — il est créé, chiffré, consultable — mais il est dit : « envoyé »
+   * sans destinataire joignable est ce qui fait perdre une affaire sans le
+   * savoir.
+   */
+  let envoi: { envoye: boolean; erreur?: string } | null = null;
+  if (body.envoyer === true) {
+    const complet = await trouverDevis(devis.id);
+    if (complet) {
+      const resultat = await envoyerDevis(complet);
+      envoi = resultat.ok
+        ? { envoye: true }
+        : { envoye: false, erreur: resultat.error };
+      if (resultat.ok) {
+        await journaliser({ acteur: session, action: "DEVIS_ENVOYE", entite: "Devis", entiteId: devis.id });
+      }
+    }
+  }
+
+    return NextResponse.json({ ...(await devisAvecRelations(devis.id)), envoi }, { status: 201 });
 }
 

@@ -4,6 +4,7 @@ import LogoMarque from "@/components/accueil/LogoMarque";
 import { prestationsPubliques } from "@/lib/prestationsPubliques";
 import { HEURES_CRENEAUX, HEURES_CRENEAUX_DIMANCHE, HEURES_CRENEAUX_SAMEDI } from "@/lib/disponibilites";
 import { TRANCHES_DEPLACEMENT } from "@/lib/deplacement";
+import { ENTREPRISE, adresseComplete, mentionsManquantes } from "@/lib/entreprise";
 
 export const metadata: Metadata = {
   title: "Conditions générales de vente — X Detailing",
@@ -49,15 +50,27 @@ export default async function ConditionsGenerales() {
 
         <Article titre="1. Identification du prestataire">
           <p>
-            Les présentes conditions régissent les prestations proposées par [RAISON SOCIALE],
-            [FORME JURIDIQUE] au capital de [CAPITAL], immatriculée au RCS de [VILLE DU RCS] sous le
-            numéro [SIRET], dont le siège social est situé [ADRESSE DU SIÈGE].
+            Les présentes conditions régissent les prestations proposées par{" "}
+            <strong>{ENTREPRISE.raisonSociale}</strong>, {ENTREPRISE.formeJuridique}
+            {ENTREPRISE.capital ? ` au capital de ${ENTREPRISE.capital}` : " au capital de [CAPITAL]"},
+            immatriculée le {ENTREPRISE.immatriculationLe} au {ENTREPRISE.rcs} sous le numéro SIREN{" "}
+            {ENTREPRISE.siren}, SIRET {ENTREPRISE.siret}, dont le siège social est situé{" "}
+            {adresseComplete()}.
           </p>
           <p>
-            Numéro de TVA intracommunautaire : [NUMÉRO DE TVA]. Assurance responsabilité civile
-            professionnelle : [ASSUREUR], contrat n° [NUMÉRO DE CONTRAT].
+            Activité : {ENTREPRISE.naf.libelle} (code NAF {ENTREPRISE.naf.code}). Numéro de TVA
+            intracommunautaire : {ENTREPRISE.tva}.
           </p>
-          <p>Contact : [ADRESSE E-MAIL] · +33 6 49 36 83 28.</p>
+          <p>
+            Assurance responsabilité civile professionnelle :{" "}
+            {ENTREPRISE.assuranceRcPro
+              ? `${ENTREPRISE.assuranceRcPro.assureur}, contrat n° ${ENTREPRISE.assuranceRcPro.contrat}`
+              : "[ASSUREUR ET NUMÉRO DE CONTRAT]"}
+            .
+          </p>
+          <p>
+            Contact : {ENTREPRISE.email ?? "[ADRESSE E-MAIL]"} · {ENTREPRISE.telephone}.
+          </p>
         </Article>
 
         <Article titre="2. Prestations">
@@ -207,8 +220,8 @@ export default async function ConditionsGenerales() {
         </Article>
 
         <p className="mt-12 rounded-lg border border-[var(--encre)]/10 bg-[var(--surface-2,#f7f7fa)] p-4 text-sm text-[var(--chrome)]/80">
-          Les mentions entre crochets restent à compléter, et l&apos;ensemble doit être relu par un
-          conseil juridique avant d&apos;engager l&apos;entreprise. Les prestations, durées,
+          Restent à renseigner : {mentionsManquantes().join(", ")}. L&apos;ensemble doit être relu
+          par un conseil juridique avant d&apos;engager l&apos;entreprise. Les prestations, durées,
           créneaux, acompte et frais de déplacement décrits ici sont en revanche lus directement
           dans le système qui les applique : ils ne peuvent pas diverger de ce que le site pratique.
         </p>

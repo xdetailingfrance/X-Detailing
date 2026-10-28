@@ -354,6 +354,15 @@ model Devis {
   packId               String
   pack                 Pack              @relation(fields: [packId], references: [id])
   optionIds            String[]
+  /// Remise commerciale consentie, en pourcentage du prix des prestations.
+  /// Les frais de déplacement n'en bénéficient pas : ils sont un coût, pas
+  /// une marge sur laquelle négocier.
+  remisePourcent       Decimal           @default(0) @db.Decimal(5, 2)
+  /// Supplément de route, calculé depuis le point de départ à la saisie de
+  /// l'adresse. Figé au devis : le barème peut changer, pas une offre émise.
+  fraisDeplacement     Decimal           @default(0) @db.Decimal(10, 2)
+  /// La direction peut émettre un devis sans acompte.
+  avecAcompte          Boolean           @default(true)
   prixTotal            Decimal           @db.Decimal(10, 2)
   acompte              Decimal           @db.Decimal(10, 2)
   statut               StatutDevis       @default(BROUILLON)

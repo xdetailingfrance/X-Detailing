@@ -48,9 +48,6 @@ export default async function Accueil() {
           <a href="#fonctionnement" className="hidden hover:text-[var(--encre)] sm:inline">
             Comment ça marche
           </a>
-          <Link href="/back-office" className="hidden hover:text-[var(--encre)] sm:inline">
-            Espace équipe
-          </Link>
           {/*
             Appel direct par WhatsApp. `wa.me` ouvre l'application sur mobile et
             WhatsApp Web sur ordinateur ; le numéro y est attendu au format
