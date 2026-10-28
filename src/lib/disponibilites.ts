@@ -19,7 +19,10 @@ export const HEURES_CRENEAUX_SAMEDI = ["09:00", "12:00"];
 // exceptionnelle, pas une journée de travail ordinaire.
 export const HEURES_CRENEAUX_DIMANCHE = ["10:00"];
 const MARGE_MINUTES = 15; // même marge que le moteur d'affectation
-export const DELAI_MINIMUM_HEURES = 3; // pas de réservation en ligne à moins de 3 h
+// Un créneau libre se réserve jusqu'à la dernière minute : 30 minutes avant
+// le départ. En minutes et non en heures — une demi-heure ne s'écrit pas
+// « 0,5 heure » dans des conditions générales.
+export const DELAI_MINIMUM_MINUTES = 30;
 export const JOURS_RESERVABLES = 21;
 
 function minutes(hhmm: string) {
@@ -42,7 +45,7 @@ export async function creneauxDisponibles(jour: string, dureeMinutes: number, tx
   if (!/^\d{4}-\d{2}-\d{2}$/.test(jour)) return [];
   const debutJour = dateParis(jour);
   if (Number.isNaN(debutJour.getTime())) return [];
-  const limite = Date.now() + DELAI_MINIMUM_HEURES * 3600000;
+  const limite = Date.now() + DELAI_MINIMUM_MINUTES * 60000;
   const horizon = Date.now() + JOURS_RESERVABLES * 86400000;
   if (debutJour.getTime() > horizon) return [];
 

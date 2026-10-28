@@ -1,7 +1,7 @@
 // Règles métier vérifiées contre une vraie base PostgreSQL de test.
 // DATABASE_URL doit désigner une base dont le nom contient « test » : elle
 // est vidée entre les tests.
-import { after, before, beforeEach, test } from "node:test";
+import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { table } from "@/lib/connexion";
 import { db, ConflitDeVersion, enregistrerRdv, historiserRdv } from "@/lib/db";
@@ -13,7 +13,7 @@ import {
   suppressionDefinitivePossible,
   trouverRendezVous,
 } from "@/lib/rendezVous";
-import { creneauxDisponibles } from "@/lib/disponibilites";
+import { creneauxDisponibles, DELAI_MINIMUM_MINUTES } from "@/lib/disponibilites";
 import { enregistrerPaiement, libererReservation } from "@/lib/paiement";
 import { appliquerActionWorkflow } from "@/lib/workflow";
 import { dateParis, decalerJour, jourParis, jourSemaineParis } from "@/lib/heure";
@@ -252,4 +252,23 @@ test("suppression définitive refusée dès qu'il y a une pièce comptable", () 
   assert.ok(!suppressionDefinitivePossible({ ...nu, paiementConfirmeAt: new Date() }));
   // Un acompte seulement en attente n'engage rien : le RDV reste supprimable.
   assert.ok(suppressionDefinitivePossible({ ...nu, acompteStatut: "EN_ATTENTE_PAIEMENT" }));
+});
+
+test("un créneau libre se réserve jusqu'à 30 minutes avant le départ, pas moins", async () => {
+  await operateur();
+  const lundi = prochain(1);
+  const depart = dateParis(lundi, "08:30");
+
+    // L'horloge est pilotée : à 20 h un soir d'octobre, aucun créneau du jour
+    // n'est à portée de la borne qu'on veut éprouver.
+    const a = (minutesAvant: number) => new Date(depart.getTime() - minutesAvant * 60000);
+    try {
+      mock.timers.enable({ apis: ["Date"], now: a(DELAI_MINIMUM_MINUTES + 1) });
+      assert.ok((await creneauxDisponibles(lundi, 150)).includes("08:30"), "31 min avant : encore réservable");
+
+      mock.timers.setTime(a(DELAI_MINIMUM_MINUTES - 1).getTime());
+      assert.ok(!(await creneauxDisponibles(lundi, 150)).includes("08:30"), "29 min avant : trop tard");
+    } finally {
+      mock.timers.reset();
+    }
 });

@@ -3,13 +3,14 @@ import type { Metadata } from "next";
 import LogoMarque from "@/components/accueil/LogoMarque";
 import { prestationsPubliques } from "@/lib/prestationsPubliques";
 import {
-  DELAI_MINIMUM_HEURES,
+  DELAI_MINIMUM_MINUTES,
   HEURES_CRENEAUX,
   HEURES_CRENEAUX_DIMANCHE,
   HEURES_CRENEAUX_SAMEDI,
 } from "@/lib/disponibilites";
 import { TRANCHES_DEPLACEMENT } from "@/lib/deplacement";
 import { ENTREPRISE, adresseComplete, mentionsManquantes } from "@/lib/entreprise";
+import { dureeLisible } from "@/lib/heure";
 
 export const metadata: Metadata = {
   title: "Conditions générales de vente — X Detailing",
@@ -143,8 +144,9 @@ export default async function ConditionsGenerales() {
             dimanche. Un créneau n&apos;est proposé que si un opérateur peut le tenir en entier.
           </p>
           <p>
-            La réservation en ligne n&apos;est pas possible à moins de {DELAI_MINIMUM_HEURES} heures
-            du créneau. En deçà, le client peut contacter l&apos;entreprise directement.
+            Un créneau se réserve en ligne jusqu&apos;à {dureeLisible(DELAI_MINIMUM_MINUTES)} avant
+            le départ, tant qu&apos;il reste disponible. Passé ce délai, le client peut contacter
+            l&apos;entreprise directement.
           </p>
         </Article>
 
@@ -161,14 +163,20 @@ export default async function ConditionsGenerales() {
 
         <Article titre="7. Annulation et report">
           <p>
-            Toute annulation ou demande de report doit être signalée au plus tard{" "}
-            {DELAI_ANNULATION_HEURES} heures avant le créneau. Annulée dans ce délai, la prestation
-            est reportée ou remboursée intégralement, acompte compris.
+            Jusqu&apos;à {DELAI_ANNULATION_HEURES} heures avant le créneau, le client peut annuler
+            ou demander un report : la prestation est alors reportée ou remboursée intégralement,
+            acompte compris.
           </p>
           <p>
-            Passé ce délai, l&apos;acompte est conservé : le créneau a été immobilisé et ne peut
-            plus être proposé à un autre client. Le solde, lui, n&apos;est jamais dû pour une
-            prestation non réalisée.
+            Dans les {DELAI_ANNULATION_HEURES} heures qui précèdent le créneau, l&apos;annulation
+            n&apos;est plus possible et l&apos;acompte est conservé — y compris lorsque la
+            réservation a été prise pendant ce délai. Le créneau a été immobilisé et ne peut plus
+            être proposé à un autre client. Le solde, lui, n&apos;est jamais dû pour une prestation
+            non réalisée.
+          </p>
+          <p>
+            X Detailing peut, selon les disponibilités, proposer de déplacer le créneau plutôt que
+            de le perdre. Il s&apos;agit d&apos;un geste commercial, non d&apos;un droit.
           </p>
           <p>
             Cette règle s&apos;applique sans préjudice du droit de rétractation prévu à
