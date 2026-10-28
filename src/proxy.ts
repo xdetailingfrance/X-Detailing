@@ -25,6 +25,11 @@ function estCheminPublic(pathname: string) {
     pathname.startsWith("/api/demo/") ||
     pathname.startsWith("/api/suivi/") ||
     pathname.startsWith("/suivi/") ||
+    // Photos de prestation : la route décide elle-même, et elle doit pouvoir
+    // le faire. Le client qui les consulte n'a pas de session — il détient le
+    // jeton de suivi de SON rendez-vous, que la route compare au rendez-vous
+    // demandé. Bloquer ici lui renverrait un 401 avant toute vérification.
+    pathname.startsWith("/api/photos/") ||
     pathname.startsWith("/api/devis-public/") ||
     pathname.startsWith("/devis/")
   );

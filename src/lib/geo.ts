@@ -73,7 +73,10 @@ export async function itineraireRoutier(
   arriveeLng: number,
 ): Promise<{ distanceKm: number; minutes: number } | null> {
   const url = new URL("https://data.geopf.fr/navigation/itineraire");
-  url.searchParams.set("resource", "bdtopo-osrm");
+  // `bdtopo-valhalla` : moteur publié par l'IGN. L'ancien `bdtopo-osrm` a été
+  // retiré du service et renvoie désormais une erreur — ce qui, silencieusement,
+  // ramenait chaque estimation au calcul à vol d'oiseau.
+  url.searchParams.set("resource", "bdtopo-valhalla");
   url.searchParams.set("start", `${departLng},${departLat}`);
   url.searchParams.set("end", `${arriveeLng},${arriveeLat}`);
   url.searchParams.set("profile", "car");
@@ -84,11 +87,25 @@ export async function itineraireRoutier(
 
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
-    if (!res.ok) return null;
-    const data = (await res.json()) as { distance?: number; duration?: number };
-    if (typeof data.distance !== "number" || typeof data.duration !== "number") return null;
+    const data = (await res.json().catch(() => null)) as
+      | { distance?: number; duration?: number; error?: { message?: string } }
+      | null;
+
+    if (!res.ok || typeof data?.distance !== "number" || typeof data.duration !== "number") {
+      /*
+       * Tracé, jamais tu : l'appelant retombe sur l'estimation géométrique, et
+       * sans cette ligne la dégradation est invisible. Le service a déjà changé
+       * de moteur une fois — l'ancien identifiant de ressource a été retiré, et
+       * chaque trajet repartait au vol d'oiseau sans que rien ne le signale.
+       */
+      console.warn(
+        `[itineraire] Géoplateforme indisponible : ${data?.error?.message ?? `HTTP ${res.status}`}`,
+      );
+      return null;
+    }
     return { distanceKm: Math.round(data.distance * 10) / 10, minutes: Math.round(data.duration) };
-  } catch {
+  } catch (erreur) {
+    console.warn(`[itineraire] appel impossible : ${erreur instanceof Error ? erreur.message : erreur}`);
     return null;
   }
 }
