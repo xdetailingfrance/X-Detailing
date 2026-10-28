@@ -13,6 +13,11 @@ export const metadata: Metadata = {
 
 export const revalidate = 3600;
 
+// Date de la version du texte, pas celle du jour : des conditions générales
+// datées d'aujourd'hui à chaque visite ne prouvent plus rien. À faire suivre
+// quand le texte change.
+const EN_VIGUEUR_AU = "28 octobre 2026";
+
 /**
  * Conditions générales de vente.
  *
@@ -21,13 +26,15 @@ export const revalidate = 3600;
  * recopiés : des conditions qui annoncent un tarif que le site ne pratique pas
  * engagent l'entreprise sur le tarif annoncé.
  *
- * Les mentions entre crochets attendent une information d'état civil ou
- * juridique que personne ne peut inventer. Elles s'affichent telles quelles,
- * volontairement : un emplacement visible se corrige, une donnée plausible
+ * L'identité légale vient de src/lib/entreprise.ts, jamais d'une copie : une
+ * facture qui porte un SIRET différent de celui des conditions générales est
+ * une facture contestable. Si un champ y manque, mentionsManquantes() le dit
+ * en bas de page — un emplacement visible se corrige, une donnée plausible
  * fabriquée traverse la mise en ligne sans que personne ne la voie.
  */
 export default async function ConditionsGenerales() {
   const prestations = await prestationsPubliques();
+  const manquantes = mentionsManquantes();
 
   return (
     <div className="site-clair min-h-screen bg-white">
@@ -45,14 +52,14 @@ export default async function ConditionsGenerales() {
           Conditions générales de vente
         </h1>
         <p className="mt-2 text-sm text-[var(--chrome)]/70">
-          En vigueur au [DATE DE MISE À JOUR].
+          En vigueur au {EN_VIGUEUR_AU}.
         </p>
 
         <Article titre="1. Identification du prestataire">
           <p>
             Les présentes conditions régissent les prestations proposées par{" "}
             <strong>{ENTREPRISE.raisonSociale}</strong>, {ENTREPRISE.formeJuridique}
-            {ENTREPRISE.capital ? ` au capital de ${ENTREPRISE.capital}` : " au capital de [CAPITAL]"},
+            {ENTREPRISE.capital ? ` au capital de ${ENTREPRISE.capital}` : ""},
             immatriculée le {ENTREPRISE.immatriculationLe} au {ENTREPRISE.rcs} sous le numéro SIREN{" "}
             {ENTREPRISE.siren}, SIRET {ENTREPRISE.siret}, dont le siège social est situé{" "}
             {adresseComplete()}.
@@ -62,14 +69,7 @@ export default async function ConditionsGenerales() {
             intracommunautaire : {ENTREPRISE.tva}.
           </p>
           <p>
-            Assurance responsabilité civile professionnelle :{" "}
-            {ENTREPRISE.assuranceRcPro
-              ? `${ENTREPRISE.assuranceRcPro.assureur}, contrat n° ${ENTREPRISE.assuranceRcPro.contrat}`
-              : "[ASSUREUR ET NUMÉRO DE CONTRAT]"}
-            .
-          </p>
-          <p>
-            Contact : {ENTREPRISE.email ?? "[ADRESSE E-MAIL]"} · {ENTREPRISE.telephone}.
+            Contact : {ENTREPRISE.email} · {ENTREPRISE.telephone}.
           </p>
         </Article>
 
@@ -205,25 +205,28 @@ export default async function ConditionsGenerales() {
           </p>
           <p>
             Le client dispose d&apos;un droit d&apos;accès, de rectification et d&apos;effacement,
-            qu&apos;il peut exercer à [ADRESSE E-MAIL].
+            qu&apos;il peut exercer à {ENTREPRISE.email}.
           </p>
         </Article>
 
         <Article titre="12. Litiges">
           <p>
-            En cas de difficulté, le client est invité à contacter l&apos;entreprise. À défaut
-            d&apos;accord, il peut recourir gratuitement au médiateur de la consommation
-            [MÉDIATEUR : nom et coordonnées], conformément à l&apos;article L. 612-1 du code de la
-            consommation.
+            En cas de difficulté, le client est invité à contacter l&apos;entreprise à{" "}
+            {ENTREPRISE.email} ou au {ENTREPRISE.telephone} : la très grande majorité des
+            désaccords se règlent ainsi.
           </p>
-          <p>Le droit français est applicable.</p>
+          <p>
+            À défaut d&apos;accord amiable, le litige relève des tribunaux compétents. Le droit
+            français est applicable.
+          </p>
         </Article>
 
         <p className="mt-12 rounded-lg border border-[var(--encre)]/10 bg-[var(--surface-2,#f7f7fa)] p-4 text-sm text-[var(--chrome)]/80">
-          Restent à renseigner : {mentionsManquantes().join(", ")}. L&apos;ensemble doit être relu
-          par un conseil juridique avant d&apos;engager l&apos;entreprise. Les prestations, durées,
-          créneaux, acompte et frais de déplacement décrits ici sont en revanche lus directement
-          dans le système qui les applique : ils ne peuvent pas diverger de ce que le site pratique.
+          {manquantes.length > 0 && <>Restent à renseigner : {manquantes.join(", ")}. </>}
+          Ce texte doit être relu par un conseil juridique avant d&apos;engager l&apos;entreprise.
+          Les prestations, durées, créneaux, acompte et frais de déplacement décrits ici sont en
+          revanche lus directement dans le système qui les applique : ils ne peuvent pas diverger
+          de ce que le site pratique.
         </p>
       </main>
     </div>

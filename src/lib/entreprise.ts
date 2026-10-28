@@ -27,11 +27,9 @@ export const ENTREPRISE = {
   /** Au format attendu par wa.me : international, sans espace ni « + ». */
   whatsapp: "33649368328",
 
-  // Non publiés au registre : à renseigner par la direction.
-  capital: null as string | null,
-  email: null as string | null,
-  assuranceRcPro: null as { assureur: string; contrat: string } | null,
-  mediateur: null as { nom: string; coordonnees: string } | null,
+  // Non publiés au registre : renseignés par la direction.
+  capital: "1 000 €" as string | null,
+  email: "contact@xdetailing.fr" as string | null,
 } as const;
 
 export function adresseComplete() {
@@ -44,7 +42,5 @@ export function mentionsManquantes(): string[] {
   const manquantes: string[] = [];
   if (!ENTREPRISE.capital) manquantes.push("capital social");
   if (!ENTREPRISE.email) manquantes.push("adresse e-mail de contact");
-  if (!ENTREPRISE.assuranceRcPro) manquantes.push("assurance responsabilité civile professionnelle");
-  if (!ENTREPRISE.mediateur) manquantes.push("médiateur de la consommation");
   return manquantes;
 }
