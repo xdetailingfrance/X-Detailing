@@ -53,6 +53,7 @@ const REGLES: [string, Permission][] = [
   ["/back-office/devis", "devis"],
   ["/api/devis", "devis"],
   ["/back-office/sms", "sms"],
+  ["/api/sms", "sms"],
   ["/api/assistant", "lola"],
   ["/back-office/journal", "audit"],
   ["/back-office/reservations", "planning"],

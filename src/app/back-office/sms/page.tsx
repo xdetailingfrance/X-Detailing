@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { formatParis } from "@/lib/heure";
 import { fournisseurSms, smsReelsActives } from "@/lib/sms";
+import TestSmsForm from "./TestSmsForm";
 
 export const dynamic = "force-dynamic";
 
@@ -32,9 +33,12 @@ export default async function SmsPage() {
         <p className="text-[var(--muted)] text-sm mt-1">
           {reels
             ? `Envoi réel via ${fournisseur === "brevo" ? "Brevo" : "Twilio"}.`
-            : "Mode simulé : aucun fournisseur SMS n'est configuré (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM) — les messages sont consignés ici sans être envoyés."}
+            : "Mode simulé : aucun fournisseur SMS n'est configuré — les messages sont consignés ici sans être envoyés. Brevo demande BREVO_API_KEY et BREVO_SMS_SENDER ; Twilio, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN et TWILIO_FROM."}
         </p>
       </div>
+
+      <TestSmsForm />
+
       <div className="rounded-lg border border-[var(--border)] overflow-x-auto">
         <table className="w-full min-w-[560px] text-sm">
           <thead className="bg-[var(--surface)] text-[var(--muted)] text-left">

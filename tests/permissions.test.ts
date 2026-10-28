@@ -7,6 +7,7 @@ test("chaque chemin sensible exige sa permission", () => {
   assert.equal(permissionRequise("/api/packs/pack-concession/tarifs"), "tarifs");
   assert.equal(permissionRequise("/api/rendez-vous/abc/affectation"), "planning");
   assert.equal(permissionRequise("/back-office/journal"), "audit");
+  assert.equal(permissionRequise("/api/sms/test"), "sms");
   assert.equal(permissionRequise("/back-office/finances-bis"), null);
 });
 
