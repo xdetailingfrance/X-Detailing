@@ -1,6 +1,7 @@
 // Créneaux réellement disponibles pour la réservation en ligne. Les heures
 // de départ sont celles du site X Detailing (8h30, 11h30, 15h ; le samedi
-// 9h et 12h ; fermé le dimanche), en heure de Paris ; chacune n'est
+// 9h et 12h ; le dimanche un seul départ à 10h), en heure de Paris ;
+// chacune n'est
 // proposée que si, à cette heure, il reste au moins un opérateur libre
 // pendant toute la durée du pack (marge de sécurité comprise), une fois
 // retirés les RDV déjà affectés et ceux encore en attente d'opérateur.
@@ -14,6 +15,9 @@ import { dateParis, decalerJour, jourSemaineParis } from "@/lib/heure";
 // Heures de départ proposées aux clients (celles du site X Detailing).
 export const HEURES_CRENEAUX = ["08:30", "11:30", "15:00"];
 export const HEURES_CRENEAUX_SAMEDI = ["09:00", "12:00"];
+// Un seul rendez-vous le dimanche, et un seul : c'est une ouverture
+// exceptionnelle, pas une journée de travail ordinaire.
+export const HEURES_CRENEAUX_DIMANCHE = ["10:00"];
 const MARGE_MINUTES = 15; // même marge que le moteur d'affectation
 const DELAI_MINIMUM_HEURES = 3; // pas de réservation en ligne à moins de 3 h
 export const JOURS_RESERVABLES = 21;
@@ -43,8 +47,12 @@ export async function creneauxDisponibles(jour: string, dureeMinutes: number, tx
   if (debutJour.getTime() > horizon) return [];
 
     const jourSemaine = jourSemaineParis(new Date(debutJour.getTime() + 12 * 3600000));
-    if (jourSemaine === 0) return []; // fermé le dimanche
-    const heures = jourSemaine === 6 ? HEURES_CRENEAUX_SAMEDI : HEURES_CRENEAUX;
+    const heures =
+      jourSemaine === 0
+        ? HEURES_CRENEAUX_DIMANCHE
+        : jourSemaine === 6
+          ? HEURES_CRENEAUX_SAMEDI
+          : HEURES_CRENEAUX;
 
   // Requêtes successives : elles peuvent s'exécuter dans une transaction.
   const rdvDuJour = await tx.rendezVous.findMany({

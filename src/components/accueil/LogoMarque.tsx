@@ -1,36 +1,31 @@
-import contour from "./contour-x.json";
-
-// Logo officiel X Detailing sur fond transparent : superposition des deux
-// calques découpés dans le fichier original (X + « DETAILING »), sans le
-// carré noir du PNG. Rendu identique au logo sur fond noir.
-// Variante « claire » (sur fond blanc) : le mot DETAILING passe en noir,
-// même dessin et même typographie ; le X reste tel quel.
+// Logo officiel X Detailing, servi tel quel.
+//
+// Il n'est plus découpé en calques : sur la version définitive, le mot
+// DETAILING traverse le X au lieu d'être posé dessous, et les deux ne sont
+// plus séparables. Il est aussi dessiné pour un fond sombre — le mot est gris
+// anthracite —, donc il garde son fond noir sur les pages claires plutôt que
+// d'être détouré, ce qui le rendrait illisible.
+//
+// Aucune retouche : ni redécoupe, ni changement de forme ou de typographie.
 export default function LogoMarque({
   id,
   className,
-  variante = "sombre",
+  priorite,
 }: {
   id?: string;
   className?: string;
-  variante?: "sombre" | "claire";
+  priorite?: boolean;
 }) {
-  const { hauteur, bande } = contour;
   return (
-    <span id={id} role="img" aria-label="X Detailing" className={`relative block aspect-square ${className ?? ""}`}>
-      {/* eslint-disable-next-line @next/next/no-img-element -- calque du logo, servi tel quel */}
-      <img src="/marque/x-640.webp" alt="" className="absolute inset-0 h-full w-full" />
-      {/* eslint-disable-next-line @next/next/no-img-element -- calque du logo, servi tel quel */}
-      <img
-        src="/marque/detailing-640.webp"
-        alt=""
-        className="logo-detailing absolute inset-x-0 w-full"
-        style={{
-          top: `${(bande[0] / hauteur) * 100}%`,
-          height: `${((bande[1] - bande[0]) / hauteur) * 100}%`,
-          filter: variante === "claire" ? "brightness(0)" : undefined,
-        }}
-      />
-    </span>
+    /* eslint-disable-next-line @next/next/no-img-element -- logo servi tel quel, sans optimisation */
+    <img
+      id={id}
+      src="/marque/logo-320.webp"
+      srcSet="/marque/logo-320.webp 320w, /marque/logo-640.webp 640w, /marque/logo-1254.webp 1254w"
+      sizes="(max-width: 640px) 64px, 96px"
+      alt="X Detailing"
+      loading={priorite ? "eager" : "lazy"}
+      className={`block aspect-square rounded-[14px] object-contain ${className ?? ""}`}
+    />
   );
 }
-

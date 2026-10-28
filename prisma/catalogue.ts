@@ -12,8 +12,11 @@ const PACKS = [
     description:
       "Surfaces plastiques, aspiration habitacle/coffre, seuils de porte, vitrerie intérieure, " +
       "shampoing sièges/tapis/moquettes, cuir/alcantara, finition plastiques et parfum.",
-    dureeMinMinutes: 70,
-    dureeMaxMinutes: 105,
+    // Durées réelles communiquées par l'exploitant : 2 h 30 pour
+    // l'intérieur seul. Elles pilotent la réservation — une durée
+    // sous-estimée propose des créneaux que personne ne peut tenir.
+    dureeMinMinutes: 150,
+    dureeMaxMinutes: 150,
     tarifs: { CITADINE: 129, BERLINE: 139, SUV: 149 },
   },
   {
@@ -22,7 +25,8 @@ const PACKS = [
     description:
       "Pack Concession inclus + nettoyage extérieur, passages de roues, pré-lavage mousse active, " +
       "lavage manuel, ouvrants, séchage premium, pneus, finition showroom et contrôle qualité.",
-    dureeMinMinutes: 150,
+    // 3 h pour l'intérieur et l'extérieur.
+    dureeMinMinutes: 180,
     dureeMaxMinutes: 180,
     tarifs: { CITADINE: 189, BERLINE: 199, SUV: 209 },
   },
@@ -73,7 +77,10 @@ export async function semerCatalogue(db: PrismaClient) {
     }
   }
   for (const { tarifs, ...pack } of PACKS) {
-    await db.pack.upsert({ where: { id: pack.id }, update: {}, create: pack });
+    // On met à jour la fiche : nom, description et surtout durées. Les
+    // ignorer laissait la base sur des valeurs devenues fausses, sans que
+    // rien ne le signale.
+    await db.pack.upsert({ where: { id: pack.id }, update: { ...pack }, create: pack });
     for (const [categorie, prix] of Object.entries(tarifs)) {
       await db.packTarif.upsert({
         where: { packId_categorie: { packId: pack.id, categorie: categorie as keyof typeof tarifs } },

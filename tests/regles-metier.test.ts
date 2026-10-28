@@ -119,9 +119,11 @@ test("l'historique ne fait que s'allonger, même après un enregistrement", asyn
   );
 });
 
-test("créneaux : fermé le dimanche, 9 h et 12 h le samedi, créneau pris retiré", async () => {
+test("créneaux : un seul départ le dimanche, deux le samedi, créneau pris retiré", async () => {
   await operateur();
-  assert.deepEqual(await creneauxDisponibles(prochain(0), 70), []);
+  // Le dimanche n'est plus fermé : une ouverture exceptionnelle, à 10 h, et
+  // un seul rendez-vous — pas une journée de travail ordinaire.
+  assert.deepEqual(await creneauxDisponibles(prochain(0), 70), ["10:00"]);
   assert.deepEqual(await creneauxDisponibles(prochain(6), 70), ["09:00", "12:00"]);
   const lundi = prochain(1);
   assert.deepEqual(await creneauxDisponibles(lundi, 70), ["08:30", "11:30", "15:00"]);
