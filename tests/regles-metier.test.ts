@@ -5,6 +5,7 @@ import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { table } from "@/lib/connexion";
 import { obstacleSuppressionClient } from "@/lib/clients";
+import { factureParId, lignesFacture, reglement } from "@/lib/facturation";
 import { fraisDeplacement, DISTANCE_MAX_TARIFEE } from "@/lib/deplacement";
 import { db, ConflitDeVersion, enregistrerRdv, historiserRdv } from "@/lib/db";
 import {
@@ -337,4 +338,52 @@ test("une fiche client ne s'efface pas quand elle porte une facture", async () =
 
     await db.rendezVous.update({ where: { id: resultat.valeur.id }, data: { numeroFacture: "F2026-0001" } });
     assert.match((await obstacleSuppressionClient(client.id)) ?? "", /facturé ou payé/);
+});
+
+test("une facture détaille le total sans jamais s'en écarter", async () => {
+  const op = await operateur();
+  const client = await clientAvecVehicule("SUV");
+  const options = await db.option.findMany({ take: 2 });
+  const resultat = await creerRendezVous({
+    clientId: client.id,
+    vehiculeId: client.vehicules[0].id,
+    adresseId: client.adresses[0].id,
+    packId: "pack-concession-luxe",
+    dateHeure: dateParis(prochain(1), "08:30"),
+    optionIds: options.map((o) => o.id),
+    fraisDeplacement: 10,
+    distanceKm: 18.7,
+  });
+  assert.ok(resultat.ok, !resultat.ok ? resultat.erreur : "");
+  await db.rendezVous.update({
+    where: { id: resultat.valeur.id },
+    data: {
+      operateurId: op.id,
+      statut: "TERMINE",
+      numeroFacture: "XD-2026-TEST01",
+      modePaiement: "CARTE",
+      paiementConfirmeAt: new Date(),
+      acompteStatut: "PAYE",
+    },
+  });
+
+    const facture = await factureParId(resultat.valeur.id);
+    assert.ok(facture);
+    const lignes = lignesFacture(facture);
+    // Prestation + chaque option + déplacement : la somme des lignes vaut le
+    // total du dossier. Une facture dont le détail ne reconstitue pas le
+    // montant facturé est une facture contestable.
+    const somme = Math.round(lignes.reduce((s, l) => s + l.total, 0) * 100) / 100;
+    assert.equal(somme, facture.prixTotal);
+    assert.ok(lignes.some((l) => /Déplacement/.test(l.libelle)));
+    assert.equal(lignes.filter((l) => !/Déplacement/.test(l.libelle)).length, 1 + options.length);
+
+    // Acompte encaissé déduit, solde = le reste.
+    const regle = reglement(facture);
+    assert.equal(Math.round((regle.acompte + regle.solde) * 100) / 100, facture.prixTotal);
+});
+
+test("un dossier sans facture n'en est pas une", async () => {
+  const rdv = await nouveauRdv();
+  assert.equal(await factureParId(rdv.id), null);
 });

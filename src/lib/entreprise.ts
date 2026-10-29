@@ -30,7 +30,42 @@ export const ENTREPRISE = {
   // Non publiés au registre : renseignés par la direction.
   capital: "1 000 €" as string | null,
   email: "contact@xdetailing.fr" as string | null,
+
+  /**
+   * Régime de TVA, qui décide de ce que porte une facture : un taux et une
+   * ventilation HT/TVA/TTC, ou la mention « TVA non applicable, art. 293 B
+   * du CGI ». null tant que la direction ne l'a pas tranché — une facture
+   * qui annonce un taux faux est une facture à refaire, et l'oubli de la
+   * mention en franchise l'est tout autant. Rien n'est deviné depuis le
+   * numéro de TVA : en avoir un ne signifie pas facturer la TVA.
+   */
+  regimeTva: null as { type: "FRANCHISE" } | { type: "ASSUJETTI"; taux: number } | null,
 } as const;
+
+export type VentilationTva =
+  | { assujetti: false; mention: string }
+  | { assujetti: true; taux: number; ht: number; tva: number; ttc: number };
+
+/**
+ * Ventile un montant TTC selon le régime, ou null si le régime n'est pas
+ * renseigné — l'appelant doit alors le dire plutôt que d'afficher un total
+ * sans mention de TVA.
+ */
+export function ventilerTva(montantTtc: number): VentilationTva | null {
+  const regime = ENTREPRISE.regimeTva;
+  if (!regime) return null;
+  if (regime.type === "FRANCHISE") {
+    return { assujetti: false, mention: "TVA non applicable, article 293 B du CGI" };
+  }
+  const ht = Math.round((montantTtc / (1 + regime.taux)) * 100) / 100;
+  return {
+    assujetti: true,
+    taux: regime.taux,
+    ht,
+    tva: Math.round((montantTtc - ht) * 100) / 100,
+    ttc: montantTtc,
+  };
+}
 
 export function adresseComplete() {
   const { ligne, codePostal, ville } = ENTREPRISE.adresse;
@@ -42,5 +77,6 @@ export function mentionsManquantes(): string[] {
   const manquantes: string[] = [];
   if (!ENTREPRISE.capital) manquantes.push("capital social");
   if (!ENTREPRISE.email) manquantes.push("adresse e-mail de contact");
+  if (!ENTREPRISE.regimeTva) manquantes.push("régime de TVA");
   return manquantes;
 }

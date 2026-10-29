@@ -20,7 +20,7 @@ export const RUBRIQUES: Rubrique[] = [
   { href: "/back-office/operateurs", libelle: "Opérateurs", permission: "operateurs", icone: "operateurs", groupe: "Opérations" },
   { href: "/back-office/gps", libelle: "Suivi GPS", permission: "planning", icone: "gps", groupe: "Opérations", bientot: true },
   { href: "/back-office/interventions", libelle: "Interventions", permission: "planning", icone: "interventions",groupe: "Opérations" },
-  { href: "/back-office/facturation", libelle: "Facturation", permission: "finances", icone: "facturation", groupe: "Argent", bientot: true },
+  { href: "/back-office/facturation", libelle: "Facturation", permission: "finances", icone: "facturation", groupe: "Argent" },
   { href: "/back-office/finances", libelle: "Comptabilité", permission: "finances", icone: "comptabilite", groupe: "Argent" },
   { href: "/back-office/depenses", libelle: "Dépenses", permission: "finances", icone: "depenses", groupe: "Argent", bientot: true },
   { href: "/back-office/marketing", libelle: "Marketing", permission: "finances", icone: "marketing", groupe: "Argent", bientot: true },

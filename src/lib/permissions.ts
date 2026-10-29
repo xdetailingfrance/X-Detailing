@@ -62,6 +62,7 @@ const REGLES: [string, Permission][] = [
   ["/back-office/crm", "clients"],
   ["/back-office/leads", "clients"],
   ["/back-office/facturation", "finances"],
+  ["/api/facturation", "finances"],
   ["/back-office/depenses", "finances"],
   ["/back-office/marketing", "finances"],
   ["/back-office/rapports", "finances"],
