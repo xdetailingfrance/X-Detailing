@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { journaliser } from "@/lib/audit";
+import { geocoderAdresse } from "@/lib/geo";
 
 const HEURE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -22,6 +23,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (body[champ] != null && !HEURE.test(body[champ])) return NextResponse.json({ error: `${champ} invalide (HH:mm)` }, { status: 400 });
   }
 
+  // Une adresse de domicile modifiée est regéocodée : garder les anciennes
+  // coordonnées enverrait l'opérateur depuis un point où il n'habite plus.
+  let position: { latitudeDomicile: number | null; longitudeDomicile: number | null } | undefined;
+  if (typeof body.adresseDomicile === "string") {
+    const point = body.adresseDomicile.trim() ? await geocoderAdresse(body.adresseDomicile, "", null) : null;
+    position = { latitudeDomicile: point?.latitude ?? null, longitudeDomicile: point?.longitude ?? null };
+  }
+
   const operateur = await db.operateur.update({
     where: { id },
     data: {
@@ -29,6 +38,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       secteurId: body.secteurId ?? undefined,
       heureDebut: body.heureDebut ?? undefined,
       heureFin: body.heureFin ?? undefined,
+      adresseDomicile: typeof body.adresseDomicile === "string" ? body.adresseDomicile.trim() || null : undefined,
+      ...(position ?? {}),
     },
   });
   await journaliser({ acteur: session, action: "OPERATEUR_MODIFIE", entite: "Operateur", entiteId: id, details: body });

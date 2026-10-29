@@ -6,6 +6,7 @@ import type { Devis } from "@/lib/types";
 import { photosInitiales } from "@/lib/types";
 import { emailDevis, type ResultatEmail } from "@/lib/email";
 import { db, genToken, historiserDevis, premierEvenement, versDevis } from "@/lib/db";
+import { geocoderAdresse } from "@/lib/geo";
 
 export type ResultatDevis = { ok: true } | { ok: false; error: string };
 
@@ -115,6 +116,9 @@ export async function convertirDevisEnRdv(devis: Devis, dateHeure: Date): Promis
   if (Number.isNaN(dateHeure.getTime())) return { ok: false, error: "Date invalide." };
 
    const { prenom, nom } = diviserNom(devis.nomClient);
+    // Géocodage avant la transaction : c'est un appel réseau, et sans
+    // coordonnées le rendez-vous créé serait inaffectable.
+    const point = await geocoderAdresse(devis.adresse, devis.ville, null);
     const rendezVousId = await db.$transaction(async (tx) => {
       const pack = await tx.pack.findUniqueOrThrow({ where: { id: devis.packId } });
       const options = await tx.option.findMany({ where: { id: { in: devis.optionIds } } });
@@ -124,7 +128,15 @@ export async function convertirDevisEnRdv(devis: Devis, dateHeure: Date): Promis
           nom,
           telephone: devis.telephoneClient,
           email: devis.emailClient,
-          adresses: { create: { libelle: devis.raisonSociale, adresse: devis.adresse, ville: devis.ville } },
+          adresses: {
+            create: {
+              libelle: devis.raisonSociale,
+              adresse: devis.adresse,
+              ville: devis.ville,
+              latitude: point?.latitude ?? null,
+              longitude: point?.longitude ?? null,
+            },
+          },
           vehicules: { create: { categorie: devis.categorieVehicule, marque: devis.vehiculeDescription || null } },
         },
         include: { adresses: true, vehicules: true },
@@ -140,12 +152,19 @@ export async function convertirDevisEnRdv(devis: Devis, dateHeure: Date): Promis
           dureeMinutes: pack.dureeMinMinutes,
           prixTotal: devis.prixTotal,
           acompte: devis.acompte,
+          // Le supplément de route est figé au devis : la facture doit
+          // pouvoir en faire une ligne, pas le noyer dans le total.
+          fraisDeplacement: devis.fraisDeplacement,
           source: "DEVIS",
           notes: `Converti depuis le devis ${devis.id} (acompte déjà payé).`,
           suiviToken: genToken(),
           photosAvant: photosInitiales(),
           photosApres: photosInitiales(),
-          historique: premierEvenement("Rendez-vous créé depuis le devis accepté (acompte déjà payé)."),
+          historique: premierEvenement(
+            point
+              ? "Rendez-vous créé depuis le devis accepté (acompte déjà payé)."
+              : "Rendez-vous créé depuis le devis accepté (acompte déjà payé). Adresse non reconnue : à vérifier avant d'affecter un opérateur."
+          ),
           options: { create: options.map((o) => ({ optionId: o.id, prixUnitaire: o.prix })) },
         },
       });

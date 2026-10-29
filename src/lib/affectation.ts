@@ -1,6 +1,6 @@
 import { db, versRdv } from "@/lib/db";
 import { dateParis, debutJourParis, finJourParis, jourParis } from "@/lib/heure";
-import { haversineKm, estimerTrajetMinutes } from "@/lib/geo";
+import { haversineKm, estimerTrajetMinutes, geocoderAdresse } from "@/lib/geo";
 
 // Pondération du score — section 4 du cahier des charges (paramétrable).
 const POIDS = {
@@ -203,3 +203,57 @@ export async function evaluerCandidats(
     return classes.slice(0, NB_CANDIDATS_RETOURNES);
 }
 
+/**
+ * Géocode le domicile des opérateurs actifs qui n'en ont pas encore.
+ *
+ * Un opérateur sans coordonnées est écarté en silence par evaluerCandidats :
+ * il n'apparaît jamais, et l'écran conclut à des « tournées incompatibles »
+ * alors que la fiche était simplement incomplète. On répare donc avant
+ * d'évaluer, et on enregistre pour ne pas recommencer.
+ *
+ * Retourne le nombre d'opérateurs actifs exploitables une fois la réparation
+ * faite, pour que l'appelant puisse dire la vraie raison d'une liste vide.
+ */
+export async function assurerGeocodageOperateurs(): Promise<{ exploitables: number; actifs: number }> {
+  const actifs = await db.operateur.findMany({ where: { statut: "ACTIF" } });
+  for (const o of actifs) {
+    if (o.latitudeDomicile != null && o.longitudeDomicile != null) continue;
+    if (!o.adresseDomicile) continue;
+    const point = await geocoderAdresse(o.adresseDomicile, "", null);
+    if (!point) continue;
+    await db.operateur.update({
+      where: { id: o.id },
+      data: { latitudeDomicile: point.latitude, longitudeDomicile: point.longitude },
+    });
+    o.latitudeDomicile = point.latitude;
+    o.longitudeDomicile = point.longitude;
+  }
+  return {
+    exploitables: actifs.filter((o) => o.latitudeDomicile != null && o.longitudeDomicile != null).length,
+    actifs: actifs.length,
+  };
+}
+
+/**
+ * Pourquoi aucun opérateur n'a pu être retenu.
+ *
+ * « Tournées incompatibles » n'aide personne : la cause la plus fréquente
+ * est qu'aucun opérateur ne peut matériellement ARRIVER à l'heure depuis
+ * son point de départ, parce que sa journée commence à l'heure même du
+ * rendez-vous. On le dit, avec les minutes manquantes.
+ */
+export async function diagnostiquerAbsenceDeCandidat(criteres: CriteresAffectation): Promise<string> {
+  const { latitude, longitude, dateHeure } = criteres;
+  const operateurs = await db.operateur.findMany({ where: { statut: "ACTIF" } });
+  let retardMin = Infinity;
+  for (const o of operateurs) {
+    if (o.latitudeDomicile == null || o.longitudeDomicile == null) continue;
+    const trajet = estimerTrajetMinutes(haversineKm(o.latitudeDomicile, o.longitudeDomicile, latitude, longitude));
+    const arrivee = heureVersDate(dateHeure, o.heureDebut).getTime() + trajet * 60000;
+    retardMin = Math.min(retardMin, Math.round((arrivee - dateHeure.getTime()) / 60000));
+  }
+  if (retardMin > 0 && Number.isFinite(retardMin)) {
+    return `Aucun opérateur ne peut arriver à l'heure : en partant de chez lui au début de sa journée, le plus proche arriverait ${retardMin} min trop tard. Avancez son heure de début, ou proposez un créneau plus tardif.`;
+  }
+  return "Aucun opérateur ne peut réaliser ce rendez-vous : sa tournée du jour ne laisse pas la place, trajets et marges compris.";
+}

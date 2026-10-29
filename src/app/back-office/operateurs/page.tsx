@@ -5,6 +5,7 @@ import { aLaPermission } from "@/lib/permissions";
 import NouvelOperateurForm from "./NouvelOperateurForm";
 import StatutToggle from "./StatutToggle";
 import HorairesForm from "./HorairesForm";
+import DomicileForm from "./DomicileForm";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,7 @@ export default async function OperateursPage() {
               <tr>
                 <th className="px-4 py-2">Nom</th>
                 <th className="px-4 py-2">Secteur</th>
+                <th className="px-4 py-2">Domicile (départ des trajets)</th>
                 <th className="px-4 py-2">Horaires</th>
                 <th className="px-4 py-2">Kangoo</th>
                 <th className="px-4 py-2">Statut</th>
@@ -37,7 +39,7 @@ export default async function OperateursPage() {
             <tbody>
               {operateurs.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-6 text-center text-[var(--muted)]">
+                  <td colSpan={7} className="px-4 py-6 text-center text-[var(--muted)]">
                     Aucun opérateur pour le moment.
                   </td>
                 </tr>
@@ -48,7 +50,14 @@ export default async function OperateursPage() {
                     {op.prenom} {op.nom}
                   </td>
                   <td className="px-4 py-2">{op.secteur?.nom ?? "—"}</td>
-                  <td className="px-4 py-2">
+                  <td className="px-4 py-2 align-top">
+                    <DomicileForm
+                      operateurId={op.id}
+                      adresseDomicile={op.adresseDomicile}
+                      geocode={op.latitudeDomicile != null && op.longitudeDomicile != null}
+                    />
+                  </td>
+                  <td className="px-4 py-2 align-top">
                     <HorairesForm operateurId={op.id} heureDebut={op.heureDebut} heureFin={op.heureFin} />
                   </td>
                   <td className="px-4 py-2">{op.kangooImmatriculation ?? "—"}</td>

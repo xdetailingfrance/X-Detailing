@@ -154,3 +154,35 @@ export async function obstacleSuppressionClient(clientId: string, tx: Tx = db): 
     ? "Ce client a un rendez-vous facturé ou payé : la pièce comptable se conserve, la fiche ne peut pas être effacée."
     : `Ce client a ${comptables.length} rendez-vous facturés ou payés : ces pièces comptables se conservent, la fiche ne peut pas être effacée.`;
 }
+
+/**
+ * Garantit qu'une adresse porte ses coordonnées, en la géocodant au besoin.
+ *
+ * Toutes les adresses ne naissent pas géocodées : un devis converti en
+ * rendez-vous, une fiche saisie à la main, une adresse que la Base Adresse
+ * Nationale ne reconnaissait pas ce jour-là. Sans coordonnées, le moteur
+ * d'affectation refuse le dossier — et un rendez-vous qu'on ne peut pas
+ * affecter bloque le créneau sans jamais être réalisé.
+ *
+ * Le géocodage est donc retenté au moment où l'on en a besoin, et le
+ * résultat enregistré : on ne rappelle pas un service tiers deux fois pour
+ * la même adresse.
+ */
+export async function assurerGeocodage(
+  adresseId: string,
+  tx: Tx = db
+): Promise<{ latitude: number; longitude: number } | null> {
+  const adresse = await tx.adresse.findUnique({ where: { id: adresseId } });
+  if (!adresse) return null;
+  if (adresse.latitude != null && adresse.longitude != null) {
+    return { latitude: adresse.latitude, longitude: adresse.longitude };
+  }
+
+  const trouvee = await geocoderAdresse(adresse.adresse, adresse.ville, adresse.codePostal);
+  if (!trouvee) return null;
+  await tx.adresse.update({
+    where: { id: adresseId },
+    data: { latitude: trouvee.latitude, longitude: trouvee.longitude },
+  });
+  return { latitude: trouvee.latitude, longitude: trouvee.longitude };
+}

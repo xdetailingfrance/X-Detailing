@@ -20,6 +20,7 @@ import {
 import { creneauxDisponibles, DELAI_MINIMUM_MINUTES } from "@/lib/disponibilites";
 import { DUREE_BLOCAGE_MINUTES, enregistrerPaiement, libererReservation } from "@/lib/paiement";
 import { appliquerActionWorkflow } from "@/lib/workflow";
+import { diagnostiquerAbsenceDeCandidat, evaluerCandidats } from "@/lib/affectation";
 import { dateParis, decalerJour, jourParis, jourSemaineParis } from "@/lib/heure";
 import { ANGLES_PHOTO } from "@/lib/types";
 import { semerCatalogue } from "../prisma/catalogue";
@@ -406,4 +407,44 @@ test("TVA : le HT et la taxe reconstituent le TTC au centime", () => {
   // Plus rien ne manque aux mentions légales.
   assert.deepEqual(mentionsManquantes(), []);
   assert.equal(ENTREPRISE.regimeTva?.type, "ASSUJETTI");
+});
+
+test("un opérateur ne peut pas servir un créneau qui commence à son heure de début", async () => {
+  // Pompignac → Bordeaux centre : le trajet ne tient pas entre 8h30 et 8h30.
+  await db.operateur.create({
+    data: {
+      id: "op-domicile",
+      prenom: "Mathieu",
+      nom: "Caumeil",
+      telephone: "0649368328",
+      heureDebut: "08:30",
+      heureFin: "18:00",
+      latitudeDomicile: 44.847993,
+      longitudeDomicile: -0.442582,
+    },
+  });
+  const client = { latitude: 44.8412, longitude: -0.5696 }; // place de la Bourse
+  const jour = prochain(1);
+
+    const criteres = { ...client, dateHeure: dateParis(jour, "08:30"), dureeMinutes: 180 };
+    assert.equal((await evaluerCandidats(criteres)).length, 0);
+    // Le refus doit être expliqué, pas constaté : « tournées incompatibles »
+    // enverrait chercher un problème de planning qui n'existe pas.
+    assert.match(await diagnostiquerAbsenceDeCandidat(criteres), /arriver à l'heure.*trop tard/);
+
+    // Plus tard dans la journée, le même trajet tient.
+    assert.ok((await evaluerCandidats({ ...criteres, dateHeure: dateParis(jour, "11:30") })).length > 0);
+});
+
+test("un opérateur sans domicile géocodé n'est jamais candidat", async () => {
+  await db.operateur.create({
+    data: { id: "op-sans-domicile", prenom: "Sans", nom: "Domicile", telephone: "0600000002" },
+  });
+  const candidats = await evaluerCandidats({
+    latitude: 44.8412,
+    longitude: -0.5696,
+    dateHeure: dateParis(prochain(1), "11:30"),
+    dureeMinutes: 150,
+  });
+  assert.equal(candidats.length, 0);
 });

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { journaliser } from "@/lib/audit";
+import { geocoderAdresse } from "@/lib/geo";
 
 const HEURE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -24,6 +25,17 @@ export async function POST(request: Request) {
   }
 
     const nombre = (v: unknown) => (v == null || v === "" ? null : Number(v));
+    // Les coordonnées ne sont pas demandées au formulaire : on les déduit de
+    // l'adresse. Sans elles, l'opérateur serait créé puis écarté en silence
+    // par le moteur d'affectation, sans que personne ne comprenne pourquoi.
+    const adresseDomicile = body.adresseDomicile ? String(body.adresseDomicile) : null;
+    let latitude = nombre(body.latitudeDomicile);
+    let longitude = nombre(body.longitudeDomicile);
+    if (adresseDomicile && (latitude == null || longitude == null)) {
+      const point = await geocoderAdresse(adresseDomicile, "", null);
+      latitude = point?.latitude ?? null;
+      longitude = point?.longitude ?? null;
+    }
     const operateur = await db.operateur.create({
       data: {
         prenom: String(body.prenom),
@@ -31,9 +43,9 @@ export async function POST(request: Request) {
         telephone: String(body.telephone),
         email: body.email ? String(body.email) : null,
         secteurId: body.secteurId || null,
-        adresseDomicile: body.adresseDomicile || null,
-        latitudeDomicile: nombre(body.latitudeDomicile),
-        longitudeDomicile: nombre(body.longitudeDomicile),
+        adresseDomicile,
+        latitudeDomicile: latitude,
+        longitudeDomicile: longitude,
         heureDebut: body.heureDebut ?? "08:30",
         heureFin: body.heureFin ?? "18:00",
         kangooImmatriculation: body.kangooImmatriculation || null,

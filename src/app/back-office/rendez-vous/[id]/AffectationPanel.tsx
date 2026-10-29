@@ -48,7 +48,9 @@ export default function AffectationPanel({
        const data = await res.json();
        setCandidats(data.candidats);
        if (data.candidats.length === 0) {
-         setErreur("Aucun opérateur ne peut réaliser ce rendez-vous (tournées incompatibles).");
+         // La raison vient du serveur : lui seul sait si c'est une question
+         // d'horaires, de trajet ou de tournée déjà pleine.
+         setErreur(data.raison ?? "Aucun opérateur ne peut réaliser ce rendez-vous.");
        }
    }
 
