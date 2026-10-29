@@ -39,7 +39,7 @@ export const ENTREPRISE = {
    * mention en franchise l'est tout autant. Rien n'est deviné depuis le
    * numéro de TVA : en avoir un ne signifie pas facturer la TVA.
    */
-  regimeTva: null as { type: "FRANCHISE" } | { type: "ASSUJETTI"; taux: number } | null,
+  regimeTva: { type: "ASSUJETTI", taux: 0.2 } as { type: "FRANCHISE" } | { type: "ASSUJETTI"; taux: number } | null,
 } as const;
 
 export type VentilationTva =

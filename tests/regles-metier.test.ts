@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { table } from "@/lib/connexion";
 import { obstacleSuppressionClient } from "@/lib/clients";
 import { factureParId, lignesFacture, reglement } from "@/lib/facturation";
+import { ENTREPRISE, mentionsManquantes, ventilerTva } from "@/lib/entreprise";
 import { fraisDeplacement, DISTANCE_MAX_TARIFEE } from "@/lib/deplacement";
 import { db, ConflitDeVersion, enregistrerRdv, historiserRdv } from "@/lib/db";
 import {
@@ -386,4 +387,23 @@ test("une facture détaille le total sans jamais s'en écarter", async () => {
 test("un dossier sans facture n'en est pas une", async () => {
   const rdv = await nouveauRdv();
   assert.equal(await factureParId(rdv.id), null);
+});
+
+test("TVA : le HT et la taxe reconstituent le TTC au centime", () => {
+  // Les prix publics sont annoncés TTC dans les conditions générales : la
+  // ventilation part donc du TTC, elle ne le recalcule pas.
+  for (const ttc of [269, 149, 199, 159, 0.01, 1234.56]) {
+    const v = ventilerTva(ttc);
+    assert.ok(v, "régime de TVA non renseigné");
+    assert.ok(v.assujetti, "régime attendu : assujetti");
+    assert.equal(Math.round((v.ht + v.tva) * 100) / 100, ttc);
+    assert.equal(v.ttc, ttc);
+  }
+  const v = ventilerTva(269);
+  assert.ok(v?.assujetti);
+  assert.equal(v.ht, 224.17);
+  assert.equal(v.tva, 44.83);
+  // Plus rien ne manque aux mentions légales.
+  assert.deepEqual(mentionsManquantes(), []);
+  assert.equal(ENTREPRISE.regimeTva?.type, "ASSUJETTI");
 });
