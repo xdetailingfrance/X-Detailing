@@ -513,9 +513,17 @@ function Parcours({
               titreRef={titreRef}
               valeurs={coordonnees}
               onChange={setCoordonnees}
-              recap={
-                <Recapitulatif prestation={prestation} tarif={tarif} options={optionsChoisies} total={total} quand={quand} compact />
-              }
+              recap={(deplacement, totalAvecRoute) => (
+                <Recapitulatif
+                  prestation={prestation}
+                  tarif={tarif}
+                  options={optionsChoisies}
+                  total={totalAvecRoute}
+                  deplacement={deplacement}
+                  quand={quand}
+                  compact
+                />
+              )}
               envoi={{ packId: prestation.packId, categorie: tarif.categorie, optionIds: choixOptions, jour, heure }}
               paiementEnLigne={paiementEnLigne}
               totalPrestations={total}
@@ -651,6 +659,7 @@ function Recapitulatif({
   tarif,
   options,
   total,
+  deplacement,
   quand,
   compact,
 }: {
@@ -658,6 +667,13 @@ function Recapitulatif({
   tarif: { categorie: string; prix: number };
   options: (OptionPublique & { quantite: number })[];
   total: number;
+  /**
+   * Supplément de route, une fois l'adresse connue. Il est déjà compris dans
+   * `total` : le récapitulatif ne fait que le montrer, pour que le client
+   * retrouve le montant qu'on lui a annoncé au lieu de chercher d'où vient
+   * la différence. Avant l'étape des coordonnées, il n'existe pas encore.
+   */
+  deplacement?: { frais: number; distanceKm: number } | null;
   quand?: string | null;
   compact?: boolean;
 }) {
@@ -680,6 +696,14 @@ function Recapitulatif({
             <span className="text-[var(--encre)]">+ {euros(o.prix * o.quantite)}</span>
           </li>
         ))}
+        {deplacement && (
+          <li className="pr-recap-option flex justify-between gap-4">
+            <span>Déplacement · {Math.round(deplacement.distanceKm)} km</span>
+            <span className="text-[var(--encre)]">
+              {deplacement.frais === 0 ? "offert" : `+ ${euros(deplacement.frais)}`}
+            </span>
+          </li>
+        )}
         {quand && (
           <li className="text-[var(--chrome)]/70 first-letter:uppercase">{quand}</li>
         )}
@@ -797,7 +821,12 @@ function EtapeCoordonnees({
   titreRef: React.RefObject<HTMLHeadingElement | null>;
   valeurs: Coordonnees;
   onChange: (v: Coordonnees) => void;
-  recap: React.ReactNode;
+  /**
+   * Rendu à la demande plutôt que reçu tout fait : le supplément de route
+   * n'est connu qu'ici, après la saisie de l'adresse, et un récapitulatif
+   * figé par le parent afficherait un total que le client ne paiera pas.
+   */
+  recap: (deplacement: { frais: number; distanceKm: number } | null, total: number) => React.ReactNode;
   envoi: { packId: string; categorie: string; optionIds: string[]; jour: string; heure: string };
   paiementEnLigne: boolean;
   totalPrestations: number;
@@ -814,6 +843,12 @@ function EtapeCoordonnees({
 
   const horsBareme = route !== null && "horsBareme" in route && route.horsBareme;
   const frais = route !== null && "frais" in route ? (route.frais ?? 0) : 0;
+  // Rien à montrer tant que la route n'est pas calculée, ou si elle est hors
+  // barème : dans ce cas la réservation est refusée, pas facturée à zéro.
+  const deplacementAffiche =
+    route !== null && "distanceKm" in route && !horsBareme
+      ? { frais, distanceKm: route.distanceKm }
+      : null;
   const total = Math.round((totalPrestations + frais) * 100) / 100;
   const acompte = Math.round(total * 10) / 100;
 
@@ -880,7 +915,7 @@ function EtapeCoordonnees({
        <h2 id="pr-titre" ref={titreRef} tabIndex={-1} className="pr-titre">
          Où intervenons-nous ?
        </h2>
-       <div className="mt-4">{recap}</div>
+       <div className="mt-4">{recap(deplacementAffiche, total)}</div>
        <form onSubmit={envoyer} className="mt-5 grid grid-cols-2 gap-3">
          <Champ libelle="Prénom" requis auto="given-name" {...champ("prenom")} />
          <Champ libelle="Nom" requis auto="family-name" {...champ("nom")} />
@@ -961,6 +996,7 @@ function Champ({
   name,
   value,
   onChange,
+  onBlur,
 }: {
   libelle: string;
   requis?: boolean;
@@ -970,11 +1006,22 @@ function Champ({
   name: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  /** Sortie du champ : c'est ce qui déclenche le calcul du déplacement. */
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
 }) {
   return (
     <label className={`flex flex-col gap-1 text-xs text-[var(--chrome)]/70 ${large ? "col-span-2" : ""}`}>
       {libelle}
-      <input name={name} type={type} required={requis} autoComplete={auto} value={value} onChange={onChange} className="pr-champ" />
+      <input
+        name={name}
+        type={type}
+        required={requis}
+        autoComplete={auto}
+        value={value}
+        onChange={onChange}
+        onBlur={onBlur}
+        className="pr-champ"
+      />
     </label>
   );
 }
