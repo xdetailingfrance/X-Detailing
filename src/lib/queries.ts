@@ -2,7 +2,14 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { db, sansDecimal, versDevis, versRdv } from "@/lib/db";
 
-const INCLUDE_CLIENT = { adresses: { orderBy: { createdAt: "asc" } }, vehicules: { orderBy: { createdAt: "asc" }} } satisfies Prisma.ClientInclude;
+// _count plutôt que la liste des RDV : la page clients n'a besoin que du
+// nombre, et charger les rendez-vous de cinquante fiches pour l'afficher
+// serait payer cher une information de comptage.
+const INCLUDE_CLIENT = {
+  adresses: { orderBy: { createdAt: "asc" } },
+  vehicules: { orderBy: { createdAt: "asc" } },
+  _count: { select: { rendezVous: true } },
+} satisfies Prisma.ClientInclude;
 
 export async function clientAvecRelations(id: string) {
   return db.client.findUnique({ where: { id }, include: INCLUDE_CLIENT });

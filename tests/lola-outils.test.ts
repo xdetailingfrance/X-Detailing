@@ -71,8 +71,8 @@ test("actions : créer un client, un RDV affecté, le déplacer, l'annuler, envo
     prenom: "Léa",
     nom: "Bernard",
     telephone: "0644556677",
-    adresse: "3 rue Mercière",
-    ville: "Lyon",
+    adresse: "Place de la Bourse",
+    ville: "Bordeaux",
     categorieVehicule: "CITADINE",
   });
   assert.equal(client.erreur, false);

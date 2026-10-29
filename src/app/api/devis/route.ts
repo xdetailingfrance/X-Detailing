@@ -84,9 +84,7 @@ export async function POST(request: Request) {
     const complet = await trouverDevis(devis.id);
     if (complet) {
       const resultat = await envoyerDevis(complet);
-      envoi = resultat.ok
-        ? { envoye: true }
-        : { envoye: false, erreur: resultat.error };
+      envoi = resultat.ok ? resultat.envoi : { envoye: false, erreur: resultat.error };
       if (resultat.ok) {
         await journaliser({ acteur: session, action: "DEVIS_ENVOYE", entite: "Devis", entiteId: devis.id });
       }

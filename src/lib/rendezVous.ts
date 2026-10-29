@@ -57,6 +57,9 @@ export async function creerRendezVous(
     optionIds?: string[];
     secteurId?: string | null;
     dureeMinutes?: number | null;
+    /** Supplément de route, calculé par le serveur à partir de l'adresse. */
+    fraisDeplacement?: number;
+    distanceKm?: number | null;
     source?: SourceRendezVous;
     notes?: string | null;
     libelle?: string;
@@ -73,6 +76,12 @@ export async function creerRendezVous(
     const prix = await calculerPrix(donnees.packId, vehicule.categorie, donnees.optionIds ?? [], tx);
     if (!prix.ok) return prix;
 
+    // Le déplacement s'ajoute aux prestations, et l'acompte porte sur le tout :
+    // c'est le montant que le client voit avant de payer.
+    const fraisDeplacement = Math.max(0, donnees.fraisDeplacement ?? 0);
+    const prixTotal = Math.round((prix.valeur.prixTotal + fraisDeplacement) * 100) / 100;
+    const acompte = Math.round(prixTotal * TAUX_ACOMPTE * 100) / 100;
+
     const ligne = await tx.rendezVous.create({
       data: {
         clientId: donnees.clientId,
@@ -83,8 +92,10 @@ export async function creerRendezVous(
         secteurId: donnees.secteurId ?? null,
         dateHeure: donnees.dateHeure,
         dureeMinutes: donnees.dureeMinutes ?? prix.valeur.dureeMinMinutes,
-        prixTotal: prix.valeur.prixTotal,
-        acompte: prix.valeur.acompte,
+        prixTotal,
+        acompte,
+        fraisDeplacement,
+        distanceKm: donnees.distanceKm ?? null,
         source: donnees.source ?? "TELEPHONE",
         notes: donnees.notes ?? null,
         suiviToken: genToken(),

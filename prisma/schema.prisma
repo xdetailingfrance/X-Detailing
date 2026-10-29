@@ -257,6 +257,13 @@ model RendezVous {
     dureeMinutes             Int
     prixTotal                Decimal               @db.Decimal(10, 2)
     acompte                  Decimal               @db.Decimal(10, 2)
+    /// Supplément de route, compris dans prixTotal. Conservé à part pour que
+    /// la facture puisse en faire une ligne : un total sans détail se
+    /// conteste.
+    fraisDeplacement         Decimal               @default(0) @db.Decimal(10, 2)
+    /// Distance routière depuis Pompignac au moment de la réservation. Figée :
+    /// le barème peut changer, pas un prix déjà accepté.
+    distanceKm               Float?
     statut                   StatutRendezVous      @default(EN_ATTENTE)
     source                   SourceRendezVous      @default(TELEPHONE)
     notes                    String?

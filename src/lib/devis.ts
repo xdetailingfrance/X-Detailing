@@ -4,10 +4,20 @@
 // client) et reste figé jusqu'à conversion en RDV.
 import type { Devis } from "@/lib/types";
 import { photosInitiales } from "@/lib/types";
-import { emailDevis } from "@/lib/email";
+import { emailDevis, type ResultatEmail } from "@/lib/email";
 import { db, genToken, historiserDevis, premierEvenement, versDevis } from "@/lib/db";
 
 export type ResultatDevis = { ok: true } | { ok: false; error: string };
+
+/**
+ * Un devis peut être enregistré comme envoyé alors que l'e-mail n'est pas
+ * parti (adresse manquante, expéditeur refusé par Brevo). Les deux faits
+ * sont distincts et remontent séparément : « envoyé » sans destinataire
+ * joignable est ce qui fait perdre une affaire sans le savoir.
+ */
+export type ResultatEnvoiDevis =
+  | { ok: true; envoi: ResultatEmail }
+  | { ok: false; error: string };
 
 async function enregistrer(devis: Devis) {
   await db.devis.update({
@@ -33,7 +43,7 @@ export async function devisParToken(token: string) {
   return ligne ? versDevis(ligne) : null;
 }
 
-export async function envoyerDevis(devis: Devis): Promise<ResultatDevis> {
+export async function envoyerDevis(devis: Devis): Promise<ResultatEnvoiDevis> {
   if (devis.statut !== "BROUILLON") return { ok: false, error: "Le devis a déjà été envoyé." };
   devis.statut = "ENVOYE";
   devis.envoyeAt = new Date();
@@ -46,7 +56,26 @@ export async function envoyerDevis(devis: Devis): Promise<ResultatDevis> {
       ? `Devis envoyé par e-mail à ${devis.emailClient}.`
       : `Devis marqué envoyé, mais e-mail non transmis (${courriel.erreur}).`,
   );
-  return { ok: true };
+  return { ok: true, envoi: courriel };
+}
+
+/**
+ * Renvoie l'e-mail d'un devis déjà marqué envoyé, sans toucher à son statut.
+ * Sans cela un envoi échoué était définitif : le devis quittait l'état
+ * brouillon, et envoyerDevis refusait ensuite de le reprendre.
+ */
+export async function renvoyerDevis(devis: Devis): Promise<ResultatEnvoiDevis> {
+  if (devis.statut === "BROUILLON") return { ok: false, error: "Ce devis n'a pas encore été envoyé." };
+  if (!devis.emailClient) return { ok: false, error: "Ce devis n'a pas d'adresse e-mail." };
+
+  const courriel = await emailDevis(devis);
+  await historiserDevis(
+    devis,
+    courriel.envoye
+      ? `Devis renvoyé par e-mail à ${devis.emailClient}.`
+      : `Renvoi par e-mail à ${devis.emailClient} en échec (${courriel.erreur}).`,
+  );
+  return { ok: true, envoi: courriel };
 }
 
 export async function marquerDevisConsulte(devis: Devis) {

@@ -66,7 +66,16 @@ export default async function RendezVousPage({
           titre="Options"
           valeur={rendezVous.options.length > 0 ? rendezVous.options.map((o) => (o.quantite > 1 ? `${o.option.nom} × ${o.quantite}` : o.option.nom)).join(", ") : "Aucune"}
         />
-        <Info titre="Prix total" valeur={`${rendezVous.prixTotal} €`} />
+        <Info
+          titre="Prix total"
+          valeur={
+            rendezVous.fraisDeplacement > 0
+              ? `${rendezVous.prixTotal} € · dont ${rendezVous.fraisDeplacement} € de déplacement${
+                  rendezVous.distanceKm != null ? ` (${Math.round(rendezVous.distanceKm)} km)` : ""
+                }`
+              : `${rendezVous.prixTotal} €`
+          }
+        />
         <Info
           titre="Acompte"
           valeur={`${rendezVous.acompte} € · ${

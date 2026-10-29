@@ -6,7 +6,8 @@ import Voiture from "./voiture/Voiture";
 import Utilitaire from "./voiture/Utilitaire";
 import Agent from "./voiture/Agent";
 import type { OptionPublique, PrestationPublique } from "@/lib/prestationsPubliques";
-import { dateParis, decalerJour, formatParis, jourParis, jourSemaineParis } from "@/lib/heure";
+import { dateParis, decalerJour, formatParis, jourParis } from "@/lib/heure";
+import { DISTANCE_MAX_TARIFEE } from "@/lib/deplacement";
 
 // Parcours de réservation immersif de la page d'accueil.
 //
@@ -23,6 +24,14 @@ import { dateParis, decalerJour, formatParis, jourParis, jourSemaineParis } from
 // saisies sont conservées quand on revient en arrière.
 
 type Etape = 2 | 3 | 4 | 5 | 6;
+// Résultat du calcul de déplacement : un supplément, ou la raison de son
+// absence. « frais: null » signifie hors barème, pas gratuit. La clé est
+// l'adresse qui a servi au calcul : elle évite de relancer la requête pour
+// une adresse inchangée, sans recourir à un ref lu pendant le rendu.
+type Route = { cle: string } & (
+  | { distanceKm: number; frais: number | null; horsBareme: boolean }
+  | { erreur: string }
+);
 type Transition = "depart" | "domicile" | "final" | null;
 
 const ETAPES = [
@@ -83,8 +92,10 @@ function prochainsJours(n: number) {
   for (let i = 0; i < n; i++) {
     const iso = decalerJour(aujourdhui, i);
     const midi = dateParis(iso, "12:00");
-    // Fermé le dimanche : le jour n'est pas proposé.
-    if (jourSemaineParis(midi) === 0) continue;
+    // Tous les jours sont proposés, dimanche compris : l'API des créneaux
+    // dit ensuite lesquels sont réellement ouverts (un seul départ le
+    // dimanche). Écarter le jour ici fermait une ouverture pourtant active
+    // côté serveur.
     jours.push({
       iso,
       jour: i === 0 ? "Auj." : i === 1 ? "Demain" : formatParis(midi, { weekday: "short" }),
@@ -507,7 +518,7 @@ function Parcours({
               }
               envoi={{ packId: prestation.packId, categorie: tarif.categorie, optionIds: choixOptions, jour, heure }}
               paiementEnLigne={paiementEnLigne}
-              acompte={Math.round(total * 10) / 100}
+              totalPrestations={total}
               onCreneauPris={() => {
                 setHeure(null);
                 allerA(4);
@@ -779,7 +790,7 @@ function EtapeCoordonnees({
   recap,
   envoi,
   paiementEnLigne,
-  acompte,
+  totalPrestations,
   onCreneauPris,
   onConfirme,
 }: {
@@ -789,17 +800,48 @@ function EtapeCoordonnees({
   recap: React.ReactNode;
   envoi: { packId: string; categorie: string; optionIds: string[]; jour: string; heure: string };
   paiementEnLigne: boolean;
-  acompte: number;
+  totalPrestations: number;
   onCreneauPris: () => void;
   onConfirme: (c: Confirmation) => void;
 }) {
   const [redirection, setRedirection] = useState(false);
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
+  // Supplément de route, calculé dès que l'adresse est renseignée : le client
+  // voit le montant complet avant de payer, jamais après.
+  const [route, setRoute] = useState<Route | null>(null);
+  const [routeEnCours, setRouteEnCours] = useState(false);
+
+  const horsBareme = route !== null && "horsBareme" in route && route.horsBareme;
+  const frais = route !== null && "frais" in route ? (route.frais ?? 0) : 0;
+  const total = Math.round((totalPrestations + frais) * 100) / 100;
+  const acompte = Math.round(total * 10) / 100;
+
+  const cle = `${valeurs.adresse.trim()}|${valeurs.codePostal.trim()}|${valeurs.ville.trim()}`;
+  async function calculerRoute() {
+    if (!valeurs.adresse.trim() || !valeurs.ville.trim() || routeEnCours || route?.cle === cle) return;
+    setRouteEnCours(true);
+    try {
+      const res = await fetch("/api/reservation/deplacement", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adresse: valeurs.adresse, ville: valeurs.ville, codePostal: valeurs.codePostal }),
+      });
+      const data = await res.json();
+      setRoute(res.ok ? { cle, ...data } : { cle, erreur: data.error ?? "Calcul indisponible." });
+    } catch {
+      setRoute({ cle, erreur: "Calcul indisponible." });
+    } finally {
+      setRouteEnCours(false);
+    }
+  }
   const champ = (nom: keyof Coordonnees) => ({
     name: nom,
     value: valeurs[nom],
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange({ ...valeurs, [nom]: e.target.value }),
+    // Calcul à la sortie du champ, pas à chaque frappe : une requête par
+    // lettre tapée ferait bannir le géocodeur public.
+    ...(nom === "adresse" || nom === "ville" || nom === "codePostal" ? { onBlur: calculerRoute } : {}),
   });
 
    async function envoyer(e: React.FormEvent<HTMLFormElement>) {
@@ -847,6 +889,36 @@ function EtapeCoordonnees({
          <Champ libelle="Adresse d'intervention" requis auto="street-address" large {...champ("adresse")} />
          <Champ libelle="Code postal" auto="postal-code" {...champ("codePostal")} />
          <Champ libelle="Ville" requis auto="address-level2" {...champ("ville")} />
+         <div className="col-span-2" aria-live="polite">
+           {routeEnCours && <p className="text-xs text-[var(--chrome)]/60">Calcul du trajet depuis Pompignac…</p>}
+           {!routeEnCours && route && "erreur" in route && (
+             <p className="text-xs text-[var(--chrome)]/60">
+               {route.erreur} Les frais de déplacement seront confirmés avec vous.
+             </p>
+           )}
+           {!routeEnCours && route && "distanceKm" in route && (
+             horsBareme ? (
+               <p className="text-sm text-[var(--danger)]">
+                 Vous êtes à {Math.round(route.distanceKm)} km de Pompignac, au-delà de notre zone de{" "}
+                 {DISTANCE_MAX_TARIFEE} km. Appelez-nous, nous vous faisons un devis avec un tarif de déplacement
+                 adapté.
+               </p>
+             ) : (
+               <div className="rounded-md border border-[var(--encre)]/10 bg-black/[0.03] px-3 py-2 text-xs">
+                 <p className="text-[var(--chrome)]/70">
+                   {Math.round(route.distanceKm)} km depuis Pompignac ·{" "}
+                   <strong className="text-[var(--encre)]">
+                     {frais === 0 ? "déplacement offert" : `frais de déplacement ${euros(frais)}`}
+                   </strong>
+                 </p>
+                 <p className="mt-0.5 text-[var(--chrome)]/55">
+                   Prestations {euros(totalPrestations)} + déplacement {euros(frais)} ={" "}
+                   <strong className="text-[var(--encre)]">{euros(total)}</strong>
+                 </p>
+               </div>
+             )
+           )}
+         </div>
          <Champ libelle="Marque (facultatif)" {...champ("marque")} />
          <Champ libelle="Modèle (facultatif)" {...champ("modele")} />
          <label className="col-span-2 flex flex-col gap-1 text-xs text-[var(--chrome)]/70">
@@ -856,7 +928,11 @@ function EtapeCoordonnees({
           {/* Champ piège anti-robots, invisible */}
           <input type="text" name="site" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden="true" />
           {erreur && <p className="col-span-2 text-sm text-[var(--danger)]">{erreur}</p>}
-          <button type="submit" disabled={enCours || redirection} className="pr-principal col-span-2">
+          <button
+            type="submit"
+            disabled={enCours || redirection || routeEnCours || horsBareme}
+            className="pr-principal col-span-2"
+          >
             {redirection
               ? "Redirection vers le paiement…"
               : enCours

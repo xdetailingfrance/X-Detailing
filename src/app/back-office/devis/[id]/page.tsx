@@ -16,6 +16,7 @@ export default async function DevisDetailPage({ params }: { params: Promise<{ id
         statut={devis.statut}
         nomClient={devis.nomClient}
         telephoneClient={devis.telephoneClient}
+        emailClient={devis.emailClient}
         adresse={`${devis.adresse}, ${devis.ville}`}
         vehiculeDescription={devis.vehiculeDescription}
         pack={devis.pack.nom}

@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import type { CategorieVehicule } from "@/lib/types";
-import { db } from "@/lib/db";
+import { db, historiserRdv } from "@/lib/db";
 import { packAvecTarifs } from "@/lib/queries";
 import { CATEGORIES_VEHICULE, chiffresTelephone, trouverOuCreerClient } from "@/lib/clients";
 import { creerRendezVous } from "@/lib/rendezVous";
 import { creneauxDisponibles, dateLocale } from "@/lib/disponibilites";
+import { calculerDeplacement, DISTANCE_MAX_TARIFEE } from "@/lib/deplacement";
+import { geocoderAdresse } from "@/lib/geo";
 import { emailConfirmationReservation } from "@/lib/email";
 import { MODELES_SMS, smsAuClient } from "@/lib/sms";
 import { titrePrestation } from "@/lib/prestationsPubliques";
@@ -81,6 +83,40 @@ export async function POST(request: Request) {
     );
   }
 
+  // Supplément de route, recalculé ici à partir de l'adresse : le montant
+  // affiché pendant la réservation n'est qu'un affichage, et un client ne
+  // décide pas de ses propres frais de déplacement.
+  //
+  // Hors barème : on refuse plutôt que de facturer un déplacement gratuit à
+  // l'autre bout du département. Géocodage ou itinéraire indisponible : on
+  // laisse passer sans frais — un service tiers en panne ne doit pas bloquer
+  // une réservation — et on l'inscrit à l'historique pour que le back-office
+  // le voie.
+  const codePostal = texte(body.codePostal, 10) || null;
+  let fraisDeplacement = 0;
+  let distanceKm: number | null = null;
+  let noteDeplacement: string | null = null;
+  const point = await geocoderAdresse(adresse, ville, codePostal);
+  if (point) {
+    const deplacement = await calculerDeplacement(point.latitude, point.longitude);
+    if (deplacement.horsBareme) {
+      return NextResponse.json(
+        {
+          error: `Votre adresse est à plus de ${DISTANCE_MAX_TARIFEE} km de notre point de départ : le déplacement fait l'objet d'un tarif particulier. Appelez-nous, nous vous faisons un devis.`,
+        },
+        { status: 422 }
+      );
+    }
+    if (deplacement.distanceKm === null) {
+      noteDeplacement = "Frais de déplacement non calculés : itinéraire indisponible à la réservation.";
+    } else {
+      distanceKm = deplacement.distanceKm;
+      fraisDeplacement = deplacement.frais ?? 0;
+    }
+  } else {
+    noteDeplacement = "Frais de déplacement non calculés : adresse non reconnue par la Base Adresse Nationale.";
+  }
+
   // Vérification du créneau et création dans une même transaction, sous un
   // verrou par journée : deux clients ne peuvent pas prendre le même
   // créneau en même temps.
@@ -98,7 +134,7 @@ export async function POST(request: Request) {
             nom,
             telephone,
             email: texte(body.email, 120) || null,
-            adresse: { adresse, ville, codePostal: texte(body.codePostal, 10) || null },
+            adresse: { adresse, ville, codePostal },
             vehicule: { categorie, marque: texte(body.marque, 40) || null, modele: texte(body.modele, 40) || null},
           },
           tx
@@ -114,6 +150,8 @@ export async function POST(request: Request) {
             dateHeure: dateLocale(jour, heure),
             secteurId: secteur?.id ?? null,
             optionIds,
+            fraisDeplacement,
+            distanceKm,
             source: "SITE_CLIENT",
             notes: texte(body.precisions, 500) || null,
             libelle: "Réservé en ligne depuis la page d'accueil.",
@@ -132,7 +170,14 @@ export async function POST(request: Request) {
     if (e instanceof Refus) return NextResponse.json({ error: e.message }, { status: e.statut });
     throw e;
   }
-  await journaliser({ acteur: "client", action: "RESERVATION_EN_LIGNE", entite: "RendezVous", entiteId: rdv.id, details: { prixTotal: rdv.prixTotal } });
+  await journaliser({
+    acteur: "client",
+    action: "RESERVATION_EN_LIGNE",
+    entite: "RendezVous",
+    entiteId: rdv.id,
+    details: { prixTotal: rdv.prixTotal, fraisDeplacement, distanceKm },
+  });
+  if (noteDeplacement) await historiserRdv(rdv, noteDeplacement);
 
   const lignesOptions = await db.rendezVousOption.findMany({ where: { rendezVousId: rdv.id }, include: { option:true } });
   const options = lignesOptions.map((l) => (l.quantite > 1 ? `${l.option.nom} × ${l.quantite}` : l.option.nom));
@@ -145,6 +190,8 @@ export async function POST(request: Request) {
     adresse: `${adresse}, ${ville}`,
     prixTotal: rdv.prixTotal,
     acompte: rdv.acompte,
+    fraisDeplacement: rdv.fraisDeplacement,
+    distanceKm: rdv.distanceKm,
   };
 
    // Paiement Stripe : le RDV bloque le créneau et le client part payer

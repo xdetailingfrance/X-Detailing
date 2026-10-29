@@ -22,6 +22,7 @@ export default function DevisDetailPanel({
   statut,
   nomClient,
   telephoneClient,
+  emailClient,
   adresse,
   vehiculeDescription,
   pack,
@@ -36,6 +37,7 @@ export default function DevisDetailPanel({
   statut: StatutDevis;
   nomClient: string;
   telephoneClient: string;
+  emailClient: string | null;
   adresse: string;
   vehiculeDescription: string;
   pack: string;
@@ -52,10 +54,12 @@ export default function DevisDetailPanel({
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const [dateHeure, setDateHeure] = useState("");
+  const [envoi, setEnvoi] = useState<{ envoye: boolean; erreur?: string } | null>(null);
 
    async function envoyer() {
      setEnCours(true);
      setErreur(null);
+     setEnvoi(null);
      const res = await fetch(`/api/devis/${devisId}/envoyer`, { method: "POST" });
      const data = await res.json().catch(() => ({}));
      setEnCours(false);
@@ -65,6 +69,7 @@ export default function DevisDetailPanel({
      }
      setEtatStatut(data.statut);
      setHistoriqueEtat(data.historique.map((h: { horodatage: string; libelle: string }) => h));
+     setEnvoi(data.envoi ?? null);
    }
 
    async function creerRdv() {
@@ -110,15 +115,53 @@ export default function DevisDetailPanel({
 
         {erreur && <p className="text-sm text-[var(--warning)]">{erreur}</p>}
 
-        {etatStatut === "BROUILLON" && (
-        <button
-          onClick={envoyer}
-          disabled={enCours}
-          className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium hover:bg-[var(--accent-2)] transition disabled:opacity-50 self-start"
-        >
-          Marquer comme envoyé (SMS/e-mail simulé)
-        </button>
-      )}
+        {envoi && (
+          <div
+            className={`rounded-md border p-3 text-sm ${
+              envoi.envoye
+                ? "border-[var(--success)] bg-[var(--success)]/10"
+                : "border-[var(--warning)] bg-[var(--warning)]/10"
+            }`}
+          >
+            {envoi.envoye ? (
+              <p>E-mail envoyé à {emailClient}. Le client a reçu le devis et son lien.</p>
+            ) : (
+              <>
+                <p className="font-medium text-[var(--warning)]">L&apos;e-mail n&apos;est pas parti.</p>
+                <p className="mt-1 text-[var(--muted)]">Raison donnée : {envoi.erreur ?? "non précisée"}</p>
+                <p className="mt-1">
+                  Le client n&apos;a rien reçu. Transmettez-lui le lien ci-dessus, ou corrigez la
+                  configuration d&apos;envoi puis relancez.
+                </p>
+              </>
+            )}
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center gap-3">
+          {etatStatut === "BROUILLON" ? (
+            <button
+              onClick={envoyer}
+              disabled={enCours || !emailClient}
+              className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium hover:bg-[var(--accent-2)] transition disabled:opacity-50"
+            >
+              {enCours ? "Envoi…" : "Envoyer le devis par e-mail"}
+            </button>
+          ) : (
+            <button
+              onClick={envoyer}
+              disabled={enCours || !emailClient}
+              className="rounded-md border border-[var(--border)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--surface-2)] disabled:opacity-50"
+            >
+              {enCours ? "Envoi…" : "Renvoyer l'e-mail"}
+            </button>
+          )}
+          {!emailClient && (
+            <span className="text-sm text-[var(--muted)]">
+              Aucune adresse e-mail sur ce devis : seul le lien peut être transmis.
+            </span>
+          )}
+        </div>
 
         {(etatStatut === "ENVOYE" || etatStatut === "CONSULTE") && (
           <p className="text-sm text-[var(--muted)]">En attente de la réponse du client sur son lien de devis.</p>

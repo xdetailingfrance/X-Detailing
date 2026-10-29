@@ -100,6 +100,16 @@ export async function envoyerEmail(params: {
 const euros = (montant: number) =>
   montant.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 
+// Le déplacement est compris dans le total : il apparaît en ligne séparée
+// pour que le client reconnaisse le montant qu'on lui a annoncé, au lieu de
+// chercher d'où sort la différence.
+const ligneDeplacement = (rdv: Pick<RendezVous, "fraisDeplacement" | "distanceKm">) =>
+  Number(rdv.fraisDeplacement) > 0
+    ? `<tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Dont déplacement</td><td>${euros(Number(rdv.fraisDeplacement))}${
+        rdv.distanceKm != null ? ` (${Math.round(rdv.distanceKm)} km)` : ""
+      }</td></tr>`
+    : "";
+
 /**
  * Gabarit unique, en tableaux et styles en ligne : les clients de messagerie
  * ignorent les feuilles de style externes et une bonne part du CSS moderne.
@@ -149,6 +159,7 @@ export async function emailConfirmationReservation(rdv: RendezVous) {
       <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Date</td><td><strong>${quand(rdv.dateHeure)}</strong></td></tr>
       <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Adresse</td><td>${adresse?.adresse ?? ""}, ${adresse?.ville ?? ""}</td></tr>
       <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Total</td><td>${euros(rdv.prixTotal)}</td></tr>
+      ${ligneDeplacement(rdv)}
       <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Acompte</td><td>${euros(rdv.acompte)}</td></tr>
     </table>
     <p style="margin-top:20px">Le jour venu, vous pourrez suivre l'arrivée de votre opérateur depuis le lien ci-dessous.</p>`;
@@ -226,6 +237,7 @@ export async function emailFacture(rdv: RendezVous) {
       <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Date</td><td>${quand(rdv.dateHeure)}</td></tr>
       <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Lieu</td><td>${adresse?.adresse ?? ""}, ${adresse?.ville ?? ""}</td></tr>
       <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Total réglé</td><td><strong>${euros(rdv.prixTotal)}</strong></td></tr>
+      ${ligneDeplacement(rdv)}
     </table>
     <p style="margin-top:20px">Les photos avant et après votre prestation restent consultables depuis votre page de suivi.</p>`;
 

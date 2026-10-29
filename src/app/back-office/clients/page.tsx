@@ -1,10 +1,14 @@
 import { listerClientsAvecRelations } from "@/lib/queries";
+import { getSession } from "@/lib/session";
 import NouveauClientForm from "./NouveauClientForm";
+import SupprimerClient from "./SupprimerClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function ClientsPage() {
   const clients = (await listerClientsAvecRelations()).slice(0, 50);
+  const session = await getSession();
+  const peutSupprimer = session?.role === "OWNER" || session?.role === "RESPONSABLE";
 
     return (
       <div className="flex flex-col gap-8">
@@ -20,12 +24,13 @@ export default async function ClientsPage() {
                 <th className="px-4 py-2">Téléphone</th>
                 <th className="px-4 py-2">Adresse</th>
                 <th className="px-4 py-2">Véhicule(s)</th>
+                {peutSupprimer && <th className="px-4 py-2" />}
               </tr>
             </thead>
             <tbody>
               {clients.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-[var(--muted)]">
+                  <td colSpan={peutSupprimer ? 5 : 4} className="px-4 py-6 text-center text-[var(--muted)]">
                     Aucun client pour le moment.
                   </td>
                 </tr>
@@ -44,6 +49,15 @@ export default async function ClientsPage() {
                   <td className="px-4 py-2">
                     {client.vehicules.map((v) => v.marque ?? v.categorie).join(", ") || "—"}
                   </td>
+                  {peutSupprimer && (
+                    <td className="px-4 py-2 align-top">
+                      <SupprimerClient
+                        clientId={client.id}
+                        nomComplet={`${client.prenom} ${client.nom}`}
+                        nbRendezVous={client._count.rendezVous}
+                      />
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

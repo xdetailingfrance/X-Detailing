@@ -135,3 +135,22 @@ export async function trouverOuCreerClient(
   return { client: existant, adresseId: adresse.id, vehiculeId: vehicule.id };
 }
 
+/**
+ * Ce qui empêche d'effacer une fiche client, ou null si rien ne s'y oppose.
+ *
+ * Un rendez-vous facturé ou encaissé est une pièce comptable : elle se
+ * conserve dix ans, et effacer le client qui la porte la rendrait
+ * inexploitable. Les rendez-vous sans trace comptable, eux, partent avec la
+ * fiche — c'est ce que demande un droit à l'effacement.
+ */
+export async function obstacleSuppressionClient(clientId: string, tx: Tx = db): Promise<string | null> {
+  const rdv = await tx.rendezVous.findMany({
+    where: { clientId },
+    select: { numeroFacture: true, acompteStatut: true, paiementConfirmeAt: true },
+  });
+  const comptables = rdv.filter((r) => r.numeroFacture || r.acompteStatut === "PAYE" || r.paiementConfirmeAt);
+  if (comptables.length === 0) return null;
+  return comptables.length === 1
+    ? "Ce client a un rendez-vous facturé ou payé : la pièce comptable se conserve, la fiche ne peut pas être effacée."
+    : `Ce client a ${comptables.length} rendez-vous facturés ou payés : ces pièces comptables se conservent, la fiche ne peut pas être effacée.`;
+}

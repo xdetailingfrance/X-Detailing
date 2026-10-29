@@ -25,6 +25,7 @@ export default function NouveauDevisForm({ packs, options }: { packs: Pack[]; op
   const [optionIds, setOptionIds] = useState<string[]>([]);
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
+  const [echecEnvoi, setEchecEnvoi] = useState<{ id: string; erreur: string } | null>(null);
   const [remise, setRemise] = useState(0);
   const [avecAcompte, setAvecAcompte] = useState(true);
   const [envoyer, setEnvoyer] = useState(true);
@@ -105,6 +106,12 @@ export default function NouveauDevisForm({ packs, options }: { packs: Pack[]; op
        }
 
        const devis = await res.json();
+       // Un e-mail en échec ne doit pas disparaître derrière une redirection :
+       // la direction croirait le prospect joignable alors qu'il n'a rien reçu.
+       if (devis.envoi && devis.envoi.envoye === false) {
+         setEchecEnvoi({ id: devis.id, erreur: devis.envoi.erreur ?? "raison non précisée" });
+         return;
+       }
        router.push(`/back-office/devis/${devis.id}`);
    }
 
@@ -308,6 +315,23 @@ export default function NouveauDevisForm({ packs, options }: { packs: Pack[]; op
       </label>
 
         {erreur && <p className="text-sm text-[var(--danger)]">{erreur}</p>}
+        {echecEnvoi && (
+          <div className="rounded-md border border-[var(--warning)] bg-[var(--warning)]/10 p-3 text-sm">
+            <p className="font-medium text-[var(--warning)]">Le devis est enregistré, mais l&apos;e-mail n&apos;est pas parti.</p>
+            <p className="mt-1 text-[var(--muted)]">Raison donnée : {echecEnvoi.erreur}</p>
+            <p className="mt-1">
+              Le prospect n&apos;a rien reçu. Transmettez-lui le lien du devis, ou corrigez la
+              configuration d&apos;envoi puis renvoyez-le depuis sa fiche.
+            </p>
+            <button
+              type="button"
+              onClick={() => router.push(`/back-office/devis/${echecEnvoi.id}`)}
+              className="mt-2 underline"
+            >
+              Ouvrir le devis
+            </button>
+          </div>
+        )}
 
       <button
         type="submit"

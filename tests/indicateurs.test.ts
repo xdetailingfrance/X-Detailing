@@ -22,7 +22,7 @@ before(async () => {
   await vider();
   await semerCatalogue(db);
   const client = await db.client.create({
-    data: { prenom: "A", nom: "B", telephone: "0600000009", adresses: { create: { adresse: "1 rue", ville: "Lyon"} }, vehicules: { create: { categorie: "BERLINE" } } },
+    data: { prenom: "A", nom: "B", telephone: "0600000009", adresses: { create: { adresse: "1 rue", ville: "Bordeaux"} }, vehicules: { create: { categorie: "BERLINE" } } },
     include: { adresses: true, vehicules: true },
   });
   const base = {

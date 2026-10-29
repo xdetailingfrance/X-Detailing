@@ -107,6 +107,8 @@ const CHAMPS_RDV = [
   "dureeMinutes",
   "prixTotal",
   "acompte",
+  "fraisDeplacement",
+  "distanceKm",
   "statut",
   "source",
   "notes",

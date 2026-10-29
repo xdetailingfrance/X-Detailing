@@ -4,6 +4,8 @@
 import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
 import { table } from "@/lib/connexion";
+import { obstacleSuppressionClient } from "@/lib/clients";
+import { fraisDeplacement, DISTANCE_MAX_TARIFEE } from "@/lib/deplacement";
 import { db, ConflitDeVersion, enregistrerRdv, historiserRdv } from "@/lib/db";
 import {
   calculerPrix,
@@ -50,7 +52,7 @@ async function clientAvecVehicule(categorie: "BERLINE" | "SUV" | "MONOSPACE" = "
       prenom: "Camille",
       nom: "Martin",
       telephone: "0612345678",
-      adresses: { create: { adresse: "12 rue Mercière", ville: "Lyon", latitude: 45.76, longitude: 4.83 } },
+      adresses: { create: { adresse: "Place de la Bourse", ville: "Bordeaux", latitude: 44.8412, longitude: -0.5696 } },
       vehicules: { create: { categorie } },
     },
     include: { adresses: true, vehicules: true },
@@ -158,7 +160,7 @@ test("réservation en ligne : deux clients sur le même créneau, un seul l'obti
           nom: telephone,
           telephone,
           adresse: "1 rue de la République",
-          ville: "Lyon",
+          ville: "Bordeaux",
         }),
       })
     );
@@ -281,4 +283,58 @@ test("le dernier créneau réservable laisse le temps de payer avant le départ"
     DELAI_MINIMUM_MINUTES > DUREE_BLOCAGE_MINUTES,
     `réservable à ${DELAI_MINIMUM_MINUTES} min du départ alors que le paiement reste ouvert ${DUREE_BLOCAGE_MINUTES} min`
   );
+});
+
+test("barème de déplacement : par tranche, et rien d'inventé au-delà", () => {
+  assert.equal(fraisDeplacement(0), 0);
+  assert.equal(fraisDeplacement(10), 0);
+  assert.equal(fraisDeplacement(10.1), 10);
+  assert.equal(fraisDeplacement(20), 10);
+  assert.equal(fraisDeplacement(25), 15);
+  assert.equal(fraisDeplacement(30), 15);
+  // Au-delà du barème : null, qui veut dire « tarif particulier », pas gratuit.
+  assert.equal(fraisDeplacement(DISTANCE_MAX_TARIFEE + 0.1), null);
+  assert.equal(fraisDeplacement(-1), null);
+});
+
+test("le déplacement entre dans le prix et dans l'acompte", async () => {
+  const client = await clientAvecVehicule();
+  const resultat = await creerRendezVous({
+    clientId: client.id,
+    vehiculeId: client.vehicules[0].id,
+    adresseId: client.adresses[0].id,
+    packId: "pack-concession",
+    dateHeure: dateParis(prochain(1), "08:30"),
+    fraisDeplacement: 10,
+    distanceKm: 18.7,
+  });
+  assert.ok(resultat.ok, !resultat.ok ? resultat.erreur : "");
+  const rdv = resultat.valeur;
+
+    const sansRoute = await calculerPrix("pack-concession", "BERLINE", []);
+    assert.ok(sansRoute.ok);
+    assert.equal(rdv.prixTotal, sansRoute.valeur.prixTotal + 10);
+    assert.equal(rdv.fraisDeplacement, 10);
+    assert.equal(rdv.distanceKm, 18.7);
+    // L'acompte porte sur le total payé, déplacement compris.
+    assert.equal(rdv.acompte, Math.round(rdv.prixTotal * 10) / 100);
+});
+
+test("une fiche client ne s'efface pas quand elle porte une facture", async () => {
+  const client = await clientAvecVehicule();
+  assert.equal(await obstacleSuppressionClient(client.id), null);
+
+    const resultat = await creerRendezVous({
+      clientId: client.id,
+      vehiculeId: client.vehicules[0].id,
+      adresseId: client.adresses[0].id,
+      packId: "pack-concession",
+      dateHeure: dateParis(prochain(1), "08:30"),
+    });
+    assert.ok(resultat.ok, !resultat.ok ? resultat.erreur : "");
+    // Un rendez-vous sans trace comptable ne retient pas la fiche.
+    assert.equal(await obstacleSuppressionClient(client.id), null);
+
+    await db.rendezVous.update({ where: { id: resultat.valeur.id }, data: { numeroFacture: "F2026-0001" } });
+    assert.match((await obstacleSuppressionClient(client.id)) ?? "", /facturé ou payé/);
 });
