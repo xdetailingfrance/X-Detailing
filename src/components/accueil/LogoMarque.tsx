@@ -1,12 +1,16 @@
 // Logo officiel X Detailing, servi tel quel.
 //
-// Il n'est plus découpé en calques : sur la version définitive, le mot
+// Il n'est pas découpé en calques : sur la version définitive, le mot
 // DETAILING traverse le X au lieu d'être posé dessous, et les deux ne sont
-// plus séparables. Il est aussi dessiné pour un fond sombre — le mot est gris
-// anthracite —, donc il garde son fond noir sur les pages claires plutôt que
-// d'être détouré, ce qui le rendrait illisible.
+// plus séparables.
 //
-// Aucune retouche : ni redécoupe, ni changement de forme ou de typographie.
+// Il garde son fond blanc d'origine, y compris sur les pages sombres : le mot
+// DETAILING est en encre noire, le détourer le rendrait invisible sur un fond
+// foncé, et le recolorer reviendrait à modifier la marque. La pastille claire
+// est donc un choix, pas un oubli.
+//
+// Aucune retouche : ni détourage, ni recoloration, ni changement de forme ou
+// de typographie — seulement un redimensionnement.
 export default function LogoMarque({
   id,
   className,
