@@ -25,7 +25,7 @@ export async function semerDemo(db: PrismaClient) {
     { id: "demo-operateur-yanis", prenom: "Yanis", nom: "T.", telephone: "0633333333", secteurId: "secteur-bordeaux-rive-droite", adresseDomicile: "20 avenue Thiers, Bordeaux", latitudeDomicile: 44.8457, longitudeDomicile: -0.5527, kangooImmatriculation: "IJ-789-KL" },
   ];
   for (const o of operateurs) {
-    await db.operateur.upsert({ where: { id: o.id }, update: {}, create: { ...o, heureDebut: "08:30", heureFin:"18:00" } });
+    await db.operateur.upsert({ where: { id: o.id }, update: {}, create: { ...o, heureDebut: "07:45", heureFin:"18:00" } });
   }
 
   const comptes = [

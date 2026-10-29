@@ -181,7 +181,7 @@ model Operateur {
     latitudeDomicile      Float?
     longitudeDomicile     Float?
     // Horaires de travail (HH:mm, heure de Paris).
-    heureDebut            String                @default("08:30")
+    heureDebut            String                @default("07:45")
     heureFin              String                @default("18:00")
     kangooImmatriculation String?
     createdAt             DateTime              @default(now())

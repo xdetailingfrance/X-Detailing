@@ -46,7 +46,7 @@ export async function POST(request: Request) {
         adresseDomicile,
         latitudeDomicile: latitude,
         longitudeDomicile: longitude,
-        heureDebut: body.heureDebut ?? "08:30",
+        heureDebut: body.heureDebut ?? "07:45",
         heureFin: body.heureFin ?? "18:00",
         kangooImmatriculation: body.kangooImmatriculation || null,
       },
