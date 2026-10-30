@@ -7,7 +7,8 @@ import { table } from "@/lib/connexion";
 import { obstacleSuppressionClient } from "@/lib/clients";
 import { factureParId, lignesFacture, reglement } from "@/lib/facturation";
 import { ENTREPRISE, mentionsManquantes, ventilerTva } from "@/lib/entreprise";
-import { fraisDeplacement, DISTANCE_MAX_TARIFEE } from "@/lib/deplacement";
+import { fraisDeplacement, DISTANCE_MAX_TARIFEE, dansLaZonePlausible, RAYON_PLAUSIBLE_KM } from "@/lib/deplacement";
+import { assurerGeocodage } from "@/lib/clients";
 import { db, ConflitDeVersion, enregistrerRdv, historiserRdv } from "@/lib/db";
 import {
   calculerPrix,
@@ -447,4 +448,33 @@ test("un opérateur sans domicile géocodé n'est jamais candidat", async () => 
     dureeMinutes: 150,
   });
   assert.equal(candidats.length, 0);
+});
+
+test("une position hors de toute plausibilité est rejetée, pas enregistrée", () => {
+  // Carignan-de-Bordeaux, à cinq minutes.
+  assert.ok(dansLaZonePlausible(44.8113, -0.4739));
+  // Carignan dans les Ardennes, ce que renvoie la Base Adresse Nationale
+  // quand le code postal manque : 700 km, donc une homonymie, pas une
+  // adresse lointaine.
+  assert.ok(!dansLaZonePlausible(49.637, 5.164));
+  assert.ok(RAYON_PLAUSIBLE_KM > DISTANCE_MAX_TARIFEE);
+});
+
+test("une adresse déjà enregistrée à l'autre bout de la France est regéocodée", async () => {
+  const client = await db.client.create({
+    data: {
+      prenom: "Claire",
+      nom: "Caumeil",
+      telephone: "0611111111",
+      // Position fausse, telle qu'elle a pu être écrite avant le garde-fou.
+      adresses: { create: { adresse: "", ville: "Carignan", codePostal: "33360", latitude: 49.637, longitude: 5.164 } },
+    },
+    include: { adresses: true },
+  });
+  const point = await assurerGeocodage(client.adresses[0].id);
+  assert.ok(point, "l'adresse aurait dû être regéocodée");
+  assert.ok(dansLaZonePlausible(point.latitude, point.longitude));
+  // Et le correctif est bien persisté, pas seulement retourné.
+  const relue = await db.adresse.findUniqueOrThrow({ where: { id: client.adresses[0].id } });
+  assert.ok(relue.latitude != null && dansLaZonePlausible(relue.latitude, relue.longitude!));
 });

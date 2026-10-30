@@ -36,11 +36,14 @@ export function estimerTrajetMinutes(distanceKm: number): number {
 export async function geocoderAdresse(
   adresse: string,
   ville: string,
-  codePostal?: string | null
+  codePostal?: string | null,
+  /** Point de référence : à requête équivalente, l'adresse la plus proche gagne. */
+  proximite?: { latitude: number; longitude: number }
 ): Promise<{ latitude: number; longitude: number } | null> {
   const q = [adresse, codePostal, ville].filter(Boolean).join(" ");
+  const biais = proximite ? `&lat=${proximite.latitude}&lon=${proximite.longitude}` : "";
   try {
-    const res = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=1`, {
+    const res = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=1${biais}`, {
       signal: AbortSignal.timeout(3000),
     });
     if (!res.ok) return null;

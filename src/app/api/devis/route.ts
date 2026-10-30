@@ -58,6 +58,7 @@ export async function POST(request: Request) {
       raisonSociale: body.typeClient === "PRO" ? body.raisonSociale || null : null,
       adresse: String(body.adresse),
       ville: String(body.ville),
+      codePostal: body.codePostal ? String(body.codePostal).trim().slice(0, 10) : null,
       vehiculeDescription: body.vehiculeDescription || "",
       categorieVehicule: body.categorieVehicule,
       packId: body.packId,

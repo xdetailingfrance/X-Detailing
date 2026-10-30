@@ -21,16 +21,42 @@ export default function AffectationPanel({
   rendezVousId,
   operateurActuelId,
   candidatsInitiaux,
+  adresse,
 }: {
   rendezVousId: string;
   operateurActuelId: string | null;
   candidatsInitiaux: Candidat[];
+  /** Adresse d'intervention, corrigeable ici quand elle n'est pas reconnue. */
+  adresse: { adresse: string; ville: string; codePostal: string | null; geocodee: boolean };
 }) {
   const router = useRouter();
   const [candidats, setCandidats] = useState<Candidat[]>(candidatsInitiaux);
   const [recherche, setRecherche] = useState(false);
   const [validation, setValidation] = useState<string | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
+  const [correction, setCorrection] = useState(false);
+  const [champs, setChamps] = useState({
+    adresse: adresse.adresse,
+    codePostal: adresse.codePostal ?? "",
+    ville: adresse.ville,
+  });
+
+  async function corrigerAdresse() {
+    setErreur(null);
+    const res = await fetch(`/api/rendez-vous/${rendezVousId}/adresse`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(champs),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.geocodee === false) {
+      setErreur(data.erreur ?? data.error ?? "Adresse toujours introuvable.");
+      return;
+    }
+    setCorrection(false);
+    router.refresh();
+    await trouverMeilleurOperateur();
+  }
 
     async function trouverMeilleurOperateur() {
       setRecherche(true);
@@ -78,7 +104,56 @@ export default function AffectationPanel({
         </button>
       </div>
 
-         {erreur && <p className="text-sm text-[var(--warning)]">{erreur}</p>}
+         {erreur && (
+           <div className="text-sm text-[var(--warning)]">
+             <p>{erreur}</p>
+             {!adresse.geocodee && !correction && (
+               <button onClick={() => setCorrection(true)} className="mt-1 underline">
+                 Corriger l&apos;adresse d&apos;intervention
+               </button>
+             )}
+           </div>
+         )}
+
+         {(correction || !adresse.geocodee) && (
+           <div className="rounded-md border border-[var(--border)] bg-[var(--surface-2)] p-3 flex flex-col gap-2">
+             <p className="text-xs text-[var(--muted)]">
+               Adresse d&apos;intervention — elle doit être reconnue pour calculer les trajets. Le code postal lève
+               les homonymies entre communes.
+             </p>
+             <div className="flex flex-wrap gap-2">
+               <input
+                 value={champs.adresse}
+                 onChange={(e) => setChamps({ ...champs, adresse: e.target.value })}
+                 placeholder="N° et rue"
+                 aria-label="Rue"
+                 className="min-w-[14rem] flex-1 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-sm"
+               />
+               <input
+                 value={champs.codePostal}
+                 onChange={(e) => setChamps({ ...champs, codePostal: e.target.value })}
+                 placeholder="33360"
+                 inputMode="numeric"
+                 aria-label="Code postal"
+                 className="w-24 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-sm"
+               />
+               <input
+                 value={champs.ville}
+                 onChange={(e) => setChamps({ ...champs, ville: e.target.value })}
+                 placeholder="Ville"
+                 aria-label="Ville"
+                 className="w-40 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-sm"
+               />
+               <button
+                 onClick={corrigerAdresse}
+                 disabled={!champs.ville.trim()}
+                 className="rounded-md bg-[var(--accent)] px-3 py-1 text-sm font-medium hover:bg-[var(--accent-2)] transition disabled:opacity-50"
+               >
+                 Corriger et relancer
+               </button>
+             </div>
+           </div>
+         )}
 
       {candidats.length > 0 && (
         <div className="flex flex-col gap-2">

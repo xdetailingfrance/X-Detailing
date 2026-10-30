@@ -108,6 +108,12 @@ export default async function RendezVousPage({
           rendezVousId={rendezVous.id}
           operateurActuelId={rendezVous.operateurId}
           candidatsInitiaux={candidatsInitiaux}
+          adresse={{
+            adresse: rendezVous.adresse.adresse,
+            ville: rendezVous.adresse.ville,
+            codePostal: rendezVous.adresse.codePostal,
+            geocodee: rendezVous.adresse.latitude != null && rendezVous.adresse.longitude != null,
+          }}
         />
 
         <GestionPanel

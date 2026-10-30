@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { journaliser } from "@/lib/audit";
-import { geocoderAdresse } from "@/lib/geo";
+import { geocoderDansLaZone } from "@/lib/deplacement";
 
 const HEURE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     let latitude = nombre(body.latitudeDomicile);
     let longitude = nombre(body.longitudeDomicile);
     if (adresseDomicile && (latitude == null || longitude == null)) {
-      const point = await geocoderAdresse(adresseDomicile, "", null);
+      const point = await geocoderDansLaZone(adresseDomicile, "", null);
       latitude = point?.latitude ?? null;
       longitude = point?.longitude ?? null;
     }

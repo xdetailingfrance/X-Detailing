@@ -1,4 +1,4 @@
-import { itineraireRoutier } from "@/lib/geo";
+import { geocoderAdresse, haversineKm, itineraireRoutier } from "@/lib/geo";
 
 /**
  * Frais de déplacement, par tranche de distance routière.
@@ -46,4 +46,32 @@ export async function calculerDeplacement(latitude: number, longitude: number): 
 
   const frais = fraisDeplacement(route.distanceKm);
   return { distanceKm: route.distanceKm, frais, horsBareme: frais === null };
+}
+
+/**
+ * Au-delà de cette distance du point de départ, un résultat de géocodage
+ * n'est pas une adresse lointaine : c'est une homonymie.
+ *
+ * « Carignan » sans code postal désigne la commune des Ardennes, à 700 km,
+ * et non Carignan-de-Bordeaux à cinq minutes. Enregistrer ce point rendait
+ * le rendez-vous inaffectable avec un message absurde. La zone tarifée
+ * s'arrête à 30 km ; on laisse quatre fois cette marge pour les devis à
+ * tarif particulier, et on refuse au-delà.
+ */
+export const RAYON_PLAUSIBLE_KM = 120;
+
+export function dansLaZonePlausible(latitude: number, longitude: number) {
+  return haversineKm(DEPART.latitude, DEPART.longitude, latitude, longitude) <= RAYON_PLAUSIBLE_KM;
+}
+
+/**
+ * Géocode une adresse de l'aire desservie. Le résultat est biaisé vers le
+ * point de départ, et rejeté s'il tombe manifestement ailleurs : mieux vaut
+ * pas de coordonnées — qui se voient et se corrigent — qu'une position
+ * fausse, qui se propage en silence.
+ */
+export async function geocoderDansLaZone(adresse: string, ville: string, codePostal?: string | null) {
+  const point = await geocoderAdresse(adresse, ville, codePostal, DEPART);
+  if (!point) return null;
+  return dansLaZonePlausible(point.latitude, point.longitude) ? point : null;
 }

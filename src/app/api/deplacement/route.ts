@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { calculerDeplacement } from "@/lib/deplacement";
-import { geocoderAdresse } from "@/lib/geo";
+import { calculerDeplacement, geocoderDansLaZone } from "@/lib/deplacement";
 import { getSession } from "@/lib/session";
 
 /**
@@ -22,9 +21,9 @@ export async function GET(request: Request) {
   const codePostal = params.get("codePostal");
   if (!adresse || !ville) return NextResponse.json({ error: "adresse incomplète" }, { status: 400 });
 
-  const point = await geocoderAdresse(adresse, ville, codePostal);
+  const point = await geocoderDansLaZone(adresse, ville, codePostal);
   if (!point) {
-    return NextResponse.json({ error: "Adresse introuvable. Vérifiez le numéro et la ville." }, { status: 404 });
+    return NextResponse.json({ error: "Adresse introuvable près de Bordeaux. Vérifiez le numéro, le code postal et la ville." }, { status: 404 });
   }
 
   const deplacement = await calculerDeplacement(point.latitude, point.longitude);

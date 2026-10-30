@@ -2,7 +2,7 @@
 // (/api/clients) et l'assistante Lola.
 import type { CategorieVehicule } from "@/lib/types";
 import { db, type Tx } from "@/lib/db";
-import { geocoderAdresse } from "@/lib/geo";
+import { dansLaZonePlausible, geocoderDansLaZone } from "@/lib/deplacement";
 
 export const CATEGORIES_VEHICULE: CategorieVehicule[] = ["CITADINE", "BERLINE", "SUV", "MONOSPACE", "UTILITAIRE"];
 
@@ -31,7 +31,7 @@ async function position(adresse: NonNullable<NouveauClient["adresse"]>) {
   // Sans coordonnées, le moteur « meilleur opérateur » ne peut pas calculer
   // les trajets : on géocode l'adresse.
   if (adresse.latitude != null && adresse.longitude != null) return { latitude: adresse.latitude, longitude: adresse.longitude };
-  const trouvee = await geocoderAdresse(adresse.adresse, adresse.ville, adresse.codePostal);
+  const trouvee = await geocoderDansLaZone(adresse.adresse, adresse.ville, adresse.codePostal);
   return { latitude: trouvee?.latitude ?? null, longitude: trouvee?.longitude ?? null };
 }
 
@@ -174,11 +174,14 @@ export async function assurerGeocodage(
 ): Promise<{ latitude: number; longitude: number } | null> {
   const adresse = await tx.adresse.findUnique({ where: { id: adresseId } });
   if (!adresse) return null;
-  if (adresse.latitude != null && adresse.longitude != null) {
+  // Une position déjà enregistrée n'est reprise que si elle est plausible :
+  // les adresses géocodées avant le garde-fou peuvent pointer à 700 km, et
+  // les garder figerait le dossier dans son erreur.
+  if (adresse.latitude != null && adresse.longitude != null && dansLaZonePlausible(adresse.latitude, adresse.longitude)) {
     return { latitude: adresse.latitude, longitude: adresse.longitude };
   }
 
-  const trouvee = await geocoderAdresse(adresse.adresse, adresse.ville, adresse.codePostal);
+  const trouvee = await geocoderDansLaZone(adresse.adresse, adresse.ville, adresse.codePostal);
   if (!trouvee) return null;
   await tx.adresse.update({
     where: { id: adresseId },

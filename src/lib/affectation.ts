@@ -1,6 +1,7 @@
 import { db, versRdv } from "@/lib/db";
 import { dateParis, debutJourParis, finJourParis, jourParis } from "@/lib/heure";
-import { haversineKm, estimerTrajetMinutes, geocoderAdresse } from "@/lib/geo";
+import { haversineKm, estimerTrajetMinutes } from "@/lib/geo";
+import { geocoderDansLaZone } from "@/lib/deplacement";
 
 // Pondération du score — section 4 du cahier des charges (paramétrable).
 const POIDS = {
@@ -219,7 +220,7 @@ export async function assurerGeocodageOperateurs(): Promise<{ exploitables: numb
   for (const o of actifs) {
     if (o.latitudeDomicile != null && o.longitudeDomicile != null) continue;
     if (!o.adresseDomicile) continue;
-    const point = await geocoderAdresse(o.adresseDomicile, "", null);
+    const point = await geocoderDansLaZone(o.adresseDomicile, "", null);
     if (!point) continue;
     await db.operateur.update({
       where: { id: o.id },

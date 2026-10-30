@@ -356,6 +356,10 @@ model Devis {
   raisonSociale        String?
   adresse              String
   ville                String
+  /// Indispensable au géocodage : « Carignan » seul désigne une commune des
+  /// Ardennes, « Carignan 33360 » celle d'à côté. Sans lui, un rendez-vous
+  /// issu du devis part avec une position à 700 km.
+  codePostal           String?
   vehiculeDescription String
   categorieVehicule    CategorieVehicule
   packId               String

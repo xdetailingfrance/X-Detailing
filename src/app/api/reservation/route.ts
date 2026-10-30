@@ -5,8 +5,7 @@ import { packAvecTarifs } from "@/lib/queries";
 import { CATEGORIES_VEHICULE, chiffresTelephone, trouverOuCreerClient } from "@/lib/clients";
 import { creerRendezVous } from "@/lib/rendezVous";
 import { creneauxDisponibles, dateLocale } from "@/lib/disponibilites";
-import { calculerDeplacement, DISTANCE_MAX_TARIFEE } from "@/lib/deplacement";
-import { geocoderAdresse } from "@/lib/geo";
+import { DISTANCE_MAX_TARIFEE, calculerDeplacement, geocoderDansLaZone } from "@/lib/deplacement";
 import { emailConfirmationReservation } from "@/lib/email";
 import { MODELES_SMS, smsAuClient } from "@/lib/sms";
 import { titrePrestation } from "@/lib/prestationsPubliques";
@@ -96,7 +95,7 @@ export async function POST(request: Request) {
   let fraisDeplacement = 0;
   let distanceKm: number | null = null;
   let noteDeplacement: string | null = null;
-  const point = await geocoderAdresse(adresse, ville, codePostal);
+  const point = await geocoderDansLaZone(adresse, ville, codePostal);
   if (point) {
     const deplacement = await calculerDeplacement(point.latitude, point.longitude);
     if (deplacement.horsBareme) {

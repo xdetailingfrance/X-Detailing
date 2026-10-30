@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { journaliser } from "@/lib/audit";
-import { geocoderAdresse } from "@/lib/geo";
+import { geocoderDansLaZone } from "@/lib/deplacement";
 
 const HEURE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -27,7 +27,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   // coordonnées enverrait l'opérateur depuis un point où il n'habite plus.
   let position: { latitudeDomicile: number | null; longitudeDomicile: number | null } | undefined;
   if (typeof body.adresseDomicile === "string") {
-    const point = body.adresseDomicile.trim() ? await geocoderAdresse(body.adresseDomicile, "", null) : null;
+    const point = body.adresseDomicile.trim() ? await geocoderDansLaZone(body.adresseDomicile, "", null) : null;
     position = { latitudeDomicile: point?.latitude ?? null, longitudeDomicile: point?.longitude ?? null };
   }
 

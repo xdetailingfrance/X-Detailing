@@ -6,7 +6,7 @@ import type { Devis } from "@/lib/types";
 import { photosInitiales } from "@/lib/types";
 import { emailDevis, type ResultatEmail } from "@/lib/email";
 import { db, genToken, historiserDevis, premierEvenement, versDevis } from "@/lib/db";
-import { geocoderAdresse } from "@/lib/geo";
+import { geocoderDansLaZone } from "@/lib/deplacement";
 
 export type ResultatDevis = { ok: true } | { ok: false; error: string };
 
@@ -118,7 +118,7 @@ export async function convertirDevisEnRdv(devis: Devis, dateHeure: Date): Promis
    const { prenom, nom } = diviserNom(devis.nomClient);
     // Géocodage avant la transaction : c'est un appel réseau, et sans
     // coordonnées le rendez-vous créé serait inaffectable.
-    const point = await geocoderAdresse(devis.adresse, devis.ville, null);
+    const point = await geocoderDansLaZone(devis.adresse, devis.ville, devis.codePostal);
     const rendezVousId = await db.$transaction(async (tx) => {
       const pack = await tx.pack.findUniqueOrThrow({ where: { id: devis.packId } });
       const options = await tx.option.findMany({ where: { id: { in: devis.optionIds } } });
@@ -133,6 +133,7 @@ export async function convertirDevisEnRdv(devis: Devis, dateHeure: Date): Promis
               libelle: devis.raisonSociale,
               adresse: devis.adresse,
               ville: devis.ville,
+              codePostal: devis.codePostal,
               latitude: point?.latitude ?? null,
               longitude: point?.longitude ?? null,
             },
