@@ -4,6 +4,9 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { plageDureeLisible } from "@/lib/heure";
 
+// Montants en français : « 126,65 € », pas « 126.65 € ».
+const euros = (n: number) => n.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
+
 type Client = {
   id: string;
   prenom: string;
@@ -55,6 +58,7 @@ export default function NouveauRdvForm({
   const [recherche, setRecherche] = useState("");
   // Acompte : la règle est 10 %, mais un professionnel ou un client fidèle
   // peut en être dispensé, et un montant négocié doit pouvoir être saisi.
+  const [remise, setRemise] = useState("");
   const [modeAcompte, setModeAcompte] = useState<"standard" | "libre" | "aucun">("standard");
   const [acompteLibre, setAcompteLibre] = useState("");
   const [fiche, setFiche] = useState({
@@ -103,7 +107,12 @@ export default function NouveauRdvForm({
    const prixOptions = options
      .filter((o) => optionIds.includes(o.id))
      .reduce((total, o) => total + Number(o.prix), 0);
-   const prixTotal = tarif ? Number(tarif.prix) + prixOptions : null;
+   // La remise porte sur les prestations ; le déplacement, calculé plus tard
+   // depuis l'adresse, n'entre pas dans ce total et n'est donc pas remisé.
+   const remisePourcent = Math.min(100, Math.max(0, Number(remise.replace(",", ".")) || 0));
+   const sousTotal = tarif ? Number(tarif.prix) + prixOptions : null;
+   const remiseMontant = sousTotal != null ? Math.round(sousTotal * remisePourcent) / 100 : 0;
+   const prixTotal = sousTotal != null ? Math.round((sousTotal - remiseMontant) * 100) / 100 : null;
    const acompteStandard = prixTotal != null ? Math.round(prixTotal * 0.1 * 100) / 100 : null;
    const acompte =
      modeAcompte === "aucun"
@@ -167,6 +176,7 @@ export default function NouveauRdvForm({
          dateHeure: `${date}T${heure}:00`,
          dureeMinutes: pack?.dureeMinMinutes,
          acompte: modeAcompte === "standard" ? undefined : acompte,
+         remisePourcent,
          source: donnees.get("source"),
          notes: donnees.get("notes") || undefined,
        };
@@ -399,11 +409,27 @@ export default function NouveauRdvForm({
           />
         </label>
 
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-[var(--muted)]">Remise commerciale</span>
+          <span className="flex items-center gap-2">
+            <input
+              value={remise}
+              onChange={(e) => setRemise(e.target.value)}
+              inputMode="decimal"
+              placeholder="0"
+              className="w-24 rounded-md bg-[var(--surface-2)] border border-[var(--border)] px-3 py-2 text-sm"
+            />
+            <span className="text-[var(--muted)]">
+              % sur les prestations{remiseMontant > 0 ? ` · − ${euros(remiseMontant)}` : ""}
+            </span>
+          </span>
+        </label>
+
         <fieldset className="flex flex-col gap-2">
           <legend className="text-sm text-[var(--muted)]">Acompte</legend>
           <div className="flex flex-wrap items-center gap-2 text-sm">
             {([
-              ["standard", acompteStandard != null ? `10 % · ${acompteStandard} €` : "10 %"],
+              ["standard", acompteStandard != null ? `10 % · ${euros(acompteStandard)}` : "10 %"],
               ["libre", "Montant choisi"],
               ["aucun", "Aucun acompte"],
             ] as const).map(([valeur, libelle]) => (
@@ -444,13 +470,18 @@ export default function NouveauRdvForm({
       <div className="rounded-md bg-[var(--surface-2)] border border-[var(--border)] px-3 py-2 text-sm flex flex-col gap-1">
         {tarif ? (
           <>
+            {remiseMontant > 0 && (
+              <span className="text-[var(--muted)]">
+                Prestations : {euros(sousTotal!)} · remise {remisePourcent} % : − {euros(remiseMontant)}
+              </span>
+            )}
             <span>
-              Prix total : <strong>{prixTotal} €</strong>
+              Prix total : <strong>{euros(prixTotal!)}</strong>
             </span>
             <span className="text-[var(--muted)]">
               {modeAcompte === "aucun"
-                ? `Sans acompte · ${prixTotal} € réglés à l'intervention`
-                : `Acompte : ${acompte} € · Solde à l'intervention : ${(prixTotal! - (acompte ?? 0)).toFixed(2)} €`}
+                ? `Sans acompte · ${euros(prixTotal!)} réglés à l'intervention`
+                : `Acompte : ${euros(acompte ?? 0)} · Solde à l'intervention : ${euros(prixTotal! - (acompte ?? 0))}`}
             </span>
           </>
         ) : (

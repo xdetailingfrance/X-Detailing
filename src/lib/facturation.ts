@@ -55,13 +55,26 @@ export function lignesFacture(facture: Facture): LigneFacture[] {
   }));
   const totalOptions = options.reduce((s, l) => s + l.total, 0);
   // Le tarif de la prestation n'est pas stocké seul : c'est ce qui reste du
-  // total une fois retirés les options et le déplacement.
-  const prestation = Math.round((facture.prixTotal - totalOptions - facture.fraisDeplacement) * 100) / 100;
+  // total une fois retirés les options et le déplacement, et une fois la
+  // remise remise en place — elle a été déduite du total, elle doit
+  // réapparaître en ligne pour que le client voie ce qu'on lui a accordé.
+  const remise = Math.round(facture.remiseMontant * 100) / 100;
+  const prestation =
+    Math.round((facture.prixTotal + remise - totalOptions - facture.fraisDeplacement) * 100) / 100;
 
   const lignes: LigneFacture[] = [
     { libelle: `${facture.pack.nom} — ${facture.categorieVehicule.toLowerCase()}`, quantite: 1, prixUnitaire: prestation, total: prestation },
     ...options,
   ];
+  if (remise > 0) {
+    const pourcent = Number(facture.remisePourcent);
+    lignes.push({
+      libelle: `Remise commerciale${pourcent > 0 ? ` ${pourcent} %` : ""}`,
+      quantite: 1,
+      prixUnitaire: -remise,
+      total: -remise,
+    });
+  }
   if (facture.fraisDeplacement > 0) {
     const distance = facture.distanceKm != null ? ` (${Math.round(facture.distanceKm)} km)` : "";
     lignes.push({

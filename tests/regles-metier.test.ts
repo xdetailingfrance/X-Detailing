@@ -706,3 +706,54 @@ test("la facture PDF jointe à l'e-mail est un vrai PDF, nommé d'après son num
     assert.equal(nom, "Facture-XD-2026-TEST42.pdf");
     assert.ok(!nom.includes("/"));
 });
+
+test("remise commerciale : elle porte sur les prestations, pas sur le déplacement", async () => {
+  const op = await operateur();
+  const client = await clientAvecVehicule("SUV");
+  const options = await db.option.findMany({ take: 1 });
+
+    const sans = await creerRendezVous({
+      clientId: client.id,
+      vehiculeId: client.vehicules[0].id,
+      adresseId: client.adresses[0].id,
+      packId: "pack-concession-luxe",
+      dateHeure: dateParis(prochain(1), "08:30"),
+      optionIds: options.map((o) => o.id),
+      fraisDeplacement: 10,
+    });
+    assert.ok(sans.ok, !sans.ok ? sans.erreur : "");
+    const prestations = sans.valeur.prixTotal - 10;
+
+    const avec = await creerRendezVous({
+      clientId: client.id,
+      vehiculeId: client.vehicules[0].id,
+      adresseId: client.adresses[0].id,
+      packId: "pack-concession-luxe",
+      dateHeure: dateParis(prochain(1), "11:30"),
+      optionIds: options.map((o) => o.id),
+      fraisDeplacement: 10,
+      remisePourcent: 10,
+    });
+    assert.ok(avec.ok, !avec.ok ? avec.erreur : "");
+    const rdv = avec.valeur;
+
+    // 10 % des prestations seulement : les 10 € de route restent entiers.
+    assert.equal(rdv.remisePourcent, 10);
+    assert.equal(rdv.remiseMontant, Math.round(prestations * 10) / 100);
+    assert.equal(rdv.prixTotal, Math.round((prestations - rdv.remiseMontant + 10) * 100) / 100);
+    // L'acompte porte sur ce qui est réellement dû.
+    assert.equal(rdv.acompte, Math.round(rdv.prixTotal * 10) / 100);
+
+    // Et la facture la montre, sans que la somme des lignes dérive.
+    await db.rendezVous.update({
+      where: { id: rdv.id },
+      data: { operateurId: op.id, statut: "TERMINE", numeroFacture: "XD-2026-REMISE", modePaiement: "ESPECES", paiementConfirmeAt: new Date() },
+    });
+    const facture = await factureParId(rdv.id);
+    assert.ok(facture);
+    const lignes = lignesFacture(facture);
+    const ligneRemise = lignes.find((l) => /Remise/.test(l.libelle));
+    assert.ok(ligneRemise, "la remise doit apparaître en ligne");
+    assert.equal(ligneRemise.total, -rdv.remiseMontant);
+    assert.equal(Math.round(lignes.reduce((s, l) => s + l.total, 0) * 100) / 100, facture.prixTotal);
+});

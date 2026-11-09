@@ -268,6 +268,14 @@ model RendezVous {
     dureeMinutes             Int
     prixTotal                Decimal               @db.Decimal(10, 2)
     acompte                  Decimal               @db.Decimal(10, 2)
+    /// Remise commerciale consentie, en pourcentage des prestations. Les
+    /// frais de déplacement n'en bénéficient pas : ils sont un coût, pas une
+    /// marge sur laquelle négocier.
+    remisePourcent           Decimal               @default(0) @db.Decimal(5, 2)
+    /// Le montant effectivement déduit. Stocké en plus du pourcentage parce
+    /// que le reconstituer par division ferait dériver la facture d'un
+    /// centime : ici la somme des lignes retombe exactement sur le total.
+    remiseMontant            Decimal               @default(0) @db.Decimal(10, 2)
     /// Supplément de route, compris dans prixTotal. Conservé à part pour que
     /// la facture puisse en faire une ligne : un total sans détail se
     /// conteste.

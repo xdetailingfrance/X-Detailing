@@ -42,6 +42,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "acompte invalide" }, { status: 400 });
   }
 
+  const remisePourcent = body.remisePourcent == null || body.remisePourcent === "" ? 0 : Number(body.remisePourcent);
+  if (!Number.isFinite(remisePourcent) || remisePourcent < 0 || remisePourcent > 100) {
+    return NextResponse.json({ error: "remise invalide (0 à 100 %)" }, { status: 400 });
+  }
+
   const resultat = await creerRendezVous({
     clientId: body.clientId,
     vehiculeId: body.vehiculeId,
@@ -51,6 +56,7 @@ export async function POST(request: Request) {
     optionIds: Array.isArray(body.optionIds) ? body.optionIds.filter((id: unknown) => typeof id === "string") :[],
       secteurId: body.secteurId || null,
       acompte,
+      remisePourcent,
       dureeMinutes: duree,
       source: SOURCES.includes(body.source) ? body.source : "TELEPHONE",
       notes: body.notes || null,

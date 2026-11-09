@@ -58,6 +58,12 @@ export async function creerRendezVous(
     optionIds?: string[];
     secteurId?: string | null;
     dureeMinutes?: number | null;
+    /**
+     * Remise commerciale, en pourcentage des prestations. Les frais de
+     * déplacement en sont exclus : ils couvrent un coût réel, pas une marge
+     * sur laquelle négocier.
+     */
+    remisePourcent?: number;
     /** Supplément de route, calculé par le serveur à partir de l'adresse. */
     fraisDeplacement?: number;
     /**
@@ -86,7 +92,9 @@ export async function creerRendezVous(
     // Le déplacement s'ajoute aux prestations, et l'acompte porte sur le tout :
     // c'est le montant que le client voit avant de payer.
     const fraisDeplacement = Math.max(0, donnees.fraisDeplacement ?? 0);
-    const prixTotal = Math.round((prix.valeur.prixTotal + fraisDeplacement) * 100) / 100;
+    const remisePourcent = Math.min(100, Math.max(0, donnees.remisePourcent ?? 0));
+    const remiseMontant = Math.round(prix.valeur.prixTotal * remisePourcent) / 100;
+    const prixTotal = Math.round((prix.valeur.prixTotal - remiseMontant + fraisDeplacement) * 100) / 100;
     const acompte =
       donnees.acompte == null
         ? Math.round(prixTotal * TAUX_ACOMPTE * 100) / 100
@@ -104,6 +112,8 @@ export async function creerRendezVous(
         dureeMinutes: donnees.dureeMinutes ?? prix.valeur.dureeMinMinutes,
         prixTotal,
         acompte,
+        remisePourcent,
+        remiseMontant,
         fraisDeplacement,
         distanceKm: donnees.distanceKm ?? null,
         source: donnees.source ?? "TELEPHONE",
