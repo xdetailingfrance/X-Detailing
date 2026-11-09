@@ -22,9 +22,30 @@ import type { Devis, RendezVous } from "@/lib/types";
 const NOM_EXPEDITEUR = "X Detailing";
 
 function configuration() {
-  const { BREVO_API_KEY, BREVO_EMAIL_SENDER } = process.env;
-  if (!BREVO_API_KEY || !BREVO_EMAIL_SENDER) return null;
-  return { cle: BREVO_API_KEY, expediteur: BREVO_EMAIL_SENDER };
+  const cle = process.env.BREVO_API_KEY?.trim();
+  const expediteur = process.env.BREVO_EMAIL_SENDER?.trim();
+  if (!cle || !expediteur) return null;
+  return { cle, expediteur };
+}
+
+/**
+ * Ce qui manque exactement, ou null si tout est là.
+ *
+ * Un message qui dit « BREVO_API_KEY ou BREVO_EMAIL_SENDER absente » oblige
+ * à chercher laquelle des deux — et à soupçonner la mauvaise quand les SMS,
+ * eux, fonctionnent avec la même clé. On nomme la variable fautive, et on
+ * distingue l'absente de la vide : une variable présente mais vide
+ * ressemble, dans l'interface de Vercel, à une variable correctement
+ * renseignée. Aucune valeur n'est divulguée.
+ */
+export function diagnosticEmail(): string | null {
+  const manquantes: string[] = [];
+  for (const nom of ["BREVO_API_KEY", "BREVO_EMAIL_SENDER"] as const) {
+    const brute = process.env[nom];
+    if (brute === undefined) manquantes.push(`${nom} n'est pas définie`);
+    else if (brute.trim() === "") manquantes.push(`${nom} est définie mais vide`);
+  }
+  return manquantes.length > 0 ? manquantes.join(" ; ") : null;
 }
 
 export function emailsReelsActifs() {
@@ -57,7 +78,7 @@ export async function envoyerEmail(params: {
   let erreur: string | undefined;
 
   if (!config) {
-    erreur = "BREVO_API_KEY ou BREVO_EMAIL_SENDER absente";
+    erreur = diagnosticEmail() ?? "configuration d'envoi incomplète";
   } else {
     try {
       const res = await fetch("https://api.brevo.com/v3/smtp/email", {

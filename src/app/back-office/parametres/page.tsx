@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { emailsReelsActifs } from "@/lib/email";
+import { diagnosticEmail, emailsReelsActifs } from "@/lib/email";
 import { fournisseurSms } from "@/lib/sms";
 import { LIBELLE_ROLE } from "@/lib/permissions";
 import { formatParis } from "@/lib/heure";
@@ -24,7 +24,7 @@ export default async function ParametresPage() {
     { nom: "Lola (Claude)", ok: Boolean(process.env.ANTHROPIC_API_KEY), detail: "ANTHROPIC_API_KEY" },
     { nom: "Meta Ads", ok: false, detail: "Phase 4" },
     { nom: "Cartographie et GPS", ok: false, detail: "Phase 6" },
-    { nom: "E-mail (devis, factures, confirmations)", ok: emailsReelsActifs(), detail: "BREVO_API_KEY + BREVO_EMAIL_SENDER" },
+    { nom: "E-mail (devis, factures, confirmations)", ok: emailsReelsActifs(), detail: diagnosticEmail() ?? "BREVO_API_KEY + BREVO_EMAIL_SENDER" },
     { nom: "Stockage photos et justificatifs", ok: Boolean(process.env.BLOB_READ_WRITE_TOKEN), detail: "BLOB_READ_WRITE_TOKEN" },
   ];
 
