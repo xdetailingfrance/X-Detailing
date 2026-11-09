@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { devisAvecRelations } from "@/lib/queries";
 import DevisDetailPanel from "./DevisDetailPanel";
+import RetourArriere from "@/components/backoffice/RetourArriere";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,8 @@ export default async function DevisDetailPage({ params }: { params: Promise<{ id
   if (!devis) notFound();
 
   return (
-    <div className="max-w-2xl">
+    <div className="flex max-w-2xl flex-col gap-4">
+      <RetourArriere versHref="/back-office/devis" versLibelle="Devis" />
       <DevisDetailPanel
         devisId={devis.id}
         statut={devis.statut}

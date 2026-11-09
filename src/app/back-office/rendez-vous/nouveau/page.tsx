@@ -1,5 +1,6 @@
 import { listerClientsAvecRelations, listerOptionsActives, listerPacksAvecTarifs } from "@/lib/queries";
 import NouveauRdvForm from "./NouveauRdvForm";
+import RetourArriere from "@/components/backoffice/RetourArriere";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,7 @@ export default async function NouveauRdvPage() {
 
     return (
       <div className="flex flex-col gap-6">
+        <RetourArriere versHref="/back-office/planning" versLibelle="Planning" />
         <h1 className="text-xl md:text-2xl font-semibold">Nouveau rendez-vous</h1>
         <NouveauRdvForm
           clients={clients}

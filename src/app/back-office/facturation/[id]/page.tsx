@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { aLaPermission } from "@/lib/permissions";
@@ -6,6 +5,7 @@ import { factureParId } from "@/lib/facturation";
 import { mentionsManquantes } from "@/lib/entreprise";
 import RenvoyerFacture from "./RenvoyerFacture";
 import FactureImprimable from "@/components/facture/FactureImprimable";
+import RetourArriere from "@/components/backoffice/RetourArriere";
 
 export const dynamic = "force-dynamic";
 
@@ -26,9 +26,7 @@ export default async function FacturePage({ params }: { params: Promise<{ id: st
   return (
     <div className="flex flex-col gap-4 max-w-3xl">
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <Link href="/back-office/facturation" className="text-sm underline text-[var(--muted)]">
-          ← Toutes les factures
-        </Link>
+        <RetourArriere versHref="/back-office/facturation" versLibelle="Toutes les factures" />
         <RenvoyerFacture
           rendezVousId={facture.id}
           email={facture.client.email}

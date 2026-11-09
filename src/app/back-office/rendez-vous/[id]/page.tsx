@@ -6,6 +6,7 @@ import { getSession } from "@/lib/session";
 import { suppressionDefinitivePossible } from "@/lib/rendezVous";
 import AffectationPanel from "./AffectationPanel";
 import GestionPanel from "./GestionPanel";
+import RetourArriere from "@/components/backoffice/RetourArriere";
 
 const LIBELLE_STATUT: Record<string, string> = {
   EN_ATTENTE: "En attente",
@@ -55,6 +56,7 @@ export default async function RendezVousPage({
 
     return (
       <div className="flex flex-col gap-6 max-w-2xl">
+        <RetourArriere versHref="/back-office/planning" versLibelle="Planning" />
         <div>
           <h1 className="text-xl md:text-2xl font-semibold">
             Rendez-vous — {rendezVous.client.prenom} {rendezVous.client.nom}

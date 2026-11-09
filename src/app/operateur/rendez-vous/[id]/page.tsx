@@ -3,6 +3,7 @@ import { getSession } from "@/lib/session";
 import { rendezVousAvecRelations } from "@/lib/queries";
 import { authDesactivee } from "@/lib/auth";
 import WorkflowPanel from "./WorkflowPanel";
+import RetourArriere from "@/components/backoffice/RetourArriere";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,8 @@ export default async function RendezVousOperateurPage({ params }: { params: Prom
    const resteAPayer = rdv.prixTotal - (rdv.acompteStatut === "PAYE" ? rdv.acompte : 0);
 
    return (
-     <div className="max-w-2xl">
+     <div className="flex max-w-2xl flex-col gap-4">
+       <RetourArriere versHref="/operateur" versLibelle="Mes interventions" />
        <WorkflowPanel
          rendezVousId={rdv.id}
          statut={rdv.statut}

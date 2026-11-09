@@ -1,6 +1,7 @@
 import { listerPacksAvecTarifs } from "@/lib/queries";
 import { listerOptionsActives } from "@/lib/queries";
 import NouveauDevisForm from "./NouveauDevisForm";
+import RetourArriere from "@/components/backoffice/RetourArriere";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,7 @@ export default async function NouveauDevisPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <RetourArriere versHref="/back-office/devis" versLibelle="Devis" />
       <h1 className="text-xl md:text-2xl font-semibold">Nouveau devis</h1>
       <NouveauDevisForm
         packs={packs.map((p) => ({ ...p, tarifs: p.tarifs.map((t) => ({ categorie: t.categorie, prix: t.prix.toString() })) }))}
