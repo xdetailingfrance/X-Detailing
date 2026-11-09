@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { table } from "@/lib/connexion";
 import { obstacleSuppressionClient } from "@/lib/clients";
 import { factureParId, lignesFacture, reglement } from "@/lib/facturation";
+import { genererFacturePdf, nomFichierFacture } from "@/lib/facturePdf";
 import { ENTREPRISE, mentionsManquantes, ventilerTva } from "@/lib/entreprise";
 import { DEPART, DISTANCE_MAX_TARIFEE, RAYON_PLAUSIBLE_KM, TRANCHES_DEPLACEMENT, dansLaZonePlausible, distanceMaxTarifee, fraisDeplacement, lireTranches } from "@/lib/deplacement";
 import { assurerGeocodage } from "@/lib/clients";
@@ -663,4 +664,45 @@ test("un opérateur ne reçoit jamais de SMS : seuls les clients en reçoivent",
     for (const s of envoyes) {
       assert.ok(!/Test Opérateur/.test(s.destinataire), "un SMS est adressé à l'opérateur");
     }
+});
+
+test("la facture PDF jointe à l'e-mail est un vrai PDF, nommé d'après son numéro", async () => {
+  const op = await operateur();
+  const client = await clientAvecVehicule("SUV");
+  const options = await db.option.findMany({ take: 2 });
+  const resultat = await creerRendezVous({
+    clientId: client.id,
+    vehiculeId: client.vehicules[0].id,
+    adresseId: client.adresses[0].id,
+    packId: "pack-concession-luxe",
+    dateHeure: dateParis(prochain(1), "08:30"),
+    optionIds: options.map((o) => o.id),
+    fraisDeplacement: 10,
+    distanceKm: 18.7,
+  });
+  assert.ok(resultat.ok, !resultat.ok ? resultat.erreur : "");
+  await db.rendezVous.update({
+    where: { id: resultat.valeur.id },
+    data: {
+      operateurId: op.id,
+      statut: "TERMINE",
+      numeroFacture: "XD-2026-TEST/42",
+      modePaiement: "CARTE",
+      paiementConfirmeAt: new Date(),
+      acompteStatut: "PAYE",
+    },
+  });
+
+    const facture = await factureParId(resultat.valeur.id);
+    assert.ok(facture);
+    const pdf = await genererFacturePdf(facture);
+    assert.equal(Buffer.from(pdf.slice(0, 5)).toString(), "%PDF-");
+    // Un PDF d'une facture complète pèse quelques kilo-octets : en dessous,
+    // c'est une page vide ; très au-dessus, c'est qu'on y a mis autre chose.
+    assert.ok(pdf.length > 1500 && pdf.length < 200_000, `taille inattendue : ${pdf.length}`);
+
+    // Le nom de fichier ne doit pas pouvoir porter de séparateur de chemin.
+    const nom = nomFichierFacture(facture);
+    assert.equal(nom, "Facture-XD-2026-TEST42.pdf");
+    assert.ok(!nom.includes("/"));
 });

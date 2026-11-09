@@ -2,6 +2,8 @@ import { journaliser } from "@/lib/audit";
 import { db, historiserRdv } from "@/lib/db";
 import { dureeLisible, formatParis } from "@/lib/heure";
 import { titrePrestation } from "@/lib/prestationsPubliques";
+import { factureParId } from "@/lib/facturation";
+import { genererFacturePdf, nomFichierFacture } from "@/lib/facturePdf";
 import type { Devis, RendezVous } from "@/lib/types";
 
 /**
@@ -46,6 +48,8 @@ export async function envoyerEmail(params: {
   entite: string;
   entiteId: string;
   rendezVous?: Pick<RendezVous, "id" | "historique"> | null;
+  /** Fichiers joints, encodés par Brevo depuis leur contenu binaire. */
+  pieces?: { nom: string; contenu: Uint8Array }[];
 }): Promise<ResultatEmail> {
   const config = configuration();
   let envoye = false;
@@ -63,6 +67,14 @@ export async function envoyerEmail(params: {
           to: [{ email: params.destinataire, name: params.nom ?? undefined }],
           subject: params.sujet,
           htmlContent: params.html,
+          ...(params.pieces?.length
+            ? {
+                attachment: params.pieces.map((p) => ({
+                  name: p.nom,
+                  content: Buffer.from(p.contenu).toString("base64"),
+                })),
+              }
+            : {}),
         }),
       });
       if (!res.ok) {
@@ -228,10 +240,23 @@ export async function emailFacture(rdv: RendezVous) {
   const { client, adresse, pack } = await contexte(rdv);
   if (!client?.email) return { envoye: false, erreur: "client sans adresse e-mail" };
 
+  // Le PDF est joint au message : le client garde sa facture sans avoir à
+  // cliquer. Si sa génération échoue, l'e-mail part quand même avec le lien
+  // — une facture consultable vaut mieux qu'un message jamais envoyé.
+  let piece: { nom: string; contenu: Uint8Array } | null = null;
+  const complete = await factureParId(rdv.id);
+  if (complete) {
+    try {
+      piece = { nom: nomFichierFacture(complete), contenu: await genererFacturePdf(complete) };
+    } catch (e) {
+      console.error("Génération du PDF de facture impossible", e);
+    }
+  }
+
   const prestation = pack ? titrePrestation(pack.id, pack.nom) : "votre prestation";
   const corps = `
     <p>Bonjour ${client.prenom},</p>
-    <p>Votre prestation est terminée. Voici votre facture.</p>
+    <p>Votre prestation est terminée. Votre facture est jointe à ce message.</p>
     <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:16px;font-size:15px">
       <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Facture</td><td><strong>${rdv.numeroFacture ?? ""}</strong></td></tr>
       <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Prestation</td><td>${prestation}</td></tr>
@@ -241,8 +266,8 @@ export async function emailFacture(rdv: RendezVous) {
       ${ligneDeplacement(rdv)}
     </table>
     <p style="margin-top:20px">
-      Votre facture détaillée est consultable et téléchargeable en PDF depuis le bouton ci-dessous. Les photos
-      avant et après la prestation restent accessibles depuis votre page de suivi.
+      Elle reste également consultable en ligne depuis le bouton ci-dessous, avec les photos avant et après la
+      prestation.
     </p>
     <p style="margin-top:16px">
       Votre avis nous aide à progresser :
@@ -261,6 +286,7 @@ export async function emailFacture(rdv: RendezVous) {
     entite: "RendezVous",
     entiteId: rdv.id,
     rendezVous: rdv,
+    pieces: piece ? [piece] : undefined,
   });
 }
 
