@@ -7,7 +7,7 @@ import { table } from "@/lib/connexion";
 import { obstacleSuppressionClient } from "@/lib/clients";
 import { factureParId, lignesFacture, reglement } from "@/lib/facturation";
 import { ENTREPRISE, mentionsManquantes, ventilerTva } from "@/lib/entreprise";
-import { fraisDeplacement, DISTANCE_MAX_TARIFEE, dansLaZonePlausible, RAYON_PLAUSIBLE_KM } from "@/lib/deplacement";
+import { DEPART, DISTANCE_MAX_TARIFEE, RAYON_PLAUSIBLE_KM, TRANCHES_DEPLACEMENT, dansLaZonePlausible, distanceMaxTarifee, fraisDeplacement, lireTranches } from "@/lib/deplacement";
 import { assurerGeocodage } from "@/lib/clients";
 import { db, ConflitDeVersion, enregistrerRdv, historiserRdv } from "@/lib/db";
 import {
@@ -23,6 +23,7 @@ import { DUREE_BLOCAGE_MINUTES, enregistrerPaiement, libererReservation } from "
 import { appliquerActionWorkflow } from "@/lib/workflow";
 import { diagnostiquerAbsenceDeCandidat, evaluerCandidats } from "@/lib/affectation";
 import { attribuerAutomatiquement, operateursCouvrant } from "@/lib/attribution";
+import { baremePour, secteurCouvrant } from "@/lib/bareme";
 import { dateParis, decalerJour, jourParis, jourSemaineParis } from "@/lib/heure";
 import { ANGLES_PHOTO } from "@/lib/types";
 import { semerCatalogue } from "../prisma/catalogue";
@@ -33,7 +34,9 @@ if (!/test/.test(process.env.DATABASE_URL ?? "")) {
 }
 
 async function viderDonnees() {
-  const tables = ["JournalAudit", "Sms", "AffectationCandidat", "RendezVousOption", "Devis", "RendezVous", "Vehicule", "Adresse", "Client", "Utilisateur", "Operateur"];
+  // Secteur en fait partie : les périmètres créés par un test fausseraient
+  // l'attribution et les barèmes du suivant.
+  const tables = ["JournalAudit", "Sms", "AffectationCandidat", "RendezVousOption", "Devis", "RendezVous", "Vehicule", "Adresse", "Client", "Utilisateur", "Operateur", "Secteur"];
   await db.$executeRawUnsafe(`TRUNCATE ${tables.map(table).join(", ")} CASCADE`);
 }
 
@@ -551,4 +554,57 @@ test("à plusieurs, le rendez-vous va à l'opérateur dont le secteur couvre l'a
     // Hors de tout périmètre, rien n'est attribué au hasard.
     const ailleurs = await attribuer("Paris", 48.8566, 2.3522, "0600002005", "11:30");
     assert.equal(ailleurs.attribue, false);
+});
+
+test("un barème saisi est remis en ordre, et refusé s'il est bancal", () => {
+  assert.deepEqual(lireTranches([{ jusquaKm: 30, prix: 15 }, { jusquaKm: 10, prix: 0 }]), [
+    { jusquaKm: 10, prix: 0 },
+    { jusquaKm: 30, prix: 15 },
+  ]);
+  // Un barème à moitié valide facturerait des montants au hasard : on le
+  // refuse en entier plutôt que d'en garder la moitié.
+  assert.equal(lireTranches([{ jusquaKm: 10, prix: 0 }, { jusquaKm: -5, prix: 3 }]), null);
+  assert.equal(lireTranches([{ jusquaKm: 10, prix: -1 }]), null);
+  assert.equal(lireTranches([]), null);
+  assert.equal(lireTranches(null), null);
+});
+
+test("chaque secteur facture le déplacement à son propre barème, depuis son centre", async () => {
+  const toulouse = await db.secteur.create({
+    data: {
+      nom: "Toulouse",
+      ville: "Toulouse",
+      latitude: 43.6045,
+      longitude: 1.4442,
+      rayonKm: 40,
+      tranches: [{ jusquaKm: 15, prix: 0 }, { jusquaKm: 35, prix: 20 }],
+    },
+  });
+  await db.secteur.create({
+    data: { nom: "Bordeaux", ville: "Bordeaux", latitude: 44.8378, longitude: -0.5792, rayonKm: 30 },
+  });
+
+    assert.equal((await secteurCouvrant(43.6047, 1.4442))?.id, toulouse.id);
+    assert.equal((await secteurCouvrant(48.8566, 2.3522)), null);
+
+    // Toulouse : son centre, ses tranches.
+    const tls = await baremePour(43.6047, 1.4442);
+    assert.equal(tls.secteur?.nom, "Toulouse");
+    assert.equal(tls.depart.latitude, 43.6045);
+    assert.equal(distanceMaxTarifee(tls.tranches), 35);
+    // 12 km sont offerts à Toulouse (gratuit jusqu'à 15)...
+    assert.equal(fraisDeplacement(12, tls.tranches), 0);
+    assert.equal(fraisDeplacement(25, tls.tranches), 20);
+    assert.equal(fraisDeplacement(40, tls.tranches), null);
+
+    // ...alors qu'ils sont facturés 10 € au barème girondin.
+    const bdx = await baremePour(44.8412, -0.5696);
+    assert.equal(bdx.secteur?.nom, "Bordeaux");
+    assert.equal(fraisDeplacement(12, bdx.tranches), 10);
+
+    // Hors de tout secteur : barème historique, depuis Pompignac.
+    const ailleurs = await baremePour(48.8566, 2.3522);
+    assert.equal(ailleurs.secteur, null);
+    assert.equal(ailleurs.depart.latitude, DEPART.latitude);
+    assert.deepEqual([...ailleurs.tranches], [...TRANCHES_DEPLACEMENT]);
 });

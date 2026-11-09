@@ -5,7 +5,8 @@ import { packAvecTarifs } from "@/lib/queries";
 import { CATEGORIES_VEHICULE, chiffresTelephone, trouverOuCreerClient } from "@/lib/clients";
 import { creerRendezVous } from "@/lib/rendezVous";
 import { creneauxDisponibles, dateLocale } from "@/lib/disponibilites";
-import { DISTANCE_MAX_TARIFEE, calculerDeplacement } from "@/lib/deplacement";
+import { DISTANCE_MAX_TARIFEE } from "@/lib/deplacement";
+import { deplacementPourAdresse } from "@/lib/bareme";
 import { geocoderDansLaZone } from "@/lib/zone";
 import { emailConfirmationReservation } from "@/lib/email";
 import { MODELES_SMS, smsAuClient } from "@/lib/sms";
@@ -99,11 +100,11 @@ export async function POST(request: Request) {
   let noteDeplacement: string | null = null;
   const point = await geocoderDansLaZone(adresse, ville, codePostal);
   if (point) {
-    const deplacement = await calculerDeplacement(point.latitude, point.longitude);
+    const deplacement = await deplacementPourAdresse(point.latitude, point.longitude);
     if (deplacement.horsBareme) {
       return NextResponse.json(
         {
-          error: `Votre adresse est à plus de ${DISTANCE_MAX_TARIFEE} km de notre point de départ : le déplacement fait l'objet d'un tarif particulier. Appelez-nous, nous vous faisons un devis.`,
+          error: `Votre adresse est à plus de ${deplacement.distanceMaxKm ?? DISTANCE_MAX_TARIFEE} km de notre point de départ : le déplacement fait l'objet d'un tarif particulier. Appelez-nous, nous vous faisons un devis.`,
         },
         { status: 422 }
       );

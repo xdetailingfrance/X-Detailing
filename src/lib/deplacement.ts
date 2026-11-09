@@ -3,9 +3,14 @@ import { haversineKm, itineraireRoutier } from "@/lib/geo";
 /**
  * Frais de déplacement, par tranche de distance routière.
  *
- * Le point de départ est fixe : Pompignac (33). La distance est calculée par
- * la route et non à vol d'oiseau — un détour par la rocade ne se devine pas
- * avec un rayon.
+ * Le barème appartient au secteur : il a son propre point de départ (la
+ * ville qui le centre) et ses propres tranches. Facturer un client
+ * toulousain au kilométrage depuis Pompignac n'aurait aucun sens.
+ *
+ * Les valeurs ci-dessous sont celles du secteur historique, et servent de
+ * repli tant qu'un secteur n'a pas son barème. Ce fichier ne lit jamais la
+ * base : il est importé par le tunnel de réservation, qui tourne dans le
+ * navigateur. La résolution du secteur applicable vit dans lib/zone.ts.
  *
  * Au-delà de la dernière tranche, aucun tarif n'est fixé : le devis le signale
  * plutôt que d'inventer un montant.
@@ -13,13 +18,37 @@ import { haversineKm, itineraireRoutier } from "@/lib/geo";
 
 export const DEPART = { latitude: 44.847993, longitude: -0.442582, libelle: "Pompignac (33)" } as const;
 
-export const TRANCHES_DEPLACEMENT: ReadonlyArray<{ jusquaKm: number; prix: number }> = [
+export type Tranche = { jusquaKm: number; prix: number };
+
+export const TRANCHES_DEPLACEMENT: ReadonlyArray<Tranche> = [
   { jusquaKm: 10, prix: 0 },
   { jusquaKm: 20, prix: 10 },
   { jusquaKm: 30, prix: 15 },
 ] as const;
 
-export const DISTANCE_MAX_TARIFEE = TRANCHES_DEPLACEMENT[TRANCHES_DEPLACEMENT.length - 1].jusquaKm;
+export function distanceMaxTarifee(tranches: ReadonlyArray<Tranche> = TRANCHES_DEPLACEMENT) {
+  return tranches.length === 0 ? 0 : tranches[tranches.length - 1].jusquaKm;
+}
+
+export const DISTANCE_MAX_TARIFEE = distanceMaxTarifee();
+
+/**
+ * Lit un barème saisi en base. Les tranches sont remises dans l'ordre et les
+ * valeurs aberrantes écartées : un barème à moitié valide facturerait des
+ * montants au hasard, un barème vide retombe proprement sur le défaut.
+ */
+export function lireTranches(brut: unknown): ReadonlyArray<Tranche> | null {
+  if (!Array.isArray(brut) || brut.length === 0) return null;
+  const tranches: Tranche[] = [];
+  for (const t of brut) {
+    const jusquaKm = Number((t as Tranche)?.jusquaKm);
+    const prix = Number((t as Tranche)?.prix);
+    if (!Number.isFinite(jusquaKm) || jusquaKm <= 0) return null;
+    if (!Number.isFinite(prix) || prix < 0) return null;
+    tranches.push({ jusquaKm, prix });
+  }
+  return tranches.sort((a, b) => a.jusquaKm - b.jusquaKm);
+}
 
 /**
  * Le supplément correspondant à une distance, ou `null` au-delà du barème.
@@ -27,9 +56,12 @@ export const DISTANCE_MAX_TARIFEE = TRANCHES_DEPLACEMENT[TRANCHES_DEPLACEMENT.le
  * `null` ne vaut pas zéro : il signifie « tarif particulier », et l'appelant
  * doit le dire au lieu de facturer un déplacement gratuit.
  */
-export function fraisDeplacement(distanceKm: number): number | null {
+export function fraisDeplacement(
+  distanceKm: number,
+  tranches: ReadonlyArray<Tranche> = TRANCHES_DEPLACEMENT
+): number | null {
   if (!Number.isFinite(distanceKm) || distanceKm < 0) return null;
-  const tranche = TRANCHES_DEPLACEMENT.find((t) => distanceKm <= t.jusquaKm);
+  const tranche = tranches.find((t) => distanceKm <= t.jusquaKm);
   return tranche ? tranche.prix : null;
 }
 
@@ -37,15 +69,34 @@ export type Deplacement = {
   distanceKm: number | null;
   frais: number | null;
   horsBareme: boolean;
+  /** Secteur dont le barème a servi, ou null pour le barème par défaut. */
+  secteur?: { id: string; nom: string } | null;
+  /** Dernière borne du barème appliqué, pour le dire à l'écran. */
+  distanceMaxKm?: number;
 };
 
-/** Distance et frais depuis le point de départ vers une adresse géocodée. */
-export async function calculerDeplacement(latitude: number, longitude: number): Promise<Deplacement> {
-  const route = await itineraireRoutier(DEPART.latitude, DEPART.longitude, latitude, longitude);
-  if (!route) return { distanceKm: null, frais: null, horsBareme: false };
+/** Distance et frais entre deux points, selon le barème donné. */
+export async function calculerDeplacementDepuis(
+  depart: { latitude: number; longitude: number },
+  latitude: number,
+  longitude: number,
+  tranches: ReadonlyArray<Tranche> = TRANCHES_DEPLACEMENT
+): Promise<Deplacement> {
+  const route = await itineraireRoutier(depart.latitude, depart.longitude, latitude, longitude);
+  if (!route) return { distanceKm: null, frais: null, horsBareme: false, distanceMaxKm: distanceMaxTarifee(tranches) };
 
-  const frais = fraisDeplacement(route.distanceKm);
-  return { distanceKm: route.distanceKm, frais, horsBareme: frais === null };
+  const frais = fraisDeplacement(route.distanceKm, tranches);
+  return {
+    distanceKm: route.distanceKm,
+    frais,
+    horsBareme: frais === null,
+    distanceMaxKm: distanceMaxTarifee(tranches),
+  };
+}
+
+/** Barème historique, depuis Pompignac. */
+export async function calculerDeplacement(latitude: number, longitude: number): Promise<Deplacement> {
+  return calculerDeplacementDepuis(DEPART, latitude, longitude);
 }
 
 /**

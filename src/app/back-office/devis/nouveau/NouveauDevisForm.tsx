@@ -30,7 +30,7 @@ export default function NouveauDevisForm({ packs, options }: { packs: Pack[]; op
   const [avecAcompte, setAvecAcompte] = useState(true);
   const [envoyer, setEnvoyer] = useState(true);
   const [route, setRoute] = useState<
-    { distanceKm: number; frais: number | null; horsBareme: boolean } | null
+    { distanceKm: number; frais: number | null; horsBareme: boolean; distanceMaxKm?: number; depuis?: string } | null
   >(null);
   const [routeEnCours, setRouteEnCours] = useState(false);
   const [routeErreur, setRouteErreur] = useState<string | null>(null);
@@ -196,7 +196,7 @@ export default function NouveauDevisForm({ packs, options }: { packs: Pack[]; op
 
         {route && !route.horsBareme && (
           <span className="text-[var(--success)]">
-            {route.distanceKm.toLocaleString("fr-FR")} km depuis Pompignac — frais {route.frais === 0 ? "offerts" : `${route.frais} €`}
+            {route.distanceKm.toLocaleString("fr-FR")} km depuis {route.depuis ?? "notre point de départ"} — frais {route.frais === 0 ? "offerts" : `${route.frais} €`}
           </span>
         )}
         {route?.horsBareme && (

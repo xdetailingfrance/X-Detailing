@@ -7,6 +7,7 @@ import StatutToggle from "./StatutToggle";
 import HorairesForm from "./HorairesForm";
 import DomicileForm from "./DomicileForm";
 import SecteursPanel from "./SecteursPanel";
+import { lireTranches } from "@/lib/deplacement";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,7 @@ export default async function OperateursPage() {
     nom: s.nom,
     ville: s.ville,
     rayonKm: s.rayonKm,
+    bareme: (lireTranches(s.tranches) ?? []).map((t) => `${t.jusquaKm}:${t.prix}`).join(", "),
     couvert: s.latitude != null && s.longitude != null && s.rayonKm != null,
     operateurs: s.operateurs.map((o) => `${o.prenom} ${o.nom}`),
   }));

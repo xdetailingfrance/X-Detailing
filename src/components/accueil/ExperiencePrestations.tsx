@@ -29,7 +29,7 @@ type Etape = 2 | 3 | 4 | 5 | 6;
 // l'adresse qui a servi au calcul : elle évite de relancer la requête pour
 // une adresse inchangée, sans recourir à un ref lu pendant le rendu.
 type Route = { cle: string } & (
-  | { distanceKm: number; frais: number | null; horsBareme: boolean }
+  | { distanceKm: number; frais: number | null; horsBareme: boolean; distanceMaxKm?: number; depuis?: string }
   | { erreur: string }
 );
 type Transition = "depart" | "domicile" | "final" | null;
@@ -925,7 +925,7 @@ function EtapeCoordonnees({
          <Champ libelle="Code postal" auto="postal-code" {...champ("codePostal")} />
          <Champ libelle="Ville" requis auto="address-level2" {...champ("ville")} />
          <div className="col-span-2" aria-live="polite">
-           {routeEnCours && <p className="text-xs text-[var(--chrome)]/60">Calcul du trajet depuis Pompignac…</p>}
+           {routeEnCours && <p className="text-xs text-[var(--chrome)]/60">Calcul du trajet…</p>}
            {!routeEnCours && route && "erreur" in route && (
              <p className="text-xs text-[var(--chrome)]/60">
                {route.erreur} Les frais de déplacement seront confirmés avec vous.
@@ -934,14 +934,14 @@ function EtapeCoordonnees({
            {!routeEnCours && route && "distanceKm" in route && (
              horsBareme ? (
                <p className="text-sm text-[var(--danger)]">
-                 Vous êtes à {Math.round(route.distanceKm)} km de Pompignac, au-delà de notre zone de{" "}
-                 {DISTANCE_MAX_TARIFEE} km. Appelez-nous, nous vous faisons un devis avec un tarif de déplacement
-                 adapté.
+                 Vous êtes à {Math.round(route.distanceKm)} km de {route.depuis ?? "notre point de départ"},
+                 au-delà de notre zone de {route.distanceMaxKm ?? DISTANCE_MAX_TARIFEE} km. Appelez-nous, nous vous
+                 faisons un devis avec un tarif de déplacement adapté.
                </p>
              ) : (
                <div className="rounded-md border border-[var(--encre)]/10 bg-black/[0.03] px-3 py-2 text-xs">
                  <p className="text-[var(--chrome)]/70">
-                   {Math.round(route.distanceKm)} km depuis Pompignac ·{" "}
+                   {Math.round(route.distanceKm)} km depuis {route.depuis ?? "notre point de départ"} ·{" "}
                    <strong className="text-[var(--encre)]">
                      {frais === 0 ? "déplacement offert" : `frais de déplacement ${euros(frais)}`}
                    </strong>

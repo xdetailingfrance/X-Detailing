@@ -124,6 +124,11 @@ model Secteur {
   latitude   Float?
   longitude  Float?
   rayonKm    Float?
+  /// Barème de déplacement du secteur : [{ jusquaKm, prix }], du plus proche
+  /// au plus lointain. Les distances se comptent depuis le centre ci-dessus,
+  /// pas depuis Pompignac — facturer un client toulousain au kilométrage
+  /// girondin n'aurait aucun sens. Absent : barème par défaut.
+  tranches   Json?
   createdAt DateTime      @default(now())
   operateurs Operateur[]
   rendezVous RendezVous[]

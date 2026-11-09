@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { calculerDeplacement } from "@/lib/deplacement";
+import { DEPART } from "@/lib/deplacement";
+import { deplacementPourAdresse } from "@/lib/bareme";
 import { geocoderDansLaZone } from "@/lib/zone";
 
 /**
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Adresse introuvable près de Bordeaux. Vérifiez le numéro, le code postal et la ville." }, { status: 404 });
   }
 
-  const deplacement = await calculerDeplacement(point.latitude, point.longitude);
+  const deplacement = await deplacementPourAdresse(point.latitude, point.longitude);
   if (deplacement.distanceKm === null) {
     return NextResponse.json({ error: "Calcul d'itinéraire indisponible pour le moment." }, { status: 503 });
   }
@@ -59,5 +60,7 @@ export async function POST(request: Request) {
     distanceKm: deplacement.distanceKm,
     frais: deplacement.frais,
     horsBareme: deplacement.horsBareme,
+    distanceMaxKm: deplacement.distanceMaxKm,
+    depuis: deplacement.secteur?.nom ?? DEPART.libelle,
   });
 }

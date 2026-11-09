@@ -11,6 +11,7 @@ export type SecteurLigne = {
   nom: string;
   ville: string | null;
   rayonKm: number | null;
+  bareme: string;
   couvert: boolean;
   operateurs: string[];
 };
@@ -41,8 +42,9 @@ export default function SecteursPanel({ secteurs }: { secteurs: SecteurLigne[] }
         <h2 className="font-medium">Secteurs et périmètres</h2>
         <p className="text-sm text-[var(--muted)] mt-0.5">
           Un rendez-vous est attribué automatiquement à l&apos;opérateur dont le secteur couvre l&apos;adresse du
-          client. Tant qu&apos;aucun périmètre n&apos;est renseigné et qu&apos;un seul opérateur est actif, tout lui
-          revient.
+          client, et les frais de déplacement se comptent depuis le centre de ce secteur, à son propre barème. Tant
+          qu&apos;aucun périmètre n&apos;est renseigné et qu&apos;un seul opérateur est actif, tout lui revient au
+          barème par défaut.
         </p>
       </div>
 
@@ -53,6 +55,7 @@ export default function SecteursPanel({ secteurs }: { secteurs: SecteurLigne[] }
               <th className="px-4 py-2">Secteur</th>
               <th className="px-4 py-2">Ville au centre</th>
               <th className="px-4 py-2">Rayon</th>
+              <th className="px-4 py-2">Barème (km:€)</th>
               <th className="px-4 py-2">Opérateur(s)</th>
               <th className="px-4 py-2" />
             </tr>
@@ -60,7 +63,7 @@ export default function SecteursPanel({ secteurs }: { secteurs: SecteurLigne[] }
           <tbody>
             {secteurs.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-[var(--muted)]">
+                <td colSpan={6} className="px-4 py-6 text-center text-[var(--muted)]">
                   Aucun secteur. Créez-en un pour couvrir une nouvelle ville.
                 </td>
               </tr>
@@ -70,11 +73,11 @@ export default function SecteursPanel({ secteurs }: { secteurs: SecteurLigne[] }
                 key={s.id}
                 secteur={s}
                 enCours={enCours === s.id}
-                onEnregistrer={(ville, rayonKm) =>
+                onEnregistrer={(ville, rayonKm, bareme) =>
                   appeler(s.id, `/api/secteurs/${s.id}`, {
                     method: "PATCH",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ ville, rayonKm }),
+                    body: JSON.stringify({ ville, rayonKm, bareme }),
                   })
                 }
               />
@@ -119,11 +122,15 @@ function LigneSecteur({
 }: {
   secteur: SecteurLigne;
   enCours: boolean;
-  onEnregistrer: (ville: string, rayonKm: string) => Promise<boolean>;
+  onEnregistrer: (ville: string, rayonKm: string, bareme: string) => Promise<boolean>;
 }) {
   const [ville, setVille] = useState(secteur.ville ?? "");
   const [rayon, setRayon] = useState(secteur.rayonKm != null ? String(secteur.rayonKm) : "");
-  const modifie = ville.trim() !== (secteur.ville ?? "") || rayon !== (secteur.rayonKm != null ? String(secteur.rayonKm) : "");
+  const [bareme, setBareme] = useState(secteur.bareme);
+  const modifie =
+    ville.trim() !== (secteur.ville ?? "") ||
+    rayon !== (secteur.rayonKm != null ? String(secteur.rayonKm) : "") ||
+    bareme.trim() !== secteur.bareme;
 
   return (
     <tr className="border-t border-[var(--border)]">
@@ -151,6 +158,16 @@ function LigneSecteur({
         </div>
       </td>
       <td className="px-4 py-2 align-top">
+        <input
+          value={bareme}
+          onChange={(e) => setBareme(e.target.value)}
+          placeholder="10:0, 20:10, 30:15"
+          aria-label={`Barème de déplacement du secteur ${secteur.nom}`}
+          className="w-44 rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-2 py-1"
+        />
+        <span className="block text-xs text-[var(--muted)]">vide = barème par défaut</span>
+      </td>
+      <td className="px-4 py-2 align-top">
         {secteur.operateurs.length > 0 ? (
           secteur.operateurs.join(", ")
         ) : (
@@ -163,7 +180,7 @@ function LigneSecteur({
       <td className="px-4 py-2 align-top text-right">
         {modifie && (
           <button
-            onClick={() => onEnregistrer(ville.trim(), rayon.trim())}
+            onClick={() => onEnregistrer(ville.trim(), rayon.trim(), bareme.trim())}
             disabled={enCours}
             className="rounded-md bg-[var(--accent)] px-2 py-1 text-xs font-medium hover:bg-[var(--accent-2)] transition disabled:opacity-50"
           >

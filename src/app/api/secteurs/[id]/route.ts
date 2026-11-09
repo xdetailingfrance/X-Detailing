@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { geocoderAdresse } from "@/lib/geo";
@@ -27,6 +28,24 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "Rayon invalide (1 à 300 km)." }, { status: 400 });
   }
 
+  // Barème : « 10:0, 20:10, 30:15 » — au-delà de la dernière borne, tarif
+  // particulier. Vide : le secteur retombe sur le barème par défaut.
+  let tranches: { jusquaKm: number; prix: number }[] | null = null;
+  if (typeof body?.bareme === "string" && body.bareme.trim()) {
+    tranches = [];
+    for (const morceau of body.bareme.split(",")) {
+      const [km, prix] = morceau.split(/[:=]/).map((x: string) => Number(x.trim().replace(",", ".")));
+      if (!Number.isFinite(km) || km <= 0 || !Number.isFinite(prix) || prix < 0) {
+        return NextResponse.json(
+          { error: "Barème illisible. Format attendu : « 10:0, 20:10, 30:15 » (kilomètres : euros)." },
+          { status: 400 }
+        );
+      }
+      tranches.push({ jusquaKm: km, prix });
+    }
+    tranches.sort((a, b) => a.jusquaKm - b.jusquaKm);
+  }
+
   const point = ville ? await geocoderAdresse("", ville, null) : null;
   if (ville && !point) {
     return NextResponse.json({ error: `Ville « ${ville} » introuvable.` }, { status: 400 });
@@ -37,6 +56,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     data: {
       ville,
       rayonKm,
+      tranches: tranches ?? Prisma.DbNull,
       latitude: point?.latitude ?? null,
       longitude: point?.longitude ?? null,
       ...(typeof body?.nom === "string" && body.nom.trim() ? { nom: body.nom.trim().slice(0, 80) } : {}),
@@ -47,7 +67,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     action: "SECTEUR_PERIMETRE",
     entite: "Secteur",
     entiteId: id,
-    details: { ville, rayonKm, geocode: point != null },
+    details: { ville, rayonKm, tranches, geocode: point != null },
   });
   return NextResponse.json(secteur);
 }
