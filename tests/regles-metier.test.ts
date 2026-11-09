@@ -810,7 +810,7 @@ test("une réservation en ligne non payée n'est pas confirmée par l'attributio
 });
 
 test("au départ de l'opérateur, le client est prévenu avec son lien de suivi", async () => {
-  const op = await operateur();
+  await operateur();
   const client = await clientAvecVehicule();
   await db.client.update({ where: { id: client.id }, data: { email: "camille@example.test" } });
   const resultat = await creerRendezVous({
