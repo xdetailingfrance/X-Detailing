@@ -4,6 +4,7 @@ import { dureeLisible, formatParis } from "@/lib/heure";
 import { titrePrestation } from "@/lib/prestationsPubliques";
 import { factureParId } from "@/lib/facturation";
 import { genererFacturePdf, nomFichierFacture } from "@/lib/facturePdf";
+import { factureDemo } from "@/lib/factureDemo";
 import type { Devis, RendezVous } from "@/lib/types";
 
 /**
@@ -385,5 +386,55 @@ export async function emailAffectationOperateur(rdv: RendezVous) {
     entite: "RendezVous",
     entiteId: rdv.id,
     rendezVous: rdv,
+  });
+}
+
+/**
+ * Envoi de contrôle : la facture type, à l'adresse de son choix.
+ *
+ * Reprend exactement le chemin réel — même gabarit, même génération de PDF,
+ * même lien d'avis — sur une facture fictive. Sans cela, il faudrait
+ * clôturer une vraie prestation pour vérifier que la chaîne fonctionne.
+ */
+export async function emailFactureTest(destinataire: string) {
+  const facture = factureDemo();
+  let piece: { nom: string; contenu: Uint8Array } | null = null;
+  let erreurPdf: string | null = null;
+  try {
+    piece = { nom: nomFichierFacture(facture), contenu: await genererFacturePdf(facture) };
+  } catch (e) {
+    erreurPdf = e instanceof Error ? e.message : String(e);
+  }
+
+  const lienSuivi = `${origineSite()}/suivi/${facture.suiviToken}`;
+  const corps = `
+    <p>Bonjour,</p>
+    <p>Ceci est un <strong>envoi de contrôle</strong> de X Detailing. Il reprend exactement la facture
+    envoyée à vos clients à la fin d'une prestation, sur un dossier fictif.</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:16px;font-size:15px">
+      <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Facture</td><td><strong>${facture.numeroFacture}</strong></td></tr>
+      <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Prestation</td><td>Lavage intérieur + extérieur</td></tr>
+      <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Date</td><td>${quand(facture.dateHeure)}</td></tr>
+      <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Total réglé</td><td><strong>${euros(facture.prixTotal)}</strong></td></tr>
+      <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Dont déplacement</td><td>${euros(facture.fraisDeplacement)} (19 km)</td></tr>
+    </table>
+    <p style="margin-top:20px">
+      ${piece ? "La facture en PDF est jointe à ce message." : `<strong>Le PDF n'a pas pu être produit (${erreurPdf}).</strong>`}
+    </p>
+    <p style="margin-top:16px">
+      Le lien d'avis d'un vrai client ressemble à celui-ci :
+      <a href="${lienSuivi}#avis" style="color:#6d3cf5">noter la prestation en un clic</a>.
+      Sur cet envoi de contrôle il mène à une page introuvable, puisque le dossier n'existe pas.
+    </p>`;
+
+  return envoyerEmail({
+    destinataire,
+    nom: "Envoi de contrôle",
+    sujet: "Test X Detailing — facture et lien d'avis",
+    html: gabarit("Envoi de contrôle", corps, { libelle: "Ouvrir le site", href: origineSite() }),
+    action: "EMAIL_TEST",
+    entite: "Systeme",
+    entiteId: "test",
+    pieces: piece ? [piece] : undefined,
   });
 }

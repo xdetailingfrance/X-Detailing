@@ -5,6 +5,7 @@ import { aLaPermission } from "@/lib/permissions";
 import { etatEnvoiFactures, listerFactures } from "@/lib/facturation";
 import { mentionsManquantes } from "@/lib/entreprise";
 import { formatParis } from "@/lib/heure";
+import TestEnvoiFacture from "./TestEnvoiFacture";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +47,8 @@ export default async function FacturationPage() {
           <code className="text-xs">src/lib/entreprise.ts</code>.
         </p>
       )}
+
+      <TestEnvoiFacture />
 
       <div className="rounded-lg border border-[var(--border)] overflow-x-auto">
         <table className="w-full min-w-[720px] text-sm">
