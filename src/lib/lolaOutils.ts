@@ -22,7 +22,7 @@ import {
 } from "@/lib/rendezVous";
 import { convertirDevisEnRdv, trouverDevis } from "@/lib/devis";
 import { journaliser } from "@/lib/audit";
-import { MODELES_SMS, envoyerRappels, envoyerSms, fournisseurSms, smsAOperateur, smsAuClient, smsReelsActives } from "@/lib/sms";
+import { MODELES_SMS, envoyerRappels, envoyerSms, fournisseurSms, smsAuClient, smsReelsActives } from "@/lib/sms";
 import { emailConfirmationReservation } from "@/lib/email";
 
 const TAUX_COMMISSION = 0.18;
@@ -142,7 +142,7 @@ const OUTILS_ACTION = [
              optionIds: { type: "array", items: { type: "string" } },
              operateurId: { type: "string", description: "Facultatif : opérateur à affecter directement" },
              notes: { type: "string" },
-             envoyerSms: { type: "boolean", description: "SMS de confirmation au client (et d'affectation si opérateur)" },
+             envoyerSms: { type: "boolean", description: "SMS de confirmation au client" },
       },
       required: ["clientId", "packId", "dateHeure", "envoyerSms"],
     },
@@ -150,7 +150,7 @@ const OUTILS_ACTION = [
   {
     name: "affecter_operateur",
     description:
-      "Met un opérateur sur un rendez-vous (le confirme s'il était en attente). Prévient l'opérateur et le client par SMS si envoyerSms est vrai. Signale les chevauchements avec ses autres RDV.",
+      "Met un opérateur sur un rendez-vous (le confirme s'il était en attente). Prévient le client par SMS si envoyerSms est vrai ; l'opérateur reçoit sa mission par e-mail, jamais par SMS. Signale les chevauchements avec ses autres RDV.",
     input_schema: {
       type: "object",
       properties: {
@@ -187,15 +187,13 @@ const OUTILS_ACTION = [
   {
     name: "envoyer_sms",
     description:
-      "Envoie un SMS au client ou à l'opérateur d'un rendez-vous, à un client, à un opérateur, ou à un numéro. Message court et poli, signé X Detailing.",
+      "Envoie un SMS au client d'un rendez-vous, à un client, ou à un numéro libre. Message court et poli, signé X Detailing. Les opérateurs ne reçoivent jamais de SMS : ils sont prévenus par e-mail.",
     input_schema: {
       type: "object",
       properties: {
         message: { type: "string" },
-        rendezVousId: { type: "string" },
-        destinataire: { type: "string", enum: ["client", "operateur"], description: "Avec rendezVousId" },
+        rendezVousId: { type: "string", description: "SMS au client de ce rendez-vous" },
         clientId: { type: "string" },
-        operateurId: { type: "string" },
         telephone: { type: "string", description: "Numéro libre (avec nomDestinataire)" },
         nomDestinataire: { type: "string" },
       },
@@ -544,10 +542,8 @@ async function executer(nom: string, entree: Entree, ctx: ContexteOutils): Promi
           const sms = await smsAuClient(rdv, await MODELES_SMS.confirmationClient(rdv), "CONFIRMATION_RDV", auteur);
           await emailConfirmationReservation(rdv);
         if (sms) envoyes.push(sms.id);
-        if (operateurId) {
-          const smsOp = await smsAOperateur(rdv, await MODELES_SMS.affectationOperateur(rdv), "AFFECTATION_OPERATEUR", auteur);
-          if (smsOp) envoyes.push(smsOp.id);
-        }
+        // L'opérateur est prévenu par e-mail au moment de l'affectation ; il
+        // ne reçoit aucun SMS.
       }
       ctx.smsEnvoyes.push(...envoyes);
       return { rendezVous: await resumeRdv(rdv.id), avertissements, smsEnvoyes: await Promise.all(envoyes.map(resumeSms)) };
@@ -627,25 +623,18 @@ async function executer(nom: string, entree: Entree, ctx: ContexteOutils): Promi
       if (rdvId) {
         const rdv = await trouverRendezVous(rdvId);
         if (!rdv) throw new ErreurOutil("rendez-vous introuvable");
-        sms =
-          entree.destinataire === "operateur"
-            ? await smsAOperateur(rdv, message, "MANUEL", auteur)
-            : await smsAuClient(rdv, message, "MANUEL", auteur);
-        if (!sms) throw new ErreurOutil(entree.destinataire === "operateur" ? "aucun opérateur sur ce RDV" : "client introuvable");
+        sms = await smsAuClient(rdv, message, "MANUEL", auteur);
+        if (!sms) throw new ErreurOutil("client introuvable");
       } else {
         const clientId = texte(entree, "clientId");
-        const operateurId = texte(entree, "operateurId");
         const client = clientId ? await db.client.findUnique({ where: { id: clientId } }) : null;
-        const operateur = operateurId ? await db.operateur.findUnique({ where: { id: operateurId } }) : null;
         const telephone = texte(entree, "telephone");
         const cible = client
           ? { destinataire: `${client.prenom} ${client.nom}`, telephone: client.telephone }
-          : operateur
-            ? { destinataire: `${operateur.prenom} ${operateur.nom}`, telephone: operateur.telephone }
-            : telephone
-              ? { destinataire: texte(entree, "nomDestinataire") ?? telephone, telephone }
-              : null;
-        if (!cible) throw new ErreurOutil("destinataire manquant : rendezVousId, clientId, operateurId ou telephone");
+          : telephone
+            ? { destinataire: texte(entree, "nomDestinataire") ?? telephone, telephone }
+            : null;
+        if (!cible) throw new ErreurOutil("destinataire manquant : rendezVousId, clientId ou telephone");
         sms = await envoyerSms({ ...cible, message, motif: "MANUEL", envoyePar: auteur });
       }
       ctx.smsEnvoyes.push(sms.id);

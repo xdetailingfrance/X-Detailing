@@ -1,4 +1,6 @@
-// Envoi de SMS (confirmations, affectations, rappels, messages libres).
+// Envoi de SMS aux CLIENTS (confirmations, affectations, rappels, messages
+// libres). Les opérateurs n'en reçoivent jamais : ils sont prévenus par
+// e-mail.
 //
 // Deux fournisseurs possibles, choisis selon les variables présentes :
 // Brevo (BREVO_API_KEY + BREVO_SMS_SENDER) ou Twilio (TWILIO_ACCOUNT_SID,
@@ -161,10 +163,6 @@ export const MODELES_SMS = {
     const { client, operateur } = await contexteRdv(rdv);
     return `Bonjour ${client?.prenom ?? ""}, ${operateur?.prenom ?? "notre opérateur"} interviendra pour votre lavage ${quand(rdv.dateHeure)}. ${SIGNATURE}`;
   },
-  async affectationOperateur(rdv: RendezVous) {
-    const { client, adresse, pack } = await contexteRdv(rdv);
-    return `Nouveau RDV ${quand(rdv.dateHeure)} : ${pack?.nom ?? ""} pour ${client?.prenom ?? ""} ${client?.nom?? ""} (${client?.telephone ?? ""}), ${adresse?.adresse ?? ""} ${adresse?.ville ?? ""}. ${SIGNATURE}`;
-  },
   async modificationClient(rdv: RendezVous) {
     const { client } = await contexteRdv(rdv);
     return `Bonjour ${client?.prenom ?? ""}, votre rendez-vous est déplacé au ${quand(rdv.dateHeure)}. ${SIGNATURE}`;
@@ -192,18 +190,10 @@ export async function smsAuClient(rdv: RendezVous, message: string, motif: Motif
   });
 }
 
-export async function smsAOperateur(rdv: RendezVous, message: string, motif: MotifSms, envoyePar: string) {
-  const { operateur } = await contexteRdv(rdv);
-  if (!operateur) return null;
-  return envoyerSms({
-    destinataire: `${operateur.prenom} ${operateur.nom}`,
-    telephone: operateur.telephone,
-    message,
-    motif,
-    rendezVous: rdv,
-    envoyePar,
-  });
-}
+// Pas d'équivalent pour les opérateurs : ils ne reçoivent aucun SMS. Leur
+// mission leur parvient par e-mail (emailAffectationOperateur), qui porte
+// l'adresse complète et le téléphone du client — ce qu'un message de 160
+// caractères ne peut pas contenir. Les SMS sont réservés aux clients.
 
 // Rappels de la veille : un SMS à chaque client ayant un RDV (non annulé)
 // le jour donné et n'ayant pas déjà reçu de rappel pour ce RDV.

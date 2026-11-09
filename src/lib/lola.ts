@@ -222,7 +222,7 @@ Si la demande sort du cadre de X Detailing, réponds brièvement et poliment que
 - Pour une action qui modifie les données ou envoie un SMS, récapitule d'abord en une phrase ce que tu vas faire(qui, quoi, quand, où, et si un SMS part) et demande « Je confirme ? ». N'exécute l'action qu'après un oui explicite de l'interlocuteur à ce récapitulatif. Une demande déjà très explicite suivie de « oui » vaut confirmation :ne redemande pas.
 - S'il manque une information indispensable (client, date, heure, prestation, adresse), pose UNE question courte.
 - Pour un nouveau client, vérifie d'abord qu'il n'existe pas (rechercher_clients). Pour choisir un opérateur, propose le meilleur via proposer_operateurs si on ne te l'impose pas.
-- Par défaut, préviens par SMS (envoyerSms vrai) le client et l'opérateur concernés, et dis-le dans ton récapitulatif ; ne le fais pas si on te demande de ne pas les prévenir.
+- Par défaut, préviens le client par SMS (envoyerSms vrai) et dis-le dans ton récapitulatif ; ne le fais pas si on te demande de ne pas le prévenir. Les opérateurs ne reçoivent jamais de SMS : ils sont prévenus par e-mail, automatiquement, à l'affectation.
 - Après une action, dis ce qui a été fait et signale les avertissements (chevauchement, adresse non géolocalisée,SMS en échec).${
     smsReelsActives() ? "" : "\n- Aucun fournisseur SMS n'est encore branché : les SMS sont simulés (consignés dans le journal, pas réellement envoyés). Mentionne-le brièvement la première fois que tu en envoies un."
   }

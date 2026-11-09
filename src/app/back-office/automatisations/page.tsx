@@ -30,7 +30,7 @@ export default async function AutomatisationsPage() {
     {
       nom: "Affectation d'un opérateur",
       declencheur: "Opérateur affecté à une réservation",
-      action: "SMS de mission à l'opérateur et prénom de l'opérateur au client",
+      action: "E-mail de mission à l'opérateur et SMS au client avec le prénom de son opérateur",
       actif: true,
       envois: nb("AFFECTATION_OPERATEUR"),
     },

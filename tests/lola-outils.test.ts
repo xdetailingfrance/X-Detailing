@@ -90,7 +90,9 @@ test("actions : créer un client, un RDV affecté, le déplacer, l'annuler, envo
    assert.equal(rdv.resultat.rendezVous.prixTotal, 129);
    assert.equal(rdv.resultat.rendezVous.operateur.nom, "Sofia M.");
    assert.match(rdv.resultat.rendezVous.quand, /08:30/);
-   assert.equal(rdv.resultat.smsEnvoyes.length, 2);
+   // Un seul SMS : celui du client. L'opérateur est prévenu par e-mail, il
+   // ne reçoit jamais de SMS.
+   assert.equal(rdv.resultat.smsEnvoyes.length, 1);
    const id = rdv.resultat.rendezVous.id;
 
   const deplace = await outil("modifier_rendez_vous", { rendezVousId: id, nouvelleDateHeure: `${jour}T11:30`, envoyerSms: true });

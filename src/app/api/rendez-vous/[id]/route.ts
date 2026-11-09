@@ -131,7 +131,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         );
       }
     }
-    // Nouvel opérateur : SMS automatiques à l'opérateur et au client.
+    // Nouvel opérateur : SMS au client, e-mail de mission à l'opérateur.
     if (body.operateurId && (await appliquerAffectation(rendezVous, body.operateurId))) {
       await journaliser({ acteur: session, action: "RDV_AFFECTE", entite: "RendezVous", entiteId: id, details: {operateurId: body.operateurId } });
       await notifierAffectation(rendezVous, session.email);

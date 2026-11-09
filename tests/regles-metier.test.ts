@@ -21,6 +21,7 @@ import {
 import { creneauxDisponibles, DELAI_MINIMUM_MINUTES } from "@/lib/disponibilites";
 import { DUREE_BLOCAGE_MINUTES, enregistrerPaiement, libererReservation } from "@/lib/paiement";
 import { appliquerActionWorkflow } from "@/lib/workflow";
+import { appliquerAffectation, notifierAffectation } from "@/lib/rendezVous";
 import { diagnostiquerAbsenceDeCandidat, evaluerCandidats } from "@/lib/affectation";
 import { attribuerAutomatiquement, operateursCouvrant } from "@/lib/attribution";
 import { baremePour, secteurCouvrant } from "@/lib/bareme";
@@ -640,4 +641,26 @@ test("l'acompte peut être choisi, ou supprimé", async () => {
     const trop = await creer(99999);
     assert.ok(trop.ok, !trop.ok ? trop.erreur : "");
     assert.equal(trop.valeur.acompte, trop.valeur.prixTotal);
+});
+
+test("un opérateur ne reçoit jamais de SMS : seuls les clients en reçoivent", async () => {
+  const op = await operateur();
+  await db.operateur.update({ where: { id: op.id }, data: { telephone: "0699999999", email: "op@x.fr" } });
+  const rdv = await nouveauRdv();
+
+    await appliquerAffectation(rdv, op.id);
+    await notifierAffectation(rdv, "test");
+
+    const envoyes = await db.sms.findMany();
+    assert.ok(envoyes.length > 0, "le client doit être prévenu");
+    // Aucun message ne doit partir vers le numéro de l'opérateur, quel que
+    // soit le motif : sa mission lui parvient par e-mail.
+    assert.equal(
+      envoyes.filter((s) => s.telephone.includes("699999999")).length,
+      0,
+      "un SMS est parti vers l'opérateur"
+    );
+    for (const s of envoyes) {
+      assert.ok(!/Test Opérateur/.test(s.destinataire), "un SMS est adressé à l'opérateur");
+    }
 });

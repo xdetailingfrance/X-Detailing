@@ -4,7 +4,7 @@
 import type { RendezVous, SourceRendezVous, StatutRendezVous, Sms } from "@/lib/types";
 import { photosInitiales } from "@/lib/types";
 import { db, enregistrerRdv, genToken, historiserRdv, premierEvenement, versRdv, type Tx } from "@/lib/db";
-import { MODELES_SMS, smsAOperateur, smsAuClient } from "@/lib/sms";
+import { MODELES_SMS, smsAuClient } from "@/lib/sms";
 import { emailAffectationOperateur } from "@/lib/email";
 import { formatParis } from "@/lib/heure";
 
@@ -150,17 +150,16 @@ export async function appliquerAffectation(rdv: RendezVous, operateurId: string)
   return changement;
 }
 
-// SMS automatiques d'une affectation : l'opérateur reçoit le détail de la
-// mission, le client le prénom de son opérateur.
+// Notifications d'une affectation : le client par SMS, l'opérateur par
+// e-mail. Les opérateurs ne reçoivent aucun SMS — l'e-mail porte l'adresse
+// complète, le téléphone du client et les précisions d'accès, qu'un message
+// de 160 caractères ne peut pas contenir.
 export async function notifierAffectation(rdv: RendezVous, envoyePar: string) {
   const sms: Sms[] = [];
-  const operateur = await smsAOperateur(rdv, await MODELES_SMS.affectationOperateur(rdv), "AFFECTATION_OPERATEUR", envoyePar);
-  if (operateur) sms.push(operateur);
   const client = await smsAuClient(rdv, await MODELES_SMS.affectationClient(rdv), "AFFECTATION_OPERATEUR", envoyePar);
   if (client) sms.push(client);
-  // L'opérateur reçoit aussi sa mission par e-mail : le SMS annonce, l'e-mail
-  // porte l'adresse complète, le téléphone du client et les précisions. Son
-  // échec est consigné par envoyerEmail et n'empêche pas l'affectation.
+  // L'échec d'envoi est consigné par envoyerEmail et n'empêche pas
+  // l'affectation.
   await emailAffectationOperateur(rdv);
   return sms;
 }
