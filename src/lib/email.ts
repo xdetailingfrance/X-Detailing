@@ -257,6 +257,51 @@ export async function emailDevis(devis: Devis) {
   });
 }
 
+/**
+ * L'opérateur vient de partir : le client peut suivre son approche.
+ *
+ * Le lien de suivi figure bien dans l'e-mail de confirmation, mais celui-ci
+ * a pu être reçu des semaines plus tôt et enfoui dans la boîte de
+ * réception. Le moment où l'on a besoin de la carte, c'est maintenant.
+ */
+export async function emailOperateurEnRoute(rdv: RendezVous) {
+  const { client, adresse, pack, operateur } = await contexte(rdv);
+  if (!client?.email) return { envoye: false, erreur: "client sans adresse e-mail" };
+
+  const prestation = pack ? titrePrestation(pack.id, pack.nom) : "votre prestation";
+  const qui = operateur ? operateur.prenom : "Votre opérateur";
+  const corps = `
+    <p>Bonjour ${client.prenom},</p>
+    <p><strong>${qui} vient de partir</strong> et sera bientôt chez vous.</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:16px;font-size:15px">
+      <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Prestation</td><td>${prestation} · ${dureeLisible(rdv.dureeMinutes)}</td></tr>
+      <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Rendez-vous</td><td>${quand(rdv.dateHeure)}</td></tr>
+      <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Adresse</td><td>${adresse?.adresse ?? ""}${adresse?.codePostal ? `, ${adresse.codePostal}` : ""} ${adresse?.ville ?? ""}</td></tr>
+    </table>
+    <p style="margin-top:20px">
+      Suivez son approche en direct depuis le bouton ci-dessous : la carte affiche sa position et l'heure
+      d'arrivée estimée, mises à jour pendant le trajet.
+    </p>
+    <p style="margin-top:16px;color:#6b6b78;font-size:13px">
+      Pensez à laisser l'accès au véhicule libre, et une prise d'eau ou d'électricité accessible si vous en
+      disposez.
+    </p>`;
+
+  return envoyerEmail({
+    destinataire: client.email,
+    nom: `${client.prenom} ${client.nom}`,
+    sujet: `${qui} est en route — X Detailing`,
+    html: gabarit("Votre opérateur arrive", corps, {
+      libelle: "Suivre son arrivée",
+      href: `${origineSite()}/suivi/${rdv.suiviToken}`,
+    }),
+    action: "EMAIL_EN_ROUTE",
+    entite: "RendezVous",
+    entiteId: rdv.id,
+    rendezVous: rdv,
+  });
+}
+
 /** Facture, envoyée à la clôture du dossier. */
 export async function emailFacture(rdv: RendezVous) {
   const { client, adresse, pack } = await contexte(rdv);

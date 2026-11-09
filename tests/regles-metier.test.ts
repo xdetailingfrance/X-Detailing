@@ -24,6 +24,7 @@ import { DUREE_BLOCAGE_MINUTES, enregistrerPaiement, libererReservation } from "
 import { appliquerActionWorkflow } from "@/lib/workflow";
 import { appliquerAffectation, notifierAffectation } from "@/lib/rendezVous";
 import { diagnostiquerAbsenceDeCandidat, evaluerCandidats } from "@/lib/affectation";
+import { emailOperateurEnRoute } from "@/lib/email";
 import { attribuerAutomatiquement, operateursCouvrant } from "@/lib/attribution";
 import { baremePour, secteurCouvrant } from "@/lib/bareme";
 import { dateParis, decalerJour, jourParis, jourSemaineParis } from "@/lib/heure";
@@ -806,4 +807,42 @@ test("une réservation en ligne non payée n'est pas confirmée par l'attributio
     await enregistrerPaiement(relu!.id, "cs_test_confirme");
     const apresPaiement = await trouverRendezVous(resultat.valeur.id);
     assert.equal(apresPaiement!.statut, "CONFIRME");
+});
+
+test("au départ de l'opérateur, le client est prévenu avec son lien de suivi", async () => {
+  const op = await operateur();
+  const client = await clientAvecVehicule();
+  await db.client.update({ where: { id: client.id }, data: { email: "camille@example.test" } });
+  const resultat = await creerRendezVous({
+    clientId: client.id,
+    vehiculeId: client.vehicules[0].id,
+    adresseId: client.adresses[0].id,
+    packId: "pack-concession",
+    dateHeure: dateParis(prochain(1), "11:30"),
+  });
+  assert.ok(resultat.ok, !resultat.ok ? resultat.erreur : "");
+  await attribuerAutomatiquement(resultat.valeur);
+
+    const confirme = await trouverRendezVous(resultat.valeur.id);
+    const route = await appliquerActionWorkflow(confirme!, { type: "DEMARRER_ROUTE" });
+    assert.ok(route.ok, !route.ok ? route.error : "");
+
+    await emailOperateurEnRoute((await trouverRendezVous(resultat.valeur.id))!);
+    const relu = await trouverRendezVous(resultat.valeur.id);
+    // L'envoi échoue en test (aucun fournisseur), mais la tentative est
+    // consignée : c'est elle qui prouve que le client est bien destinataire.
+    const trace = relu!.historique.find((h) => /est en route/.test(h.libelle));
+    assert.ok(trace, "le départ doit déclencher un e-mail au client");
+    assert.match(trace.libelle, /camille@example\.test/);
+});
+
+test("un client sans adresse e-mail ne bloque pas le départ", async () => {
+  await operateur();
+  const rdv = await nouveauRdv();
+  await attribuerAutomatiquement(rdv);
+  const confirme = await trouverRendezVous(rdv.id);
+  assert.ok((await appliquerActionWorkflow(confirme!, { type: "DEMARRER_ROUTE" })).ok);
+  const envoi = await emailOperateurEnRoute((await trouverRendezVous(rdv.id))!);
+  assert.equal(envoi.envoye, false);
+  assert.match(envoi.erreur ?? "", /sans adresse e-mail/);
 });

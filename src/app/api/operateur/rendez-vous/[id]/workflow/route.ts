@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { ConflitDeVersion } from "@/lib/db";
-import { emailFacture } from "@/lib/email";
+import { emailFacture, emailOperateurEnRoute } from "@/lib/email";
 import { rendezVousAvecRelations } from "@/lib/queries";
 import { trouverRendezVous } from "@/lib/rendezVous";
 import { getSession } from "@/lib/session";
@@ -83,6 +83,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
        */
       if (action.type === "CONFIRMER_PAIEMENT" && rdv.statut === "TERMINE") {
         await emailFacture(rdv);
+      }
+      // Départ de l'opérateur : le client est prévenu et reçoit le lien de
+      // suivi au moment où il lui sert, et non des semaines plus tôt dans
+      // l'e-mail de confirmation.
+      if (action.type === "DEMARRER_ROUTE" && rdv.statut === "EN_ROUTE") {
+        await emailOperateurEnRoute(rdv);
       }
     } catch (e) {
       if (e instanceof ConflitDeVersion) return NextResponse.json({ error: e.message }, { status: 409 });
