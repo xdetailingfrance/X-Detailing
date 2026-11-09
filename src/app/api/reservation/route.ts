@@ -5,13 +5,15 @@ import { packAvecTarifs } from "@/lib/queries";
 import { CATEGORIES_VEHICULE, chiffresTelephone, trouverOuCreerClient } from "@/lib/clients";
 import { creerRendezVous } from "@/lib/rendezVous";
 import { creneauxDisponibles, dateLocale } from "@/lib/disponibilites";
-import { DISTANCE_MAX_TARIFEE, calculerDeplacement, geocoderDansLaZone } from "@/lib/deplacement";
+import { DISTANCE_MAX_TARIFEE, calculerDeplacement } from "@/lib/deplacement";
+import { geocoderDansLaZone } from "@/lib/zone";
 import { emailConfirmationReservation } from "@/lib/email";
 import { MODELES_SMS, smsAuClient } from "@/lib/sms";
 import { titrePrestation } from "@/lib/prestationsPubliques";
 import { libelleDateHeure } from "@/lib/heure";
 import { journaliser } from "@/lib/audit";
 import { creerSessionPaiement, libererReservation, libererReservationsExpirees, paiementEnLigneActif } from "@/lib/paiement";
+import { attribuerAutomatiquement } from "@/lib/attribution";
 
 const MAX_DEMANDES_EN_ATTENTE = 3;
 
@@ -177,6 +179,13 @@ export async function POST(request: Request) {
     details: { prixTotal: rdv.prixTotal, fraisDeplacement, distanceKm },
   });
   if (noteDeplacement) await historiserRdv(rdv, noteDeplacement);
+
+  // Attribution immédiate à l'opérateur dont le secteur couvre l'adresse.
+  // Hors de la transaction : elle envoie SMS et e-mails, qui n'ont rien à
+  // faire sous un verrou de créneau.
+  await attribuerAutomatiquement(rdv).catch((e) =>
+    console.error("Attribution automatique impossible", e)
+  );
 
   const lignesOptions = await db.rendezVousOption.findMany({ where: { rendezVousId: rdv.id }, include: { option:true } });
   const options = lignesOptions.map((l) => (l.quantite > 1 ? `${l.option.nom} × ${l.quantite}` : l.option.nom));

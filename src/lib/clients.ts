@@ -2,7 +2,7 @@
 // (/api/clients) et l'assistante Lola.
 import type { CategorieVehicule } from "@/lib/types";
 import { db, type Tx } from "@/lib/db";
-import { dansLaZonePlausible, geocoderDansLaZone } from "@/lib/deplacement";
+import { geocoderDansLaZone, positionPlausible } from "@/lib/zone";
 
 export const CATEGORIES_VEHICULE: CategorieVehicule[] = ["CITADINE", "BERLINE", "SUV", "MONOSPACE", "UTILITAIRE"];
 
@@ -177,7 +177,7 @@ export async function assurerGeocodage(
   // Une position déjà enregistrée n'est reprise que si elle est plausible :
   // les adresses géocodées avant le garde-fou peuvent pointer à 700 km, et
   // les garder figerait le dossier dans son erreur.
-  if (adresse.latitude != null && adresse.longitude != null && dansLaZonePlausible(adresse.latitude, adresse.longitude)) {
+  if (adresse.latitude != null && adresse.longitude != null && (await positionPlausible(adresse.latitude, adresse.longitude, tx))) {
     return { latitude: adresse.latitude, longitude: adresse.longitude };
   }
 

@@ -1,7 +1,7 @@
 import { db, versRdv } from "@/lib/db";
 import { dateParis, debutJourParis, finJourParis, jourParis } from "@/lib/heure";
 import { haversineKm, estimerTrajetMinutes } from "@/lib/geo";
-import { geocoderDansLaZone } from "@/lib/deplacement";
+import { geocoderDansLaZone } from "@/lib/zone";
 
 // Pondération du score — section 4 du cahier des charges (paramétrable).
 const POIDS = {

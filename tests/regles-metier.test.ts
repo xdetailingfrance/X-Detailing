@@ -22,6 +22,7 @@ import { creneauxDisponibles, DELAI_MINIMUM_MINUTES } from "@/lib/disponibilites
 import { DUREE_BLOCAGE_MINUTES, enregistrerPaiement, libererReservation } from "@/lib/paiement";
 import { appliquerActionWorkflow } from "@/lib/workflow";
 import { diagnostiquerAbsenceDeCandidat, evaluerCandidats } from "@/lib/affectation";
+import { attribuerAutomatiquement, operateursCouvrant } from "@/lib/attribution";
 import { dateParis, decalerJour, jourParis, jourSemaineParis } from "@/lib/heure";
 import { ANGLES_PHOTO } from "@/lib/types";
 import { semerCatalogue } from "../prisma/catalogue";
@@ -477,4 +478,77 @@ test("une adresse déjà enregistrée à l'autre bout de la France est regéocod
   // Et le correctif est bien persisté, pas seulement retourné.
   const relue = await db.adresse.findUniqueOrThrow({ where: { id: client.adresses[0].id } });
   assert.ok(relue.latitude != null && dansLaZonePlausible(relue.latitude, relue.longitude!));
+});
+
+// Client géolocalisé à l'endroit voulu, pour éprouver les périmètres.
+async function clientSitue(ville: string, latitude: number, longitude: number, telephone: string) {
+  return db.client.create({
+    data: {
+      prenom: "Client",
+      nom: ville,
+      telephone,
+      adresses: { create: { adresse: "1 rue de l'essai", ville, latitude, longitude } },
+      vehicules: { create: { categorie: "BERLINE" } },
+    },
+    include: { adresses: true, vehicules: true },
+  });
+}
+
+test("un seul opérateur actif : tout lui revient, sans périmètre à régler", async () => {
+  const op = await operateur();
+  const client = await clientSitue("Bordeaux", 44.8412, -0.5696, "0600001001");
+  const resultat = await creerRendezVous({
+    clientId: client.id,
+    vehiculeId: client.vehicules[0].id,
+    adresseId: client.adresses[0].id,
+    packId: "pack-concession",
+    dateHeure: dateParis(prochain(1), "11:30"),
+  });
+  assert.ok(resultat.ok, !resultat.ok ? resultat.erreur : "");
+
+    const attribution = await attribuerAutomatiquement(resultat.valeur);
+    assert.deepEqual(attribution, { attribue: true, operateurId: op.id, motif: "unique" });
+    const relu = await trouverRendezVous(resultat.valeur.id);
+    assert.equal(relu!.operateurId, op.id);
+});
+
+test("à plusieurs, le rendez-vous va à l'opérateur dont le secteur couvre l'adresse", async () => {
+  const toulouse = await db.secteur.create({
+    data: { nom: "Toulouse", ville: "Toulouse", latitude: 43.6045, longitude: 1.4442, rayonKm: 40 },
+  });
+  const bordeaux = await db.secteur.create({
+    data: { nom: "Bordeaux", ville: "Bordeaux", latitude: 44.8378, longitude: -0.5792, rayonKm: 30 },
+  });
+  const mathieu = await db.operateur.create({
+    data: { prenom: "Mathieu", nom: "C", telephone: "0600002001", secteurId: bordeaux.id, latitudeDomicile: 44.848, longitudeDomicile: -0.4426 },
+  });
+  const lucie = await db.operateur.create({
+    data: { prenom: "Lucie", nom: "M", telephone: "0600002002", secteurId: toulouse.id, latitudeDomicile: 43.6045, longitudeDomicile: 1.4442 },
+  });
+
+    assert.deepEqual((await operateursCouvrant(43.6047, 1.4442)).map((o) => o.id), [lucie.id]);
+    assert.deepEqual((await operateursCouvrant(44.8412, -0.5696)).map((o) => o.id), [mathieu.id]);
+
+    const attribuer = async (ville: string, lat: number, lng: number, tel: string, heure: string) => {
+      const c = await clientSitue(ville, lat, lng, tel);
+      const r = await creerRendezVous({
+        clientId: c.id,
+        vehiculeId: c.vehicules[0].id,
+        adresseId: c.adresses[0].id,
+        packId: "pack-concession",
+        dateHeure: dateParis(prochain(1), heure),
+      });
+      assert.ok(r.ok, !r.ok ? r.erreur : "");
+      return attribuerAutomatiquement(r.valeur);
+    };
+
+    // Toulouse part à Lucie sans que Mathieu ait rien à valider.
+    const tls = await attribuer("Toulouse", 43.6047, 1.4442, "0600002003", "11:30");
+    assert.deepEqual(tls, { attribue: true, operateurId: lucie.id, motif: "perimetre" });
+    const bdx = await attribuer("Bordeaux", 44.8412, -0.5696, "0600002004", "15:00");
+    assert.deepEqual(bdx, { attribue: true, operateurId: mathieu.id, motif: "perimetre" });
+
+    // Hors de tout périmètre, rien n'est attribué au hasard.
+    const ailleurs = await attribuer("Paris", 48.8566, 2.3522, "0600002005", "11:30");
+    assert.equal(ailleurs.attribue, false);
 });

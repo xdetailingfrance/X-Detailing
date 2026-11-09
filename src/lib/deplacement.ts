@@ -1,4 +1,4 @@
-import { geocoderAdresse, haversineKm, itineraireRoutier } from "@/lib/geo";
+import { haversineKm, itineraireRoutier } from "@/lib/geo";
 
 /**
  * Frais de déplacement, par tranche de distance routière.
@@ -60,18 +60,7 @@ export async function calculerDeplacement(latitude: number, longitude: number): 
  */
 export const RAYON_PLAUSIBLE_KM = 120;
 
+/** À portée du point de départ historique, sans consulter la base. */
 export function dansLaZonePlausible(latitude: number, longitude: number) {
   return haversineKm(DEPART.latitude, DEPART.longitude, latitude, longitude) <= RAYON_PLAUSIBLE_KM;
-}
-
-/**
- * Géocode une adresse de l'aire desservie. Le résultat est biaisé vers le
- * point de départ, et rejeté s'il tombe manifestement ailleurs : mieux vaut
- * pas de coordonnées — qui se voient et se corrigent — qu'une position
- * fausse, qui se propage en silence.
- */
-export async function geocoderDansLaZone(adresse: string, ville: string, codePostal?: string | null) {
-  const point = await geocoderAdresse(adresse, ville, codePostal, DEPART);
-  if (!point) return null;
-  return dansLaZonePlausible(point.latitude, point.longitude) ? point : null;
 }

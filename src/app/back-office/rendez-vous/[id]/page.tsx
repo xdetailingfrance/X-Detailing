@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { dureeLisible, formatParis, heureParis, jourParis } from "@/lib/heure";
 import { rendezVousAvecRelations } from "@/lib/queries";
+import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { suppressionDefinitivePossible } from "@/lib/rendezVous";
 import AffectationPanel from "./AffectationPanel";
@@ -30,6 +31,13 @@ export default async function RendezVousPage({
   const rendezVous = await rendezVousAvecRelations(id);
   if (!rendezVous) notFound();
   const session = await getSession();
+  // Le choix d'un opérateur n'a de sens qu'à plusieurs. Avec un seul actif,
+  // tout lui revient automatiquement : afficher un comparateur de candidats
+  // donnerait à croire qu'il y a une décision à prendre. Le panneau
+  // réapparaît dès qu'un deuxième opérateur existe, ou si l'attribution
+  // automatique n'a pas abouti.
+  const operateursActifs = await db.operateur.count({ where: { statut: "ACTIF" } });
+  const choixAOffrir = operateursActifs > 1 || !rendezVous.operateurId;
 
     // nbPrestationsJour/caJour ne sont pas persistés (uniquement calculés à la
     // volée par le moteur d'affectation) : absents tant que le bouton
@@ -104,6 +112,7 @@ export default async function RendezVousPage({
         </ul>
       </div>
 
+        {choixAOffrir && (
         <AffectationPanel
           rendezVousId={rendezVous.id}
           operateurActuelId={rendezVous.operateurId}
@@ -115,6 +124,7 @@ export default async function RendezVousPage({
             geocodee: rendezVous.adresse.latitude != null && rendezVous.adresse.longitude != null,
           }}
         />
+        )}
 
         <GestionPanel
           rendezVousId={rendezVous.id}

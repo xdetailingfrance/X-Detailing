@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { journaliser } from "@/lib/audit";
-import { geocoderDansLaZone } from "@/lib/deplacement";
+import { geocoderDansLaZone } from "@/lib/zone";
 
 const HEURE = /^([01]\d|2[0-3]):[0-5]\d$/;
 

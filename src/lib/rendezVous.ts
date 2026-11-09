@@ -5,6 +5,7 @@ import type { RendezVous, SourceRendezVous, StatutRendezVous, Sms } from "@/lib/
 import { photosInitiales } from "@/lib/types";
 import { db, enregistrerRdv, genToken, historiserRdv, premierEvenement, versRdv, type Tx } from "@/lib/db";
 import { MODELES_SMS, smsAOperateur, smsAuClient } from "@/lib/sms";
+import { emailAffectationOperateur } from "@/lib/email";
 import { formatParis } from "@/lib/heure";
 
 export const TAUX_ACOMPTE = 0.1; // acompte de 10 % à la réservation
@@ -148,6 +149,10 @@ export async function notifierAffectation(rdv: RendezVous, envoyePar: string) {
   if (operateur) sms.push(operateur);
   const client = await smsAuClient(rdv, await MODELES_SMS.affectationClient(rdv), "AFFECTATION_OPERATEUR", envoyePar);
   if (client) sms.push(client);
+  // L'opérateur reçoit aussi sa mission par e-mail : le SMS annonce, l'e-mail
+  // porte l'adresse complète, le téléphone du client et les précisions. Son
+  // échec est consigné par envoyerEmail et n'empêche pas l'affectation.
+  await emailAffectationOperateur(rdv);
   return sms;
 }
 

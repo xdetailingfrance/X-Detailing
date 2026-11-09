@@ -118,6 +118,12 @@ model Secteur {
   id         String       @id @default(cuid())
   nom        String
   ville      String?
+  /// Périmètre d'intervention : un centre et un rayon, en kilomètres à vol
+  /// d'oiseau. C'est lui qui décide à quel opérateur revient un rendez-vous,
+  /// sans validation humaine. Un secteur sans périmètre n'attrape rien.
+  latitude   Float?
+  longitude  Float?
+  rayonKm    Float?
   createdAt DateTime      @default(now())
   operateurs Operateur[]
   rendezVous RendezVous[]

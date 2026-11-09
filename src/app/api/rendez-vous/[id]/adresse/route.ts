@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
-import { geocoderDansLaZone } from "@/lib/deplacement";
+import { geocoderDansLaZone } from "@/lib/zone";
 import { historiserRdv } from "@/lib/db";
 import { trouverRendezVous } from "@/lib/rendezVous";
 import { journaliser } from "@/lib/audit";

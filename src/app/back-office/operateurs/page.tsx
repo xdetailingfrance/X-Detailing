@@ -6,6 +6,7 @@ import NouvelOperateurForm from "./NouvelOperateurForm";
 import StatutToggle from "./StatutToggle";
 import HorairesForm from "./HorairesForm";
 import DomicileForm from "./DomicileForm";
+import SecteursPanel from "./SecteursPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -15,13 +16,23 @@ export default async function OperateursPage() {
   if (!session || !aLaPermission(session.role, "operateurs")) redirect("/back-office");
 
   const operateurs = await db.operateur.findMany({ include: { secteur: true }, orderBy: [{ statut: "asc" }, { nom: "asc" }] });
-  const secteurs = await db.secteur.findMany({ orderBy: { nom: "asc" } });
+  const secteurs = await db.secteur.findMany({ include: { operateurs: true }, orderBy: { nom: "asc" } });
+  const lignesSecteurs = secteurs.map((s) => ({
+    id: s.id,
+    nom: s.nom,
+    ville: s.ville,
+    rayonKm: s.rayonKm,
+    couvert: s.latitude != null && s.longitude != null && s.rayonKm != null,
+    operateurs: s.operateurs.map((o) => `${o.prenom} ${o.nom}`),
+  }));
 
     return (
       <div className="flex flex-col gap-8">
         <h1 className="text-xl md:text-2xl font-semibold">Opérateurs</h1>
 
          <NouvelOperateurForm secteurs={secteurs} />
+
+         <SecteursPanel secteurs={lignesSecteurs} />
 
         <div className="rounded-lg border border-[var(--border)] overflow-x-auto">
           <table className="w-full min-w-[560px] text-sm">

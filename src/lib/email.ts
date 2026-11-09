@@ -1,6 +1,6 @@
 import { journaliser } from "@/lib/audit";
 import { db, historiserRdv } from "@/lib/db";
-import { formatParis } from "@/lib/heure";
+import { dureeLisible, formatParis } from "@/lib/heure";
 import { titrePrestation } from "@/lib/prestationsPubliques";
 import type { Devis, RendezVous } from "@/lib/types";
 
@@ -135,12 +135,13 @@ X Detailing — lavage automobile à domicile, Bordeaux et alentours.
 /* ── Les trois messages ────────────────────────────────────────────────── */
 
 async function contexte(rdv: RendezVous) {
-  const [client, adresse, pack] = await Promise.all([
+  const [client, adresse, pack, operateur] = await Promise.all([
     db.client.findUnique({ where: { id: rdv.clientId } }),
     db.adresse.findUnique({ where: { id: rdv.adresseId } }),
     db.pack.findUnique({ where: { id: rdv.packId } }),
+    rdv.operateurId ? db.operateur.findUnique({ where: { id: rdv.operateurId } }) : Promise.resolve(null),
   ]);
-  return { client, adresse, pack };
+  return { client, adresse, pack, operateur };
 }
 
 const quand = (date: Date) => formatParis(date, { dateStyle: "full", timeStyle: "short" });
@@ -309,6 +310,45 @@ export async function emailRendezVousAnnule(rdv: RendezVous, motif?: string | nu
       href: origineSite(),
     }),
     action: "EMAIL_RDV_ANNULE",
+    entite: "RendezVous",
+    entiteId: rdv.id,
+    rendezVous: rdv,
+  });
+}
+
+/**
+ * Mission envoyée à l'opérateur dès qu'un rendez-vous lui revient.
+ *
+ * Le SMS tient en 160 caractères : il annonce. L'e-mail porte ce qu'il faut
+ * pour s'organiser — adresse complète, téléphone du client, véhicule,
+ * durée, options — et le lien vers son espace.
+ */
+export async function emailAffectationOperateur(rdv: RendezVous) {
+  const { client, adresse, pack, operateur } = await contexte(rdv);
+  if (!operateur?.email) return { envoye: false, erreur: "opérateur sans adresse e-mail" };
+
+  const prestation = pack ? titrePrestation(pack.id, pack.nom) : "une prestation";
+  const corps = `
+    <p>Bonjour ${operateur.prenom},</p>
+    <p>Un nouveau rendez-vous vous est attribué.</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:16px;font-size:15px">
+      <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Quand</td><td><strong>${quand(rdv.dateHeure)}</strong></td></tr>
+      <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Prestation</td><td>${prestation} · ${dureeLisible(rdv.dureeMinutes)}</td></tr>
+      <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Client</td><td>${client?.prenom ?? ""} ${client?.nom ?? ""} · ${client?.telephone ?? ""}</td></tr>
+      <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Adresse</td><td>${adresse?.adresse ?? ""}${adresse?.codePostal ? `, ${adresse.codePostal}` : ""} ${adresse?.ville ?? ""}</td></tr>
+      ${rdv.notes ? `<tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Précisions</td><td>${rdv.notes}</td></tr>` : ""}
+    </table>
+    <p style="margin-top:20px">Le détail, les photos et le déroulé de la prestation sont dans votre espace opérateur.</p>`;
+
+  return envoyerEmail({
+    destinataire: operateur.email,
+    nom: `${operateur.prenom} ${operateur.nom}`,
+    sujet: `Nouveau rendez-vous — ${quand(rdv.dateHeure)}`,
+    html: gabarit("Votre prochaine intervention", corps, {
+      libelle: "Ouvrir mon espace",
+      href: `${origineSite()}/operateur/rendez-vous/${rdv.id}`,
+    }),
+    action: "EMAIL_AFFECTATION_OPERATEUR",
     entite: "RendezVous",
     entiteId: rdv.id,
     rendezVous: rdv,

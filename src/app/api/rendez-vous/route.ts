@@ -6,6 +6,7 @@ import { getSession } from "@/lib/session";
 import { dateParis, decalerJour, lireDateSaisie } from "@/lib/heure";
 import { journaliser } from "@/lib/audit";
 import type { SourceRendezVous } from "@/lib/types";
+import { attribuerAutomatiquement } from "@/lib/attribution";
 
 const SOURCES: SourceRendezVous[] = ["SITE_CLIENT", "TELEPHONE", "LEAD_META", "LAVER_MAINTENANT", "DEVIS"];
 
@@ -52,6 +53,9 @@ export async function POST(request: Request) {
     const rdv = resultat.valeur;
     await journaliser({ acteur: session, action: "RDV_CREE", entite: "RendezVous", entiteId: rdv.id });
     await smsAuClient(rdv, await MODELES_SMS.confirmationClient(rdv), "CONFIRMATION_RDV", session.email);
+    // Même règle qu'en ligne : l'opérateur qui couvre la zone le reçoit
+    // directement, sans étape de validation.
+    await attribuerAutomatiquement(rdv).catch((e) => console.error("Attribution automatique impossible", e));
 
     return NextResponse.json(await rendezVousAvecRelations(rdv.id), { status: 201 });
 }

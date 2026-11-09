@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { calculerDeplacement, geocoderDansLaZone } from "@/lib/deplacement";
+import { calculerDeplacement } from "@/lib/deplacement";
+import { geocoderDansLaZone } from "@/lib/zone";
 import { getSession } from "@/lib/session";
 
 /**

@@ -6,7 +6,7 @@ import type { Devis } from "@/lib/types";
 import { photosInitiales } from "@/lib/types";
 import { emailDevis, type ResultatEmail } from "@/lib/email";
 import { db, genToken, historiserDevis, premierEvenement, versDevis } from "@/lib/db";
-import { geocoderDansLaZone } from "@/lib/deplacement";
+import { geocoderDansLaZone } from "@/lib/zone";
 
 export type ResultatDevis = { ok: true } | { ok: false; error: string };
 

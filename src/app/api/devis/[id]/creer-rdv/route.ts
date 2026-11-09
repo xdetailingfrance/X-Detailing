@@ -3,6 +3,8 @@ import { getSession } from "@/lib/session";
 import { convertirDevisEnRdv, trouverDevis } from "@/lib/devis";
 import { lireDateSaisie } from "@/lib/heure";
 import { journaliser } from "@/lib/audit";
+import { attribuerAutomatiquement } from "@/lib/attribution";
+import { trouverRendezVous } from "@/lib/rendezVous";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
@@ -24,6 +26,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const resultat = await convertirDevisEnRdv(devis, dateHeure);
   if (!resultat.ok) return NextResponse.json({ error: resultat.error }, { status: 400 });
   await journaliser({ acteur: session, action: "DEVIS_CONVERTI", entite: "Devis", entiteId: id, details: { rendezVousId: resultat.rendezVousId } });
+
+  // Le rendez-vous part directement à l'opérateur qui couvre la zone : la
+  // direction n'a pas à le réaffecter à la main.
+  const cree = await trouverRendezVous(resultat.rendezVousId);
+  if (cree) await attribuerAutomatiquement(cree).catch((e) => console.error("Attribution automatique impossible", e));
 
     return NextResponse.json({ rendezVousId: resultat.rendezVousId });
 }
