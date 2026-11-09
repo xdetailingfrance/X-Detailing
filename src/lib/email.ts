@@ -240,15 +240,22 @@ export async function emailFacture(rdv: RendezVous) {
       <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Total réglé</td><td><strong>${euros(rdv.prixTotal)}</strong></td></tr>
       ${ligneDeplacement(rdv)}
     </table>
-    <p style="margin-top:20px">Les photos avant et après votre prestation restent consultables depuis votre page de suivi.</p>`;
+    <p style="margin-top:20px">
+      Votre facture détaillée est consultable et téléchargeable en PDF depuis le bouton ci-dessous. Les photos
+      avant et après la prestation restent accessibles depuis votre page de suivi.
+    </p>
+    <p style="margin-top:16px">
+      Votre avis nous aide à progresser :
+      <a href="${origineSite()}/suivi/${rdv.suiviToken}#avis" style="color:#6d3cf5">noter la prestation en un clic</a>.
+    </p>`;
 
   return envoyerEmail({
     destinataire: client.email,
     nom: `${client.prenom} ${client.nom}`,
     sujet: `Facture ${rdv.numeroFacture ?? ""} — X Detailing`,
     html: gabarit("Votre facture", corps, {
-      libelle: "Voir les photos et noter la prestation",
-      href: `${origineSite()}/suivi/${rdv.suiviToken}`,
+      libelle: "Voir et télécharger ma facture",
+      href: `${origineSite()}/suivi/${rdv.suiviToken}/facture`,
     }),
     action: "EMAIL_FACTURE",
     entite: "RendezVous",

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { rendezVousParToken } from "@/lib/workflow";
 import { rendezVousAvecRelations } from "@/lib/queries";
@@ -84,8 +85,16 @@ export default async function SuiviPage({ params }: { params: Promise<{ token: s
           />
 
           {rdv.statut === "TERMINE" && (
-            <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 flex flex-col gap-3">
-              <p className="text-sm text-[var(--success)]">Facture {rdv.numeroFacture}</p>
+            <div id="avis" className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 flex flex-col gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm text-[var(--success)]">Facture {rdv.numeroFacture}</p>
+                <Link
+                  href={`/suivi/${token}/facture`}
+                  className="rounded-md border border-[var(--border)] px-3 py-1.5 text-sm transition hover:bg-[var(--surface-2)]"
+                >
+                  Voir et télécharger ma facture
+                </Link>
+              </div>
               <NoteClient token={token} noteInitiale={rdv.noteClient} />
             </div>
           )}

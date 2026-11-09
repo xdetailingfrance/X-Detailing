@@ -386,6 +386,26 @@ export default function WorkflowPanel({
             <p className="text-sm text-[var(--success)]">
               Paiement confirmé — facture {etat.numeroFacture}.
             </p>
+            {/* Le client reçoit sa facture par e-mail, mais il arrive qu'on
+                doive la lui montrer sur place : le lien est ici. */}
+            <div className="flex flex-wrap gap-2">
+              <a
+                href={`/suivi/${suiviToken}/facture`}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-md border border-[var(--border)] px-3 py-1.5 text-sm transition hover:bg-[var(--surface-2)]"
+              >
+                Ouvrir la facture
+              </a>
+              <a
+                href={`/suivi/${suiviToken}#avis`}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-md border border-[var(--border)] px-3 py-1.5 text-sm transition hover:bg-[var(--surface-2)]"
+              >
+                Page d&apos;avis du client
+              </a>
+            </div>
           </Etape>
         )}
 
