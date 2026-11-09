@@ -20,7 +20,7 @@ import {
   trouverRendezVous,
 } from "@/lib/rendezVous";
 import { creneauxDisponibles, DELAI_MINIMUM_MINUTES } from "@/lib/disponibilites";
-import { DUREE_BLOCAGE_MINUTES, enregistrerPaiement, libererReservation } from "@/lib/paiement";
+import { DUREE_BLOCAGE_MINUTES, enregistrerPaiement, libererReservation, soldeDu } from "@/lib/paiement";
 import { appliquerActionWorkflow } from "@/lib/workflow";
 import { appliquerAffectation, notifierAffectation } from "@/lib/rendezVous";
 import { diagnostiquerAbsenceDeCandidat, evaluerCandidats } from "@/lib/affectation";
@@ -845,4 +845,14 @@ test("un client sans adresse e-mail ne bloque pas le départ", async () => {
   const envoi = await emailOperateurEnRoute((await trouverRendezVous(rdv.id))!);
   assert.equal(envoi.envoye, false);
   assert.match(envoi.erreur ?? "", /sans adresse e-mail/);
+});
+
+test("le solde réclamé tient compte de l'acompte réellement encaissé", async () => {
+  const rdv = await nouveauRdv();
+  // Acompte annoncé mais jamais payé en ligne : il reste dû.
+  assert.equal(soldeDu(rdv), rdv.prixTotal);
+
+  await db.rendezVous.update({ where: { id: rdv.id }, data: { acompteStatut: "PAYE" } });
+  const paye = await trouverRendezVous(rdv.id);
+  assert.equal(soldeDu(paye!), Math.round((rdv.prixTotal - rdv.acompte) * 100) / 100);
 });

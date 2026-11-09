@@ -342,19 +342,24 @@ export default function WorkflowPanel({
               disabled={enCours}
               className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium hover:bg-[var(--accent-2)] transition disabled:opacity-50 self-start"
             >
-              Envoyer le lien de paiement (SMS simulé)
+              Envoyer le lien de paiement au client
             </button>
           )}
 
           {etat.modePaiement === "CARTE" && etat.lienPaiementEnvoyeAt && (
             <>
-              <p className="text-sm text-[var(--success)]">Lien de paiement envoyé ✅</p>
+              <p className="text-sm text-[var(--success)]">
+                Lien envoyé par SMS et e-mail. Le dossier se clôture tout seul dès que le client a payé.
+              </p>
+              <p className="text-xs text-[var(--muted)]">
+                À n&apos;utiliser que si le paiement a été encaissé autrement — un terminal, un virement.
+              </p>
               <button
                 onClick={() => envoyer({ type: "CONFIRMER_PAIEMENT" })}
                 disabled={enCours}
                 className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium hover:bg-[var(--accent-2)]transition disabled:opacity-50 self-start"
               >
-                Confirmer le paiement reçu
+                Confirmer un paiement reçu autrement
               </button>
             </>
           )}

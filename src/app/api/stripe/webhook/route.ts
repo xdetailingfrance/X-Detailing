@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { enregistrerPaiement, enregistrerPaiementDevis, libererReservation, paiementEnLigneActif, stripe } from"@/lib/paiement";
+import { enregistrerPaiement, enregistrerPaiementDevis, enregistrerPaiementSolde, libererReservation, paiementEnLigneActif, stripe } from "@/lib/paiement";
 
 // Webhook Stripe (à déclarer dans le tableau de bord Stripe avec les
 // événements checkout.session.completed, checkout.session.async_payment_succeeded
@@ -24,12 +24,19 @@ export async function POST(request: Request) {
     const session = evenement.data.object;
     if (session.payment_status === "paid" && session.metadata?.type === "devis" && session.metadata.devisId) {
       await enregistrerPaiementDevis(session.metadata.devisId, session.id);
+    } else if (session.payment_status === "paid" && session.metadata?.type === "solde" && session.metadata.rdvId) {
+      // Solde réglé par carte : Stripe atteste, le dossier se clôture seul.
+      await enregistrerPaiementSolde(session.metadata.rdvId, session.id);
     } else if (session.payment_status === "paid" && session.metadata?.rdvId) {
       await enregistrerPaiement(session.metadata.rdvId, session.id);
     }
   } else if (evenement.type === "checkout.session.expired") {
     const session = evenement.data.object;
-    if (session.metadata?.rdvId) await libererReservation(session.metadata.rdvId, "Paiement non finalisé (sessionStripe expirée) : créneau libéré.");
+    // Un solde expiré n'annule rien : la prestation a été réalisée, elle
+    // reste due. Seule une réservation non payée libère son créneau.
+    if (session.metadata?.rdvId && session.metadata.type !== "solde") {
+      await libererReservation(session.metadata.rdvId, "Paiement non finalisé (session Stripe expirée) : créneau libéré.");
+    }
   }
   return NextResponse.json({ recu: true });
 }

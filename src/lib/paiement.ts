@@ -12,7 +12,8 @@ import Stripe from "stripe";
 import type { Devis, RendezVous } from "@/lib/types";
 import { db, enregistrerRdv, historiserDevis, historiserRdv, versRdv } from "@/lib/db";
 import { changerStatut, trouverRendezVous } from "@/lib/rendezVous";
-import { emailConfirmationReservation } from "@/lib/email";
+import { appliquerActionWorkflow } from "@/lib/workflow";
+import { emailConfirmationReservation, emailFacture } from "@/lib/email";
 import { MODELES_SMS, smsAuClient } from "@/lib/sms";
 import { journaliser } from "@/lib/audit";
 
@@ -196,3 +197,67 @@ export async function verifierRetourPaiementDevis(devisId: string, sessionId: st
   }
 }
 
+/**
+ * Lien de paiement du solde, à l'issue de la prestation.
+ *
+ * Jusqu'ici l'étape n'envoyait rien : elle posait une date et inscrivait
+ * « SMS simulé » à l'historique, puis l'opérateur devait cliquer « paiement
+ * confirmé » sans qu'aucun paiement ait eu lieu. Le client repartait sans
+ * avoir réglé, et le dossier se clôturait comme s'il l'avait fait.
+ *
+ * Le solde est ce qui reste après l'acompte réellement encaissé : un
+ * acompte annoncé mais non payé en ligne reste dû, et doit donc figurer
+ * dans le montant demandé.
+ */
+export function soldeDu(rdv: RendezVous) {
+  const acompteRegle = rdv.acompteStatut === "PAYE" ? rdv.acompte : 0;
+  return Math.round((rdv.prixTotal - acompteRegle) * 100) / 100;
+}
+
+export async function creerSessionPaiementSolde(rdv: RendezVous, origine: string, email: string | null) {
+  const pack = await db.pack.findUnique({ where: { id: rdv.packId } });
+  const montant = soldeDu(rdv);
+  return stripe().checkout.sessions.create({
+    mode: "payment",
+    locale: "fr",
+    client_reference_id: rdv.id,
+    customer_email: email ?? undefined,
+    line_items: [
+      {
+        quantity: 1,
+        price_data: {
+          currency: "eur",
+          unit_amount: Math.round(montant * 100),
+          product_data: {
+            name: `Solde de votre prestation${pack ? ` — ${pack.nom}` : ""}`,
+            description:
+              rdv.acompteStatut === "PAYE"
+                ? `Total ${rdv.prixTotal} € dont acompte de ${rdv.acompte} € déjà réglé`
+                : `Total de la prestation ${rdv.prixTotal} €`,
+          },
+        },
+      },
+    ],
+    metadata: { type: "solde", rdvId: rdv.id },
+    success_url: `${origine}/suivi/${rdv.suiviToken}?paiement=reussi`,
+    cancel_url: `${origine}/suivi/${rdv.suiviToken}?paiement=annule`,
+  });
+}
+
+/**
+ * Solde réglé par carte : le dossier se clôture tout seul.
+ *
+ * C'est Stripe qui atteste du paiement, pas un clic. L'opérateur n'a donc
+ * plus à confirmer un encaissement qu'il ne peut pas vérifier depuis son
+ * téléphone.
+ */
+export async function enregistrerPaiementSolde(rdvId: string, sessionId: string) {
+  const rdv = await trouverRendezVous(rdvId);
+  if (!rdv || rdv.statut !== "PAIEMENT") return rdv;
+
+  await journaliser({ acteur: "stripe", action: "SOLDE_PAYE", entite: "RendezVous", entiteId: rdv.id, details: { sessionId, montant: soldeDu(rdv) } });
+  await historiserRdv(rdv, `Solde de ${soldeDu(rdv)} € payé par carte (Stripe).`);
+  const resultat = await appliquerActionWorkflow(rdv, { type: "CONFIRMER_PAIEMENT" });
+  if (resultat.ok) await emailFacture(await trouverRendezVous(rdvId) ?? rdv);
+  return trouverRendezVous(rdvId);
+}

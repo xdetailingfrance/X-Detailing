@@ -302,6 +302,36 @@ export async function emailOperateurEnRoute(rdv: RendezVous) {
   });
 }
 
+/** Lien de paiement du solde, remis à l'issue de la prestation. */
+export async function emailLienPaiement(rdv: RendezVous, lien: string, montant: number) {
+  const { client, pack } = await contexte(rdv);
+  if (!client?.email) return { envoye: false, erreur: "client sans adresse e-mail" };
+
+  const prestation = pack ? titrePrestation(pack.id, pack.nom) : "votre prestation";
+  const corps = `
+    <p>Bonjour ${client.prenom},</p>
+    <p>Votre prestation est terminée. Il reste à régler le solde.</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:16px;font-size:15px">
+      <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Prestation</td><td>${prestation}</td></tr>
+      <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Total</td><td>${euros(rdv.prixTotal)}</td></tr>
+      ${rdv.acompteStatut === "PAYE" ? `<tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Acompte déjà réglé</td><td>− ${euros(rdv.acompte)}</td></tr>` : ""}
+      <tr><td style="padding:4px 16px 4px 0;color:#6b6b78">Solde à régler</td><td><strong>${euros(montant)}</strong></td></tr>
+    </table>
+    <p style="margin-top:20px">Le paiement se fait par carte, sur une page sécurisée de Stripe. Votre facture vous
+    sera envoyée dès l'encaissement.</p>`;
+
+  return envoyerEmail({
+    destinataire: client.email,
+    nom: `${client.prenom} ${client.nom}`,
+    sujet: `Solde de votre prestation — ${euros(montant)}`,
+    html: gabarit("Régler le solde", corps, { libelle: `Payer ${euros(montant)}`, href: lien }),
+    action: "EMAIL_LIEN_PAIEMENT",
+    entite: "RendezVous",
+    entiteId: rdv.id,
+    rendezVous: rdv,
+  });
+}
+
 /** Facture, envoyée à la clôture du dossier. */
 export async function emailFacture(rdv: RendezVous) {
   const { client, adresse, pack } = await contexte(rdv);

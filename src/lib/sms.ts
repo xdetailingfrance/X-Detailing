@@ -171,6 +171,10 @@ export const MODELES_SMS = {
     const { client } = await contexteRdv(rdv);
     return `Bonjour ${client?.prenom ?? ""}, votre rendez-vous du ${quand(rdv.dateHeure)} est annulé. Contactez-nous pour le reprogrammer. ${SIGNATURE}`;
   },
+  async lienPaiement(rdv: RendezVous, lien: string, montant: number) {
+    const { client } = await contexteRdv(rdv);
+    return `Bonjour ${client?.prenom ?? ""}, votre prestation est terminée. Réglez le solde de ${montant.toLocaleString("fr-FR", { style: "currency", currency: "EUR" })} ici : ${lien} ${SIGNATURE}`;
+  },
   async rappelVeille(rdv: RendezVous) {
     const { client, adresse } = await contexteRdv(rdv);
     return `Rappel : ${client?.prenom ?? ""}, nous venons laver votre véhicule ${quand(rdv.dateHeure)} au ${adresse?.adresse ?? ""}. Pensez à laisser l'accès libre. ${SIGNATURE}`;

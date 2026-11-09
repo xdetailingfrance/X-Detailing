@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
-import { ConflitDeVersion } from "@/lib/db";
-import { emailFacture, emailOperateurEnRoute } from "@/lib/email";
+import { ConflitDeVersion, db } from "@/lib/db";
+import { emailFacture, emailLienPaiement, emailOperateurEnRoute } from "@/lib/email";
 import { rendezVousAvecRelations } from "@/lib/queries";
 import { trouverRendezVous } from "@/lib/rendezVous";
 import { getSession } from "@/lib/session";
 import { appliquerActionWorkflow, type ActionWorkflow } from "@/lib/workflow";
+import { creerSessionPaiementSolde, paiementEnLigneActif, soldeDu } from "@/lib/paiement";
+import { MODELES_SMS, smsAuClient } from "@/lib/sms";
 
 const ANGLES_VALIDES = ["AVANT", "ARRIERE", "COTE_GAUCHE", "COTE_DROIT"];
 const MODES_VALIDES = ["CARTE", "ESPECES"];
@@ -89,6 +91,44 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       // l'e-mail de confirmation.
       if (action.type === "DEMARRER_ROUTE" && rdv.statut === "EN_ROUTE") {
         await emailOperateurEnRoute(rdv);
+      }
+      /*
+       * Lien de paiement du solde : une vraie session Stripe, envoyée par SMS
+       * et par e-mail. Le SMS parce que le client est là, son téléphone à la
+       * main ; l'e-mail parce qu'un lien long se clique mal depuis un SMS et
+       * qu'il reste retrouvable ensuite.
+       *
+       * L'échec est renvoyé à l'opérateur : lui dire que le lien est parti
+       * alors qu'il ne l'est pas le ferait attendre un paiement qui
+       * n'arrivera jamais.
+       */
+      if (action.type === "ENVOYER_LIEN_PAIEMENT" && rdv.lienPaiementEnvoyeAt) {
+        if (!paiementEnLigneActif()) {
+          return NextResponse.json(
+            { error: "Le paiement en ligne n'est pas configuré : encaissez en espèces ou par votre terminal." },
+            { status: 503 }
+          );
+        }
+        const client = await db.client.findUnique({ where: { id: rdv.clientId } });
+        const montant = soldeDu(rdv);
+        try {
+          const session = await creerSessionPaiementSolde(rdv, new URL(request.url).origin, client?.email ?? null);
+          if (!session.url) throw new Error("Stripe n'a pas renvoyé de lien.");
+          const sms = await smsAuClient(rdv, await MODELES_SMS.lienPaiement(rdv, session.url, montant), "MANUEL", "operateur");
+          const courriel = await emailLienPaiement(rdv, session.url, montant);
+          if (sms?.statut === "ECHEC" && !courriel.envoye) {
+            return NextResponse.json(
+              { error: `Le lien n'a pu être transmis ni par SMS ni par e-mail (${courriel.erreur ?? sms?.erreur}).` },
+              { status: 502 }
+            );
+          }
+        } catch (e) {
+          console.error("Lien de paiement du solde impossible", e);
+          return NextResponse.json(
+            { error: "Le lien de paiement n'a pas pu être créé. Réessayez, ou encaissez autrement." },
+            { status: 502 }
+          );
+        }
       }
     } catch (e) {
       if (e instanceof ConflitDeVersion) return NextResponse.json({ error: e.message }, { status: 409 });

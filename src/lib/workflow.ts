@@ -145,7 +145,9 @@ function transition(rdv: RendezVous, action: ActionWorkflow, historiser: (libell
       if (rdv.statut !== "PAIEMENT") return { ok: false, error: "Étape de paiement non active." };
       if (rdv.modePaiement !== "CARTE") return { ok: false, error: "Le lien de paiement n'est envoyé qu'en mode carte." };
       rdv.lienPaiementEnvoyeAt = new Date();
-      historiser("Lien de paiement envoyé par SMS (simulé) au client.");
+      // L'envoi lui-même est fait par la route : créer une session Stripe et
+      // expédier deux messages n'a pas sa place dans une transition d'état.
+      historiser("Lien de paiement du solde demandé.");
       return { ok: true };
     }
 
