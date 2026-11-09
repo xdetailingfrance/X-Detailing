@@ -7,6 +7,7 @@ import { dateParis, decalerJour, lireDateSaisie } from "@/lib/heure";
 import { journaliser } from "@/lib/audit";
 import type { SourceRendezVous } from "@/lib/types";
 import { attribuerAutomatiquement } from "@/lib/attribution";
+import { emailConfirmationReservation } from "@/lib/email";
 
 const SOURCES: SourceRendezVous[] = ["SITE_CLIENT", "TELEPHONE", "LEAD_META", "LAVER_MAINTENANT", "DEVIS"];
 
@@ -34,6 +35,13 @@ export async function POST(request: Request) {
   const duree = body.dureeMinutes == null || body.dureeMinutes === "" ? null : Number(body.dureeMinutes);
   if (duree != null && (!Number.isInteger(duree) || duree <= 0)) return NextResponse.json({ error: "durée invalide" }, { status: 400 });
 
+  // Acompte : absent = 10 % comme d'habitude, 0 = aucun. Le montant est
+  // vérifié ici plutôt que cru sur parole.
+  const acompte = body.acompte == null || body.acompte === "" ? null : Number(body.acompte);
+  if (acompte != null && (!Number.isFinite(acompte) || acompte < 0)) {
+    return NextResponse.json({ error: "acompte invalide" }, { status: 400 });
+  }
+
   const resultat = await creerRendezVous({
     clientId: body.clientId,
     vehiculeId: body.vehiculeId,
@@ -42,6 +50,7 @@ export async function POST(request: Request) {
     dateHeure: lireDateSaisie(body.dateHeure),
     optionIds: Array.isArray(body.optionIds) ? body.optionIds.filter((id: unknown) => typeof id === "string") :[],
       secteurId: body.secteurId || null,
+      acompte,
       dureeMinutes: duree,
       source: SOURCES.includes(body.source) ? body.source : "TELEPHONE",
       notes: body.notes || null,
@@ -53,6 +62,11 @@ export async function POST(request: Request) {
     const rdv = resultat.valeur;
     await journaliser({ acteur: session, action: "RDV_CREE", entite: "RendezVous", entiteId: rdv.id });
     await smsAuClient(rdv, await MODELES_SMS.confirmationClient(rdv), "CONFIRMATION_RDV", session.email);
+    // L'e-mail double le SMS, comme pour la réservation en ligne : il porte
+    // l'adresse, le détail du prix et le lien de suivi, qu'un message de 160
+    // caractères ne peut pas contenir. Son absence ici était un oubli : le
+    // client appelé au téléphone ne recevait aucune trace écrite.
+    await emailConfirmationReservation(rdv);
     // Même règle qu'en ligne : l'opérateur qui couvre la zone le reçoit
     // directement, sans étape de validation.
     await attribuerAutomatiquement(rdv).catch((e) => console.error("Attribution automatique impossible", e));

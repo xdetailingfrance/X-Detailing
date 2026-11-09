@@ -23,6 +23,7 @@ import {
 import { convertirDevisEnRdv, trouverDevis } from "@/lib/devis";
 import { journaliser } from "@/lib/audit";
 import { MODELES_SMS, envoyerRappels, envoyerSms, fournisseurSms, smsAOperateur, smsAuClient, smsReelsActives } from "@/lib/sms";
+import { emailConfirmationReservation } from "@/lib/email";
 
 const TAUX_COMMISSION = 0.18;
 
@@ -541,6 +542,7 @@ async function executer(nom: string, entree: Entree, ctx: ContexteOutils): Promi
         const envoyes: string[] = [];
         if (entree.envoyerSms === true) {
           const sms = await smsAuClient(rdv, await MODELES_SMS.confirmationClient(rdv), "CONFIRMATION_RDV", auteur);
+          await emailConfirmationReservation(rdv);
         if (sms) envoyes.push(sms.id);
         if (operateurId) {
           const smsOp = await smsAOperateur(rdv, await MODELES_SMS.affectationOperateur(rdv), "AFFECTATION_OPERATEUR", auteur);

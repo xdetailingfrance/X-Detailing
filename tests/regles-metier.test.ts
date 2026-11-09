@@ -608,3 +608,36 @@ test("chaque secteur facture le déplacement à son propre barème, depuis son c
     assert.equal(ailleurs.depart.latitude, DEPART.latitude);
     assert.deepEqual([...ailleurs.tranches], [...TRANCHES_DEPLACEMENT]);
 });
+
+test("l'acompte peut être choisi, ou supprimé", async () => {
+  const client = await clientAvecVehicule();
+  const creer = (acompte?: number | null) =>
+    creerRendezVous({
+      clientId: client.id,
+      vehiculeId: client.vehicules[0].id,
+      adresseId: client.adresses[0].id,
+      packId: "pack-concession",
+      dateHeure: dateParis(prochain(1), "11:30"),
+      acompte,
+    });
+
+    // Par défaut : les 10 % habituels.
+    const parDefaut = await creer();
+    assert.ok(parDefaut.ok, !parDefaut.ok ? parDefaut.erreur : "");
+    assert.equal(parDefaut.valeur.acompte, Math.round(parDefaut.valeur.prixTotal * 10) / 100);
+
+    // Aucun acompte : la totalité se règle à l'intervention.
+    const sans = await creer(0);
+    assert.ok(sans.ok, !sans.ok ? sans.erreur : "");
+    assert.equal(sans.valeur.acompte, 0);
+
+    // Montant négocié.
+    const choisi = await creer(50);
+    assert.ok(choisi.ok, !choisi.ok ? choisi.erreur : "");
+    assert.equal(choisi.valeur.acompte, 50);
+
+    // On n'encaisse jamais plus que la prestation, même si on le demande.
+    const trop = await creer(99999);
+    assert.ok(trop.ok, !trop.ok ? trop.erreur : "");
+    assert.equal(trop.valeur.acompte, trop.valeur.prixTotal);
+});

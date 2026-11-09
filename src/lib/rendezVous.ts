@@ -60,6 +60,12 @@ export async function creerRendezVous(
     dureeMinutes?: number | null;
     /** Supplément de route, calculé par le serveur à partir de l'adresse. */
     fraisDeplacement?: number;
+    /**
+     * Acompte voulu. Absent : 10 % du total, la règle habituelle. 0 : aucun
+     * acompte — un client fidèle, un professionnel, un geste commercial. La
+     * valeur est bornée au total : on n'encaisse pas plus que la prestation.
+     */
+    acompte?: number | null;
     distanceKm?: number | null;
     source?: SourceRendezVous;
     notes?: string | null;
@@ -81,7 +87,10 @@ export async function creerRendezVous(
     // c'est le montant que le client voit avant de payer.
     const fraisDeplacement = Math.max(0, donnees.fraisDeplacement ?? 0);
     const prixTotal = Math.round((prix.valeur.prixTotal + fraisDeplacement) * 100) / 100;
-    const acompte = Math.round(prixTotal * TAUX_ACOMPTE * 100) / 100;
+    const acompte =
+      donnees.acompte == null
+        ? Math.round(prixTotal * TAUX_ACOMPTE * 100) / 100
+        : Math.round(Math.min(Math.max(0, donnees.acompte), prixTotal) * 100) / 100;
 
     const ligne = await tx.rendezVous.create({
       data: {

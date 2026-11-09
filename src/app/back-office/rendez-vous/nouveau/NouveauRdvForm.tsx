@@ -53,6 +53,10 @@ export default function NouveauRdvForm({
   // revenir : les deux se font ici.
   const [nouveau, setNouveau] = useState(clients.length === 0);
   const [recherche, setRecherche] = useState("");
+  // Acompte : la règle est 10 %, mais un professionnel ou un client fidèle
+  // peut en être dispensé, et un montant négocié doit pouvoir être saisi.
+  const [modeAcompte, setModeAcompte] = useState<"standard" | "libre" | "aucun">("standard");
+  const [acompteLibre, setAcompteLibre] = useState("");
   const [fiche, setFiche] = useState({
     prenom: "",
     nom: "",
@@ -100,7 +104,13 @@ export default function NouveauRdvForm({
      .filter((o) => optionIds.includes(o.id))
      .reduce((total, o) => total + Number(o.prix), 0);
    const prixTotal = tarif ? Number(tarif.prix) + prixOptions : null;
-   const acompte = prixTotal != null ? Math.round(prixTotal * 0.1 * 100) / 100 : null;
+   const acompteStandard = prixTotal != null ? Math.round(prixTotal * 0.1 * 100) / 100 : null;
+   const acompte =
+     modeAcompte === "aucun"
+       ? 0
+       : modeAcompte === "libre"
+         ? Math.min(Math.max(0, Number(acompteLibre.replace(",", ".")) || 0), prixTotal ?? 0)
+         : acompteStandard;
 
    function basculerOption(id: string) {
      setOptionIds((liste) =>
@@ -156,6 +166,7 @@ export default function NouveauRdvForm({
          optionIds,
          dateHeure: `${date}T${heure}:00`,
          dureeMinutes: pack?.dureeMinMinutes,
+         acompte: modeAcompte === "standard" ? undefined : acompte,
          source: donnees.get("source"),
          notes: donnees.get("notes") || undefined,
        };
@@ -388,6 +399,48 @@ export default function NouveauRdvForm({
           />
         </label>
 
+        <fieldset className="flex flex-col gap-2">
+          <legend className="text-sm text-[var(--muted)]">Acompte</legend>
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            {([
+              ["standard", acompteStandard != null ? `10 % · ${acompteStandard} €` : "10 %"],
+              ["libre", "Montant choisi"],
+              ["aucun", "Aucun acompte"],
+            ] as const).map(([valeur, libelle]) => (
+              <button
+                key={valeur}
+                type="button"
+                onClick={() => setModeAcompte(valeur)}
+                className={`rounded-md border px-3 py-1.5 transition ${
+                  modeAcompte === valeur
+                    ? "border-[var(--accent)] bg-[var(--accent)]/10"
+                    : "border-[var(--border)] hover:bg-[var(--surface-2)]"
+                }`}
+              >
+                {libelle}
+              </button>
+            ))}
+            {modeAcompte === "libre" && (
+              <span className="flex items-center gap-1">
+                <input
+                  value={acompteLibre}
+                  onChange={(e) => setAcompteLibre(e.target.value)}
+                  inputMode="decimal"
+                  placeholder="0"
+                  aria-label="Montant de l'acompte en euros"
+                  className="w-24 rounded-md bg-[var(--surface-2)] border border-[var(--border)] px-2 py-1"
+                />
+                <span className="text-[var(--muted)]">€</span>
+              </span>
+            )}
+          </div>
+          {modeAcompte === "aucun" && (
+            <p className="text-xs text-[var(--muted)]">
+              Rien n&apos;est demandé à la réservation : la totalité se règle à l&apos;intervention.
+            </p>
+          )}
+        </fieldset>
+
       <div className="rounded-md bg-[var(--surface-2)] border border-[var(--border)] px-3 py-2 text-sm flex flex-col gap-1">
         {tarif ? (
           <>
@@ -395,7 +448,9 @@ export default function NouveauRdvForm({
               Prix total : <strong>{prixTotal} €</strong>
             </span>
             <span className="text-[var(--muted)]">
-              Acompte (10 %) : {acompte} € · Solde à l&apos;intervention : {(prixTotal! - acompte!).toFixed(2)} €
+              {modeAcompte === "aucun"
+                ? `Sans acompte · ${prixTotal} € réglés à l'intervention`
+                : `Acompte : ${acompte} € · Solde à l'intervention : ${(prixTotal! - (acompte ?? 0)).toFixed(2)} €`}
             </span>
           </>
         ) : (
