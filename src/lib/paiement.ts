@@ -107,6 +107,9 @@ export async function enregistrerPaiement(rdvId: string, sessionId: string) {
     await historiserRdv(rdv, "Payé après expiration : créneau à vérifier.");
   }
   await historiserRdv(rdv, `Acompte de ${rdv.acompte} € payé (Stripe).`);
+  // L'acompte réglé vaut confirmation : sans cela le rendez-vous restait
+  // « en attente » et l'opérateur ne pouvait pas démarrer sa prestation.
+  if (rdv.statut === "EN_ATTENTE") await changerStatut(rdv, "CONFIRME");
   const dejaEnvoye = await db.sms.count({ where: { rendezVousId: rdv.id, motif: "CONFIRMATION_RDV" } });
   if (!dejaEnvoye) {
     await smsAuClient(rdv, await MODELES_SMS.confirmationClient(rdv), "CONFIRMATION_RDV", "site");

@@ -757,3 +757,53 @@ test("remise commerciale : elle porte sur les prestations, pas sur le déplaceme
     assert.equal(ligneRemise.total, -rdv.remiseMontant);
     assert.equal(Math.round(lignes.reduce((s, l) => s + l.total, 0) * 100) / 100, facture.prixTotal);
 });
+
+test("attribuer, c'est confirmer : l'opérateur peut démarrer sans rien attendre", async () => {
+  const op = await operateur();
+  const client = await clientAvecVehicule();
+  const resultat = await creerRendezVous({
+    clientId: client.id,
+    vehiculeId: client.vehicules[0].id,
+    adresseId: client.adresses[0].id,
+    packId: "pack-concession",
+    dateHeure: dateParis(prochain(1), "11:30"),
+  });
+  assert.ok(resultat.ok, !resultat.ok ? resultat.erreur : "");
+  assert.equal(resultat.valeur.statut, "EN_ATTENTE");
+
+    const attribution = await attribuerAutomatiquement(resultat.valeur);
+    assert.deepEqual(attribution, { attribue: true, operateurId: op.id, motif: "unique" });
+
+    // Sans cela l'opérateur lit « en attente de confirmation par la
+    // direction » et ne peut pas démarrer sa route.
+    const relu = await trouverRendezVous(resultat.valeur.id);
+    assert.equal(relu!.statut, "CONFIRME");
+});
+
+test("une réservation en ligne non payée n'est pas confirmée par l'attribution", async () => {
+  await operateur();
+  const client = await clientAvecVehicule();
+  const resultat = await creerRendezVous({
+    clientId: client.id,
+    vehiculeId: client.vehicules[0].id,
+    adresseId: client.adresses[0].id,
+    packId: "pack-concession",
+    dateHeure: dateParis(prochain(1), "15:00"),
+  });
+  assert.ok(resultat.ok, !resultat.ok ? resultat.erreur : "");
+  // Le créneau est bloqué le temps du paiement Stripe, pas acquis.
+  await db.rendezVous.update({
+    where: { id: resultat.valeur.id },
+    data: { acompteStatut: "EN_ATTENTE_PAIEMENT" },
+  });
+  const frais = await trouverRendezVous(resultat.valeur.id);
+
+    await attribuerAutomatiquement(frais!);
+    const relu = await trouverRendezVous(resultat.valeur.id);
+    assert.equal(relu!.statut, "EN_ATTENTE", "confirmer avant le paiement acquitterait un créneau non réglé");
+
+    // C'est l'acompte encaissé qui confirme.
+    await enregistrerPaiement(relu!.id, "cs_test_confirme");
+    const apresPaiement = await trouverRendezVous(resultat.valeur.id);
+    assert.equal(apresPaiement!.statut, "CONFIRME");
+});

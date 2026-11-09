@@ -86,6 +86,17 @@ export default function GestionPanel({
     router.refresh();
   }
 
+  async function changerStatut(statut: "CONFIRME" | "EN_ATTENTE") {
+    const data = await appeler(statut, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ statut, notifier: false }),
+    });
+    if (!data) return;
+    setMessage(statut === "CONFIRME" ? "Rendez-vous confirmé." : "Rendez-vous remis en attente.");
+    router.refresh();
+  }
+
   async function annuler() {
     const data = await appeler("annuler", {
       method: "PATCH",
@@ -115,6 +126,37 @@ export default function GestionPanel({
           <span className="block text-xs text-[var(--muted)]">À décocher seulement si vous venez de le joindre.</span>
         </span>
       </label>
+
+      {!annule && (
+        <div className="flex flex-col gap-2">
+          <p className="text-xs text-[var(--muted)] uppercase tracking-wide">Statut</p>
+          {statut === "EN_ATTENTE" ? (
+            <>
+              <button
+                onClick={() => changerStatut("CONFIRME")}
+                disabled={enCours !== null}
+                className="self-start rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--accent-2)] disabled:opacity-50"
+              >
+                {enCours === "CONFIRME" ? "Confirmation…" : "Confirmer le rendez-vous"}
+              </button>
+              <p className="text-xs text-[var(--muted)]">
+                Tant qu&apos;il est en attente, l&apos;opérateur ne peut pas démarrer la prestation.
+              </p>
+            </>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm text-[var(--success)]">Confirmé</span>
+              <button
+                onClick={() => changerStatut("EN_ATTENTE")}
+                disabled={enCours !== null}
+                className="rounded-md border border-[var(--border)] px-3 py-1.5 text-sm transition hover:bg-[var(--surface-2)] disabled:opacity-50"
+              >
+                {enCours === "EN_ATTENTE" ? "…" : "Remettre en attente"}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-col gap-2">
         <p className="text-xs text-[var(--muted)] uppercase tracking-wide">Décaler</p>

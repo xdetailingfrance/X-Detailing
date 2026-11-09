@@ -16,7 +16,7 @@ import { db, type Tx } from "@/lib/db";
 import type { RendezVous } from "@/lib/types";
 import { haversineKm } from "@/lib/geo";
 import { assurerGeocodage } from "@/lib/clients";
-import { appliquerAffectation, notifierAffectation } from "@/lib/rendezVous";
+import { appliquerAffectation, changerStatut, notifierAffectation } from "@/lib/rendezVous";
 import { evaluerCandidats } from "@/lib/affectation";
 import { journaliser } from "@/lib/audit";
 
@@ -82,6 +82,19 @@ export async function attribuerAutomatiquement(rdv: RendezVous): Promise<Attribu
   }
 
   await appliquerAffectation(rdv, choisi);
+  /*
+   * Attribuer, c'est confirmer. Il n'y a plus d'étape de validation humaine :
+   * laisser le rendez-vous « en attente » le rendait indémarrable pour
+   * l'opérateur, qui lisait « en attente de confirmation par la direction »
+   * sans que personne n'ait de bouton pour la donner.
+   *
+   * Exception : un acompte en cours de paiement en ligne. Tant que Stripe
+   * n'a pas répondu, le créneau n'est que bloqué — c'est enregistrerPaiement
+   * qui confirmera, ou la libération automatique qui annulera.
+   */
+  if (rdv.statut === "EN_ATTENTE" && rdv.acompteStatut !== "EN_ATTENTE_PAIEMENT") {
+    await changerStatut(rdv, "CONFIRME");
+  }
   await journaliser({
     acteur: "systeme",
     action: "RDV_ATTRIBUE_AUTOMATIQUEMENT",
