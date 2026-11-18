@@ -27,6 +27,19 @@ export const ENTREPRISE = {
   /** Au format attendu par wa.me : international, sans espace ni « + ». */
   whatsapp: "33649368328",
 
+  /**
+   * Formulaire d'avis de la fiche Google Business, ouvert directement.
+   *
+   * Le lien de partage fourni par Google (share.google/…) mène à une page de
+   * résultats où le client doit encore trouver « Rédiger un avis » : la
+   * moitié abandonne là. Celui-ci ouvre la boîte de dialogue d'avis.
+   *
+   * Construit depuis le placeId de la fiche, ChIJEzMakwWxtmgRyql-ew6fdeA
+   * (kgmid /g/11zzdwtk6b, CID 16174008521321261514). Si un jour il n'ouvrait
+   * pas la bonne fiche, c'est ici qu'on le change — nulle part ailleurs.
+   */
+  avisGoogle: "https://search.google.com/local/writereview?placeid=ChIJEzMakwWxtmgRyql-ew6fdeA",
+
   // Non publiés au registre : renseignés par la direction.
   capital: "1 000 €" as string | null,
   email: "contact@xdetailing.fr" as string | null,

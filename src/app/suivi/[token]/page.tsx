@@ -6,6 +6,7 @@ import { formatParis } from "@/lib/heure";
 import { LIBELLE_ANGLE_PHOTO, type PhotoPrestation } from "@/lib/types";
 import SuiviTrajet from "@/components/SuiviTrajet";
 import NoteClient from "./NoteClient";
+import { ENTREPRISE } from "@/lib/entreprise";
 
 export const dynamic = "force-dynamic";
 
@@ -95,7 +96,7 @@ export default async function SuiviPage({ params }: { params: Promise<{ token: s
                   Voir et télécharger ma facture
                 </Link>
               </div>
-              <NoteClient token={token} noteInitiale={rdv.noteClient} />
+              <NoteClient token={token} noteInitiale={rdv.noteClient} avisGoogle={ENTREPRISE.avisGoogle} />
             </div>
           )}
         </div>

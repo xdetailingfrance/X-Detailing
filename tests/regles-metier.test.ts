@@ -906,3 +906,14 @@ test("acompte en ligne puis solde encaissé sur place : une seule facture", asyn
     const relu = await trouverRendezVous(rdv.id);
     assert.ok(relu!.historique.some((h) => /par carte sur place/.test(h.libelle)));
 });
+
+test("le lien d'avis ouvre le formulaire Google, pas une page de résultats", () => {
+  const lien = ENTREPRISE.avisGoogle;
+  // writereview ouvre la boîte de dialogue d'avis ; un lien de partage
+  // (share.google) retombe sur une recherche où il faut encore trouver le
+  // bouton, et la moitié des clients abandonne là.
+  assert.match(lien, /^https:\/\/search\.google\.com\/local\/writereview\?placeid=/);
+  assert.ok(!lien.includes("share.google"));
+  // La fiche visée est bien celle de X Detailing.
+  assert.match(lien, /ChIJEzMakwWxtmgRyql-ew6fdeA/);
+});

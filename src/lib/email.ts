@@ -2,6 +2,7 @@ import { journaliser } from "@/lib/audit";
 import { db, historiserRdv } from "@/lib/db";
 import { dureeLisible, formatParis } from "@/lib/heure";
 import { titrePrestation } from "@/lib/prestationsPubliques";
+import { ENTREPRISE } from "@/lib/entreprise";
 import { factureParId } from "@/lib/facturation";
 import { genererFacturePdf, nomFichierFacture } from "@/lib/facturePdf";
 import { factureDemo } from "@/lib/factureDemo";
@@ -366,9 +367,10 @@ export async function emailFacture(rdv: RendezVous) {
       Elle reste également consultable en ligne depuis le bouton ci-dessous, avec les photos avant et après la
       prestation.
     </p>
-    <p style="margin-top:16px">
-      Votre avis nous aide à progresser :
-      <a href="${origineSite()}/suivi/${rdv.suiviToken}#avis" style="color:#6d3cf5">noter la prestation en un clic</a>.
+    <p style="margin-top:24px;padding:16px;background:#f6f4ff;border-radius:10px">
+      <strong>Votre avis compte.</strong><br />
+      Quelques mots sur Google aident beaucoup une jeune entreprise, et ne prennent qu'une minute :
+      <a href="${ENTREPRISE.avisGoogle}" style="color:#6d3cf5;font-weight:600">laisser un avis Google</a>.
     </p>`;
 
   return envoyerEmail({
