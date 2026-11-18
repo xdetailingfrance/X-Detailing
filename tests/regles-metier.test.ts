@@ -903,5 +903,6 @@ test("acompte en ligne puis solde encaissé sur place : une seule facture", asyn
     assert.equal(regle.solde, Math.round((rdv.prixTotal - rdv.acompte) * 100) / 100);
     assert.equal(Math.round((regle.acompte + regle.solde) * 100) / 100, facture.prixTotal);
     assert.equal(Math.round(lignesFacture(facture).reduce((s, l) => s + l.total, 0) * 100) / 100, facture.prixTotal);
-    assert.ok(facture.historique.some((h) => /par carte sur place/.test(h.libelle)));
+    const relu = await trouverRendezVous(rdv.id);
+    assert.ok(relu!.historique.some((h) => /par carte sur place/.test(h.libelle)));
 });
