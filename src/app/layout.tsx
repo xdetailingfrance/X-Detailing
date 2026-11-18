@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { origineSite } from "@/lib/email";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,6 +14,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  // Sans metadataBase, Next ne peut construire ni les URL canoniques ni les
+  // images de partage : elles seraient relatives, donc inexploitables par
+  // les moteurs et les messageries.
+  metadataBase: new URL(origineSite()),
   title: "X Detailing OS",
   description: "Back-office X Detailing — réservation, affectation et pilotage du réseau.",
 };

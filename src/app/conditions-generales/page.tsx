@@ -15,6 +15,7 @@ import { dureeLisible } from "@/lib/heure";
 export const metadata: Metadata = {
   title: "Conditions générales de vente — X Detailing",
   description: "Conditions générales de vente des prestations de nettoyage automobile à domicile X Detailing.",
+  alternates: { canonical: "/conditions-generales" },
 };
 
 export const revalidate = 3600;
