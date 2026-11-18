@@ -352,7 +352,9 @@ html[data-intro="en-cours"] #logo-entete {
   overflow: hidden;
   vertical-align: bottom;
   padding-bottom: 0.08em;
-  margin-right: 0.28em;
+  /* Pas de margin-right : l'espacement vient de l'espace réel placé entre
+     les mots dans le JSX, pour que le titre se lise correctement une fois
+     le balisage retiré. */
 }
 .mot > span {
   display: inline-block;

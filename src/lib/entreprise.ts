@@ -40,6 +40,13 @@ export const ENTREPRISE = {
    */
   avisGoogle: "https://search.google.com/local/writereview?placeid=ChIJEzMakwWxtmgRyql-ew6fdeA",
 
+  /**
+   * La fiche elle-même, pas le formulaire d'avis. Déclarée en `sameAs` dans
+   * les données structurées : c'est ce qui dit aux moteurs que le site et la
+   * fiche Google sont la même entreprise.
+   */
+  ficheGoogle: "https://www.google.com/maps/place/?q=place_id:ChIJEzMakwWxtmgRyql-ew6fdeA",
+
   // Non publiés au registre : renseignés par la direction.
   capital: "1 000 €" as string | null,
   email: "contact@xdetailing.fr" as string | null,

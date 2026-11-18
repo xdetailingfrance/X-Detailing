@@ -1,6 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { Fragment } from "react";
 import LogoMarque from "@/components/accueil/LogoMarque";
+import DonneesStructurees from "@/components/accueil/DonneesStructurees";
+import { Formules, Materiel, PiedDePage, Questions, Zone } from "@/components/accueil/SectionsAccueil";
 import ExperiencePrestations from "@/components/accueil/ExperiencePrestations";
 import Utilitaire from "@/components/accueil/voiture/Utilitaire";
 import { optionsPubliques, prestationsPubliques } from "@/lib/prestationsPubliques";
@@ -9,10 +12,31 @@ import "@/components/accueil/accueil.css";
 import "@/components/accueil/voiture/voiture.css";
 import "@/components/accueil/parcours.css";
 
+const DESCRIPTION =
+  "Lavage auto à domicile à Bordeaux et dans la métropole : nettoyage intérieur dès 129 €, intérieur + extérieur dès 189 €. Nous venons chez vous ou au bureau, avec notre eau et notre matériel. Réservation en ligne, déplacement offert jusqu'à 10 km.";
+
 export const metadata: Metadata = {
-  title: "X Detailing — Le detailing automobile, directement chez vous",
-  description:
-    "Nettoyage intérieur et extérieur de votre véhicule à domicile ou au bureau, à Bordeaux et alentours. Opérateurs équipés, réservation simple.",
+  title: "Lavage auto à domicile à Bordeaux — X Detailing",
+  description: DESCRIPTION,
+  // Canonique auto-référente : le site répond sur plusieurs hôtes (domaine
+  // apex, www, domaine Vercel) et sans elle les moteurs peuvent indexer
+  // l'un ou l'autre, diluant le peu d'autorité d'un site récent.
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    locale: "fr_FR",
+    siteName: "X Detailing",
+    title: "Lavage auto à domicile à Bordeaux — X Detailing",
+    description: DESCRIPTION,
+    url: "/",
+    images: [{ url: "/marque/logo-1254.webp", width: 1254, height: 1254, alt: "X Detailing" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Lavage auto à domicile à Bordeaux — X Detailing",
+    description: DESCRIPTION,
+    images: ["/marque/logo-1254.webp"],
+  },
 };
 
 // Prix des packs modifiables dans le back-office : page régénérée
@@ -35,6 +59,7 @@ export default async function Accueil() {
 
    return (
      <div className="site-clair flex min-h-screen flex-col overflow-x-clip">
+            <DonneesStructurees prestations={prestations} />
 
             <header className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-4 py-3 sm:px-8 sm:py-5">
         <Link href="/" aria-label="X Detailing — accueil">
@@ -47,6 +72,12 @@ export default async function Accueil() {
           </a>
           <a href="#fonctionnement" className="hidden hover:text-[var(--encre)] sm:inline">
             Comment ça marche
+          </a>
+          <a href="#zone" className="hidden hover:text-[var(--encre)] sm:inline">
+            Zone
+          </a>
+          <a href="#questions" className="hidden hover:text-[var(--encre)] sm:inline">
+            Questions
           </a>
           {/*
             Appel direct par WhatsApp. `wa.me` ouvre l'application sur mobile et
@@ -82,12 +113,19 @@ export default async function Accueil() {
             {/* Animation d'accueil : le titre monte mot par mot, l'utilitaire
                 traverse la page et sa traînée devient le trait sous le titre. */}
             <h1 className="motion-titre mt-3 text-[1.9rem] font-semibold uppercase leading-[1.1] tracking-[0.06em] sm:text-5xl">
+              {/* L'espace entre les mots est un VRAI espace, pas une marge
+                  CSS : sans lui, le titre est extrait collé — « Ledetailing
+                  automobile… » — par les moteurs comme par un lecteur
+                  d'écran. La marge correspondante est retirée du CSS. */}
               {TITRE.split(" ").map((mot, i) => (
-                <span key={i} className="mot">
-                  <span className="texte-chrome" style={{ ["--i" as string]: i }}>
-                    {mot}
+                <Fragment key={i}>
+                  {i > 0 ? " " : null}
+                  <span className="mot">
+                    <span className="texte-chrome" style={{ ["--i" as string]: i }}>
+                      {mot}
+                    </span>
                   </span>
-                </span>
+                </Fragment>
               ))}
             </h1>
             <div className="motion-route" aria-hidden="true">
@@ -105,7 +143,7 @@ export default async function Accueil() {
           </div>
         </section>
 
-        <section id="fonctionnement" className="scroll-mt-6 border-t border-[var(--encre)]/5 bg-white px-5 py-20sm:px-8">
+        <section id="fonctionnement" className="scroll-mt-20 border-t border-[var(--encre)]/5 bg-white px-5 py-20 sm:px-8">
           <div className="mx-auto max-w-5xl">
             <h2 className="texte-chrome text-2xl font-semibold uppercase tracking-[0.12em] sm:text-3xl">Comment ça marche</h2>
             <ol className="mt-10 grid gap-8 sm:grid-cols-3">
@@ -119,18 +157,12 @@ export default async function Accueil() {
             </ol>
           </div>
         </section>
+        <Formules prestations={prestations} />
+        <Materiel />
+        <Zone />
+        <Questions />
       </main>
-
-            <footer className="border-t border-[var(--encre)]/5 bg-white px-5 py-8 text-xs text-[var(--chrome)]/50 sm:px-8">
-          <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4">
-            <span>© X Detailing</span>
-            <span className="flex gap-6">
-              <Link href="/conditions-generales" className="hover:text-[var(--encre)]">
-                Conditions générales
-              </Link>
-            </span>
-          </div>
-        </footer>
+      <PiedDePage />
       </div>
     );
 }
