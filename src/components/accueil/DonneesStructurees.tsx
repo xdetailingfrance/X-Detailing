@@ -1,7 +1,7 @@
 import { ENTREPRISE } from "@/lib/entreprise";
 import { origineSite } from "@/lib/email";
 import type { PrestationPublique } from "@/lib/prestationsPubliques";
-import { COMMUNES, QUESTIONS } from "@/components/accueil/SectionsAccueil";
+import { COMMUNES, questions } from "@/components/accueil/SectionsAccueil";
 
 /**
  * Données structurées de la fiche d'entreprise, pour les moteurs et les
@@ -77,7 +77,7 @@ export default function DonneesStructurees({ prestations }: { prestations: Prest
     "@context": "https://schema.org",
     "@type": "FAQPage",
     "@id": `${site}/#questions`,
-    mainEntity: QUESTIONS.map(({ q, r }) => ({
+    mainEntity: questions(prestations).map(({ q, r }) => ({
       "@type": "Question",
       name: q,
       acceptedAnswer: { "@type": "Answer", text: r },

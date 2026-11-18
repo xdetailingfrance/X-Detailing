@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ENTREPRISE } from "@/lib/entreprise";
 import { TRANCHES_DEPLACEMENT, distanceMaxTarifee } from "@/lib/deplacement";
-import { TAUX_ACOMPTE } from "@/lib/rendezVous";
+import { DELAI_ANNULATION_HEURES, TAUX_ACOMPTE } from "@/lib/rendezVous";
 import type { PrestationPublique } from "@/lib/prestationsPubliques";
 
 /**
@@ -195,34 +195,48 @@ export function Formules({ prestations }: { prestations: PrestationPublique[] })
  * acompte de {TAUX_ACOMPTE}, barème de `deplacement.ts`, délai d'annulation
  * des CGV.
  */
-export const QUESTIONS = [
-  {
-    q: "Jusqu'où vous déplacez-vous autour de Bordeaux ?",
-    r: `X Detailing intervient sur la métropole bordelaise et jusqu'à ${KM_MAX} km autour. Le déplacement est offert dans les ${TRANCHES_DEPLACEMENT[0].jusquaKm} premiers kilomètres, puis facturé ${TRANCHES_DEPLACEMENT[1].prix} € jusqu'à ${TRANCHES_DEPLACEMENT[1].jusquaKm} km et ${TRANCHES_DEPLACEMENT[2].prix} € jusqu'à ${KM_MAX} km. La distance est calculée sur l'itinéraire routier réel au moment de la réservation, et le forfait s'affiche avant le paiement.`,
-  },
-  {
-    q: "Combien de temps dure un lavage à domicile ?",
-    r: "Comptez 2h30 pour un lavage intérieur et jusqu'à 3h pour un intérieur et extérieur complet, selon le gabarit du véhicule et son état. La durée exacte de la formule choisie est indiquée au moment de la réservation, et le créneau est bloqué pour toute cette durée : aucun autre rendez-vous ne vient se superposer au vôtre.",
-  },
-  {
-    q: "Comment se passe le paiement ?",
-    r: `Un acompte de ${Math.round(TAUX_ACOMPTE * 100)} % est réglé en ligne par carte à la réservation ; il confirme le créneau. Le solde se paie à la fin de l'intervention, par carte sur place ou en espèces. Une facture unique, reprenant l'acompte et le solde, vous est envoyée par e-mail en pièce jointe PDF dès le dossier clôturé.`,
-  },
-  {
-    q: "Puis-je annuler ou décaler mon rendez-vous ?",
-    r: "L'annulation est libre jusqu'à 24 heures avant le créneau : l'acompte est alors remboursé. Passé ce délai, l'acompte reste acquis, car le créneau n'est plus réattribuable. Un décalage reste possible à tout moment selon les disponibilités : écrivez-nous ou appelez, c'est souvent la meilleure solution.",
-  },
-  {
-    q: "Quels véhicules prenez-vous en charge ?",
-    r: "Citadines, berlines, SUV, monospaces et utilitaires. Chaque gabarit a son propre tarif, affiché dans la grille avant la réservation : le prix ne change pas après l'intervention. Pour une flotte ou un véhicule hors gabarit, contactez-nous directement, nous établissons un devis.",
-  },
-  {
-    q: "Faut-il un point d'eau ou une prise électrique ?",
-    r: "Non. L'opérateur arrive avec son utilitaire équipé : eau, produits et aspirateurs sont à bord. Il suffit que le véhicule soit accessible et qu'il y ait de la place autour pour travailler — une place de parking, une allée ou une cour suffisent.",
-  },
-] as const;
+export function questions(prestations: PrestationPublique[]) {
+  // Les durées sont lues dans la grille, jamais écrites en dur : une FAQ qui
+  // annonce 2h30 quand le back-office dit 3h est une promesse fausse.
+  const parts = prestations.map((p) => `${p.duree} pour un ${p.titre.toLowerCase()}`);
+  const durees =
+    parts.length > 1 ? `${parts.slice(0, -1).join(", ")} et ${parts[parts.length - 1]}` : parts[0];
 
-export function Questions() {
+  return [
+    {
+      q: "Jusqu'où vous déplacez-vous autour de Bordeaux ?",
+      r: `X Detailing intervient sur la métropole bordelaise et jusqu'à ${KM_MAX} km autour. Le déplacement est offert dans les ${TRANCHES_DEPLACEMENT[0].jusquaKm} premiers kilomètres, puis facturé ${TRANCHES_DEPLACEMENT[1].prix} € jusqu'à ${TRANCHES_DEPLACEMENT[1].jusquaKm} km et ${TRANCHES_DEPLACEMENT[2].prix} € jusqu'à ${KM_MAX} km. La distance est calculée sur l'itinéraire routier réel au moment de la réservation, et le forfait s'affiche avant le paiement.`,
+    },
+    {
+      q: "Combien de temps dure un lavage à domicile ?",
+      r: `Comptez ${durees}, selon le gabarit du véhicule et son état. La durée de la formule choisie est indiquée au moment de la réservation, et le créneau est bloqué pour toute cette durée : aucun autre rendez-vous ne vient se superposer au vôtre.`,
+    },
+    {
+      q: "Comment se passe le paiement ?",
+      r: `Un acompte de ${Math.round(TAUX_ACOMPTE * 100)} % est réglé en ligne par carte à la réservation ; il confirme le créneau. Le solde se paie à la fin de l'intervention, par carte sur place ou en espèces. Une facture unique, reprenant l'acompte et le solde, vous est envoyée par e-mail en pièce jointe PDF dès le dossier clôturé.`,
+    },
+    {
+      q: "Puis-je annuler ou décaler mon rendez-vous ?",
+      // Formulation alignée sur l'article 7 des CGV : le report dans le délai
+      // est un geste commercial, pas un droit. L'annoncer autrement créerait
+      // un engagement que les conditions générales contredisent.
+      r: `L'annulation est libre jusqu'à ${DELAI_ANNULATION_HEURES} heures avant le créneau : la prestation est alors reportée ou remboursée intégralement, acompte compris. Passé ce délai, l'acompte reste acquis, car le créneau a été immobilisé et ne peut plus être proposé. Nous pouvons proposer de déplacer le créneau selon les disponibilités, à titre de geste commercial.`,
+    },
+    {
+      q: "Quels véhicules prenez-vous en charge ?",
+      r: "Citadines, berlines, SUV, monospaces et utilitaires. Chaque gabarit a son propre tarif, affiché dans la grille avant la réservation : le prix ne change pas après l'intervention. Pour une flotte ou un véhicule hors gabarit, contactez-nous directement, nous établissons un devis.",
+    },
+    {
+      q: "Faut-il un point d'eau ou une prise électrique ?",
+      r: "Non. L'opérateur arrive avec son utilitaire équipé : eau, produits et aspirateurs sont à bord. Il suffit que le véhicule soit accessible et qu'il y ait de la place autour pour travailler — une place de parking, une allée ou une cour suffisent.",
+    },
+  ];
+}
+
+export type QuestionReponse = ReturnType<typeof questions>[number];
+
+export function Questions({ prestations }: { prestations: PrestationPublique[] }) {
+  const liste = questions(prestations);
   return (
     <section
       id="questions"
@@ -231,7 +245,7 @@ export function Questions() {
       <div className="mx-auto max-w-3xl">
         <Titre sur="Questions fréquentes">Ce qu&apos;on nous demande</Titre>
         <div className="mt-10 divide-y divide-[var(--encre)]/8 border-y border-[var(--encre)]/8">
-          {QUESTIONS.map(({ q, r }) => (
+          {liste.map(({ q, r }) => (
             <details key={q} className="group py-5">
               <summary className="flex cursor-pointer list-none items-start justify-between gap-4 text-left text-base font-medium text-[var(--encre)]">
                 {q}

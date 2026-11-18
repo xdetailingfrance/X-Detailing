@@ -11,6 +11,7 @@ import {
 import { TRANCHES_DEPLACEMENT } from "@/lib/deplacement";
 import { ENTREPRISE, adresseComplete, mentionsManquantes } from "@/lib/entreprise";
 import { dureeLisible } from "@/lib/heure";
+import { DELAI_ANNULATION_HEURES } from "@/lib/rendezVous";
 
 export const metadata: Metadata = {
   title: "Conditions générales de vente — X Detailing",
@@ -25,9 +26,6 @@ export const revalidate = 3600;
 // quand le texte change.
 const EN_VIGUEUR_AU = "28 octobre 2026";
 
-// Délai d'annulation sans perte de l'acompte. Purement contractuel : aucun
-// code ne le fait respecter, c'est la direction qui tranche au cas par cas.
-const DELAI_ANNULATION_HEURES = 24;
 // Conservation des données de réservation. Les pièces comptables y échappent :
 // la loi impose dix ans, et le code refuse d'effacer un RDV facturé.
 const CONSERVATION_ANS = 2;

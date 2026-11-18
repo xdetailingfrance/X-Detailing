@@ -10,6 +10,14 @@ import { formatParis } from "@/lib/heure";
 
 export const TAUX_ACOMPTE = 0.1; // acompte de 10 % à la réservation
 
+/**
+ * Délai avant le créneau au-delà duquel l'annulation n'est plus possible et
+ * l'acompte reste acquis. Purement contractuel : rien ne l'applique au
+ * runtime. Lu par les CGV et par la FAQ publique — les deux doivent
+ * annoncer le même chiffre, sous peine d'un engagement contradictoire.
+ */
+export const DELAI_ANNULATION_HEURES = 24;
+
 export type Resultat<T> = { ok: true; valeur: T } | { ok: false; erreur: string };
 
 // Calcul du prix côté serveur, JAMAIS reçu du client : grille PackTarif

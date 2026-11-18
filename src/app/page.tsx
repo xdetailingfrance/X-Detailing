@@ -160,7 +160,7 @@ export default async function Accueil() {
         <Formules prestations={prestations} />
         <Materiel />
         <Zone />
-        <Questions />
+        <Questions prestations={prestations} />
       </main>
       <PiedDePage />
       </div>
