@@ -24,7 +24,7 @@ import { DUREE_BLOCAGE_MINUTES, enregistrerPaiement, libererReservation, soldeDu
 import { appliquerActionWorkflow } from "@/lib/workflow";
 import { appliquerAffectation, notifierAffectation } from "@/lib/rendezVous";
 import { diagnostiquerAbsenceDeCandidat, evaluerCandidats } from "@/lib/affectation";
-import { emailOperateurEnRoute } from "@/lib/email";
+import { emailNouvelleReservation, emailOperateurEnRoute } from "@/lib/email";
 import { attribuerAutomatiquement, operateursCouvrant } from "@/lib/attribution";
 import { baremePour, secteurCouvrant } from "@/lib/bareme";
 import { dateParis, decalerJour, jourParis, jourSemaineParis } from "@/lib/heure";
@@ -916,4 +916,35 @@ test("le lien d'avis ouvre le formulaire Google, pas une page de résultats", ()
   assert.ok(!lien.includes("share.google"));
   // La fiche visée est bien celle de X Detailing.
   assert.match(lien, /ChIJEzMakwWxtmgRyql-ew6fdeA/);
+});
+
+test("une réservation en ligne prévient l'entreprise à son adresse de contact", async () => {
+  // Rien n'écrivait jamais à contact@ : l'opérateur recevait sa mission, le
+  // client sa confirmation, et la boîte publiée sur le site restait muette.
+  const rdv = await nouveauRdv();
+  await emailNouvelleReservation(rdv);
+
+  // Brevo n'est pas configuré en test : l'envoi échoue, mais le journal
+  // garde le destinataire visé — c'est lui qu'on vérifie.
+  const avis = await db.journalAudit.findFirst({
+    where: { entiteId: rdv.id, action: { startsWith: "EMAIL_AVIS_RESERVATION" } },
+  });
+  assert.ok(avis, "aucun avis de réservation journalisé");
+  assert.equal((avis!.details as { destinataire?: string }).destinataire, ENTREPRISE.email);
+});
+
+test("l'acompte encaissé ne déclenche qu'un seul avis de réservation", async () => {
+  const rdv = await nouveauRdv();
+  await db.rendezVous.update({ where: { id: rdv.id }, data: { acompteStatut: "EN_ATTENTE_PAIEMENT" } });
+
+  // Retour client et webhook Stripe arrivent ensemble : la garde qui protège
+  // déjà le SMS doit protéger l'avis de la même façon.
+  await Promise.all([enregistrerPaiement(rdv.id, "cs_avis"), enregistrerPaiement(rdv.id, "cs_avis")]);
+
+  assert.equal(
+    await db.journalAudit.count({
+      where: { entiteId: rdv.id, action: { startsWith: "EMAIL_AVIS_RESERVATION" } },
+    }),
+    1
+  );
 });

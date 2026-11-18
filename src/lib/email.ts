@@ -87,6 +87,14 @@ export async function envoyerEmail(params: {
         headers: { "api-key": config.cle, "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
           sender: { email: config.expediteur, name: NOM_EXPEDITEUR },
+          // L'expéditeur technique est l'adresse vérifiée chez Brevo, qui
+          // n'est pas forcément relevée. Sans replyTo, une réponse de client
+          // — « je serai en retard », « changez l'adresse » — part vers une
+          // boîte que personne n'ouvre. Elle est redirigée vers l'adresse de
+          // contact publiée sur le site et les factures.
+          ...(ENTREPRISE.email
+            ? { replyTo: { email: ENTREPRISE.email, name: NOM_EXPEDITEUR } }
+            : {}),
           to: [{ email: params.destinataire, name: params.nom ?? undefined }],
           subject: params.sujet,
           htmlContent: params.html,
@@ -180,6 +188,61 @@ async function contexte(rdv: RendezVous) {
 }
 
 const quand = (date: Date) => formatParis(date, { dateStyle: "full", timeStyle: "short" });
+
+/**
+ * Avis de réservation adressé à l'entreprise elle-même.
+ *
+ * Rien n'écrivait jamais à l'adresse de contact publiée sur le site :
+ * l'opérateur recevait sa mission, le client sa confirmation, et la boîte
+ * contact@ restait muette. Ce message est le seul qui dise « quelqu'un vient
+ * de réserver », avec de quoi rappeler sans ouvrir le back-office.
+ *
+ * Il n'est envoyé que pour les réservations prises depuis le site : un
+ * rendez-vous créé au back-office n'a pas à être annoncé à celui qui vient
+ * de le saisir.
+ */
+export async function emailNouvelleReservation(rdv: RendezVous) {
+  if (!ENTREPRISE.email) return { envoye: false, erreur: "aucune adresse de contact configurée" };
+  const { client, adresse, pack, operateur } = await contexte(rdv);
+
+  const prestation = pack ? titrePrestation(pack.id, pack.nom) : "prestation";
+  const acompte =
+    rdv.acompteStatut === "PAYE"
+      ? `${euros(rdv.acompte)} — <strong style="color:#1a7f4b">payé</strong>`
+      : `${euros(rdv.acompte)} — <strong style="color:#b4541a">${rdv.acompteStatut === "EN_ATTENTE_PAIEMENT" ? "en attente de paiement" : "non réglé"}</strong>`;
+
+  const ligne = (etiquette: string, valeur: string) =>
+    `<tr><td style="padding:4px 16px 4px 0;color:#6b6b78;white-space:nowrap">${etiquette}</td><td>${valeur}</td></tr>`;
+
+  const corps = `
+    <p>Une réservation vient d'être prise sur le site.</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:16px;font-size:15px">
+      ${ligne("Client", `<strong>${client?.prenom ?? ""} ${client?.nom ?? ""}</strong>`)}
+      ${client?.telephone ? ligne("Téléphone", `<a href="tel:${client.telephone}" style="color:#6425e0">${client.telephone}</a>`) : ""}
+      ${client?.email ? ligne("E-mail", `<a href="mailto:${client.email}" style="color:#6425e0">${client.email}</a>`) : ""}
+      ${ligne("Prestation", prestation)}
+      ${ligne("Date", `<strong>${quand(rdv.dateHeure)}</strong>`)}
+      ${ligne("Adresse", `${adresse?.adresse ?? ""}, ${adresse?.ville ?? ""}`)}
+      ${ligne("Total", euros(rdv.prixTotal))}
+      ${ligneDeplacement(rdv)}
+      ${ligne("Acompte", acompte)}
+      ${ligne("Opérateur", operateur ? operateur.prenom : "<em>non attribué</em>")}
+    </table>`;
+
+  return envoyerEmail({
+    destinataire: ENTREPRISE.email,
+    nom: NOM_EXPEDITEUR,
+    sujet: `Nouvelle réservation — ${quand(rdv.dateHeure)}`,
+    html: gabarit("Nouvelle réservation", corps, {
+      libelle: "Ouvrir le rendez-vous",
+      href: `${origineSite()}/back-office/rendez-vous/${rdv.id}`,
+    }),
+    action: "EMAIL_AVIS_RESERVATION",
+    entite: "RendezVous",
+    entiteId: rdv.id,
+    rendezVous: rdv,
+  });
+}
 
 /** Confirmation de réservation, envoyée au client dès le rendez-vous acquis. */
 export async function emailConfirmationReservation(rdv: RendezVous) {

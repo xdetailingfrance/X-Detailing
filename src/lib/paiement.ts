@@ -13,7 +13,7 @@ import type { Devis, RendezVous } from "@/lib/types";
 import { db, enregistrerRdv, historiserDevis, historiserRdv, versRdv } from "@/lib/db";
 import { changerStatut, trouverRendezVous } from "@/lib/rendezVous";
 import { appliquerActionWorkflow } from "@/lib/workflow";
-import { emailConfirmationReservation, emailFacture } from "@/lib/email";
+import { emailConfirmationReservation, emailFacture, emailNouvelleReservation } from "@/lib/email";
 import { MODELES_SMS, smsAuClient } from "@/lib/sms";
 import { journaliser } from "@/lib/audit";
 
@@ -115,6 +115,9 @@ export async function enregistrerPaiement(rdvId: string, sessionId: string) {
   if (!dejaEnvoye) {
     await smsAuClient(rdv, await MODELES_SMS.confirmationClient(rdv), "CONFIRMATION_RDV", "site");
     await emailConfirmationReservation(rdv);
+    // Même garde que la confirmation client : l'avis part une seule fois,
+    // au moment où l'acompte rend la réservation réelle.
+    await emailNouvelleReservation(rdv).catch((e) => console.error("Avis de réservation non envoyé", e));
   }
   return rdv;
 }

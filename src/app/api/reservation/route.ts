@@ -8,7 +8,7 @@ import { creneauxDisponibles, dateLocale } from "@/lib/disponibilites";
 import { DISTANCE_MAX_TARIFEE } from "@/lib/deplacement";
 import { deplacementPourAdresse } from "@/lib/bareme";
 import { geocoderDansLaZone } from "@/lib/zone";
-import { emailConfirmationReservation } from "@/lib/email";
+import { emailConfirmationReservation, emailNouvelleReservation } from "@/lib/email";
 import { MODELES_SMS, smsAuClient } from "@/lib/sms";
 import { titrePrestation } from "@/lib/prestationsPubliques";
 import { libelleDateHeure } from "@/lib/heure";
@@ -241,6 +241,9 @@ export async function POST(request: Request) {
    // de suivi, qu'un message de 160 caractères ne peut pas contenir. Son échec
    // n'empêche pas la réservation, déjà enregistrée.
    await emailConfirmationReservation(rdv);
+   // Avis à l'entreprise : sans lui, une réservation prise la nuit n'est vue
+   // qu'à l'ouverture du back-office. Son échec ne remet rien en cause.
+   await emailNouvelleReservation(rdv).catch((e) => console.error("Avis de réservation non envoyé", e));
   return NextResponse.json({ ...confirmation, paye: false, smsEnvoye: sms?.statut === "ENVOYE" }, { status: 201});
 }
 
