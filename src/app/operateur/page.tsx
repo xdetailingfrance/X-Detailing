@@ -77,7 +77,10 @@ export default async function EspaceOperateurPage() {
                 </h2>
                 <div className="flex flex-col gap-2">
                   {rdv.map((r) => {
-                    const resteAPayer = Number(r.prixTotal) - Number(r.acompte);
+                    // L'acompte n'est déduit que s'il a réellement été encaissé :
+                    // un acompte annoncé mais jamais payé reste dû, et l'afficher
+                    // comme réglé ferait encaisser trop peu.
+                    const resteAPayer = Number(r.prixTotal) - (r.acompteStatut === "PAYE" ? Number(r.acompte) : 0);
                     return (
                       <Link
                         key={r.id}

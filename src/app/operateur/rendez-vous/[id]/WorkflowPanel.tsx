@@ -324,7 +324,7 @@ export default function WorkflowPanel({
                 disabled={enCours}
                 className="rounded-md border border-[var(--border)] px-4 py-2 text-sm hover:bg-[var(--surface-2)]disabled:opacity-50"
               >
-                Carte (lien à distance)
+                Carte
               </button>
               <button
                 onClick={() => envoyer({ type: "CHOISIR_MODE_PAIEMENT", mode: "ESPECES" })}
@@ -336,31 +336,38 @@ export default function WorkflowPanel({
             </div>
           )}
 
-          {etat.modePaiement === "CARTE" && !etat.lienPaiementEnvoyeAt && (
-            <button
-              onClick={() => envoyer({ type: "ENVOYER_LIEN_PAIEMENT" })}
-              disabled={enCours}
-              className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium hover:bg-[var(--accent-2)] transition disabled:opacity-50 self-start"
-            >
-              Envoyer le lien de paiement au client
-            </button>
-          )}
-
-          {etat.modePaiement === "CARTE" && etat.lienPaiementEnvoyeAt && (
+          {etat.modePaiement === "CARTE" && (
             <>
-              <p className="text-sm text-[var(--success)]">
-                Lien envoyé par SMS et e-mail. Le dossier se clôture tout seul dès que le client a payé.
-              </p>
-              <p className="text-xs text-[var(--muted)]">
-                À n&apos;utiliser que si le paiement a été encaissé autrement — un terminal, un virement.
-              </p>
+              {/* Deux façons d'encaisser une carte, offertes ensemble : sur
+                  place avec le téléphone ou un terminal, ou à distance par un
+                  lien. Exiger l'envoi du lien avant de pouvoir confirmer
+                  obligeait à en expédier un dont personne n'avait besoin. */}
               <button
                 onClick={() => envoyer({ type: "CONFIRMER_PAIEMENT" })}
                 disabled={enCours}
-                className="rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium hover:bg-[var(--accent-2)]transition disabled:opacity-50 self-start"
+                className="self-start rounded-md bg-[var(--accent)] px-4 py-2 text-sm font-medium transition hover:bg-[var(--accent-2)] disabled:opacity-50"
               >
-                Confirmer un paiement reçu autrement
+                {enCours ? "…" : `Encaissé sur place — ${resteAPayer.toFixed(2)} €`}
               </button>
+              <p className="text-xs text-[var(--muted)]">
+                Tap to Pay, terminal bancaire : encaissez les {resteAPayer.toFixed(2)} € puis validez ici. Le
+                dossier se clôture et la facture part au client.
+              </p>
+
+              {etat.lienPaiementEnvoyeAt ? (
+                <p className="text-sm text-[var(--success)]">
+                  Lien de paiement envoyé par SMS et e-mail. Le dossier se clôture aussi tout seul dès que le
+                  client a payé.
+                </p>
+              ) : (
+                <button
+                  onClick={() => envoyer({ type: "ENVOYER_LIEN_PAIEMENT" })}
+                  disabled={enCours}
+                  className="self-start rounded-md border border-[var(--border)] px-4 py-2 text-sm transition hover:bg-[var(--surface-2)] disabled:opacity-50"
+                >
+                  Ou envoyer un lien de paiement au client
+                </button>
+              )}
             </>
           )}
 

@@ -154,13 +154,19 @@ function transition(rdv: RendezVous, action: ActionWorkflow, historiser: (libell
         case "CONFIRMER_PAIEMENT": {
           if (rdv.statut !== "PAIEMENT") return { ok: false, error: "Étape de paiement non active." };
           if (!rdv.modePaiement) return { ok: false, error: "Choisir un mode de paiement." };
-          if (rdv.modePaiement === "CARTE" && !rdv.lienPaiementEnvoyeAt) {
-            return { ok: false, error: "Envoyer le lien de paiement avant de confirmer." };
-          }
+          // Aucun lien n'est exigé : une carte peut être encaissée sur place,
+          // au terminal ou en Tap to Pay. Exiger l'envoi d'un lien inutile
+          // obligeait l'opérateur à en expédier un pour débloquer le bouton.
           rdv.paiementConfirmeAt = new Date();
           rdv.numeroFacture = genererNumeroFacture(rdv);
           rdv.statut = "TERMINE";
-          historiser(`Paiement confirmé — facture ${rdv.numeroFacture} — dossier clôturé.`);
+          const moyen =
+            rdv.modePaiement === "ESPECES"
+              ? "en espèces"
+              : rdv.lienPaiementEnvoyeAt
+                ? "par carte (lien de paiement)"
+                : "par carte sur place";
+          historiser(`Paiement confirmé ${moyen} — facture ${rdv.numeroFacture} — dossier clôturé.`);
           return { ok: true };
         }
 

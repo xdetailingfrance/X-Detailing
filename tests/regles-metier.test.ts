@@ -215,8 +215,9 @@ test("workflow opérateur : photos et signatures obligatoires avant la clôture"
     assert.ok((await faire({ type: "SIGNATURE_FIN", dataUrl: signature })).ok);
     assert.ok((await faire({ type: "PASSER_PAIEMENT" })).ok);
     assert.ok((await faire({ type: "CHOISIR_MODE_PAIEMENT", mode: "CARTE" })).ok);
-    assert.equal((await faire({ type: "CONFIRMER_PAIEMENT" })).ok, false); // lien non envoyé
-    assert.ok((await faire({ type: "CHOISIR_MODE_PAIEMENT", mode: "ESPECES" })).ok);
+    // Une carte s'encaisse aussi sur place — Tap to Pay, terminal : aucun
+    // lien n'est exigé. L'exiger obligeait l'opérateur à en envoyer un dont
+    // personne n'avait besoin, juste pour débloquer le bouton.
     assert.ok((await faire({ type: "CONFIRMER_PAIEMENT" })).ok);
 
   const final = (await trouverRendezVous(cree.id))!;
@@ -855,4 +856,52 @@ test("le solde réclamé tient compte de l'acompte réellement encaissé", async
   await db.rendezVous.update({ where: { id: rdv.id }, data: { acompteStatut: "PAYE" } });
   const paye = await trouverRendezVous(rdv.id);
   assert.equal(soldeDu(paye!), Math.round((rdv.prixTotal - rdv.acompte) * 100) / 100);
+});
+
+test("acompte en ligne puis solde encaissé sur place : une seule facture", async () => {
+  await operateur();
+  const rdv = await nouveauRdv();
+  // Attribué, donc confirmé : c'est ce qui autorise l'opérateur à partir.
+  await attribuerAutomatiquement(rdv);
+  // 10 % payés en ligne à la réservation.
+  await db.rendezVous.update({ where: { id: rdv.id }, data: { acompteStatut: "PAYE" } });
+  const paye = await trouverRendezVous(rdv.id);
+  assert.equal(soldeDu(paye!), Math.round((rdv.prixTotal - rdv.acompte) * 100) / 100);
+
+    // Déroulé jusqu'au paiement, en mode carte.
+    const etapes: Parameters<typeof appliquerActionWorkflow>[1][] = [
+      { type: "DEMARRER_ROUTE" },
+      { type: "CONFIRMER_ARRIVEE" },
+      { type: "SIGNATURE_CONTROLE", dataUrl: "data:image/png;base64,AAA" },
+      { type: "PASSER_PHOTOS_AVANT" },
+      ...ANGLES_PHOTO.map((angle) => ({ type: "PHOTO_AVANT" as const, angle, chemin: "x" })),
+      { type: "PASSER_LAVAGE" },
+      { type: "TERMINER_LAVAGE" },
+      ...ANGLES_PHOTO.map((angle) => ({ type: "PHOTO_APRES" as const, angle, chemin: "x" })),
+      { type: "SIGNATURE_FIN", dataUrl: "data:image/png;base64,AAA" },
+      { type: "PASSER_PAIEMENT" },
+      { type: "CHOISIR_MODE_PAIEMENT", mode: "CARTE" },
+    ];
+    for (const etape of etapes) {
+      const courant = await trouverRendezVous(rdv.id);
+      const res = await appliquerActionWorkflow(courant!, etape);
+      assert.ok(res.ok, !res.ok ? `${etape.type} : ${res.error}` : "");
+    }
+
+    // Tap to Pay ou terminal : on confirme sans avoir envoyé de lien.
+    // Auparavant l'étape était refusée tant qu'un lien n'était pas parti.
+    const avantPaiement = await trouverRendezVous(rdv.id);
+    assert.equal(avantPaiement!.lienPaiementEnvoyeAt, null);
+    const paiement = await appliquerActionWorkflow(avantPaiement!, { type: "CONFIRMER_PAIEMENT" });
+    assert.ok(paiement.ok, !paiement.ok ? paiement.error : "");
+
+    // Une seule facture, qui porte l'acompte et le solde.
+    const facture = await factureParId(rdv.id);
+    assert.ok(facture);
+    const regle = reglement(facture);
+    assert.equal(regle.acompte, rdv.acompte);
+    assert.equal(regle.solde, Math.round((rdv.prixTotal - rdv.acompte) * 100) / 100);
+    assert.equal(Math.round((regle.acompte + regle.solde) * 100) / 100, facture.prixTotal);
+    assert.equal(Math.round(lignesFacture(facture).reduce((s, l) => s + l.total, 0) * 100) / 100, facture.prixTotal);
+    assert.ok(facture.historique.some((h) => /par carte sur place/.test(h.libelle)));
 });
